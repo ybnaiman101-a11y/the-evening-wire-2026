@@ -2,6 +2,7 @@ import http from 'node:http';
 import {editorRoute,publicCalls,publicMeta} from './editor-calls.mjs';
 import {apSnapshot} from './ap-election-results.mjs';
 import {communityRoute} from './community.mjs';
+import {memberRoute} from './members.mjs';
 import {URL} from 'node:url';
 
 const PORT = Number(process.env.PORT || 3000);
@@ -285,6 +286,7 @@ const page=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./publ
 const server=http.createServer((req,res)=>{
  const u=new URL(req.url,'http://localhost');
  const json=(obj,code=200)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
+ if(u.pathname.startsWith('/api/members/')||u.pathname==='/api/admin/members'){memberRoute(req,res,u.pathname).catch(err=>{console.error('Members API error:',String(err?.message||err));if(!res.headersSent)json({error:'Member service temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname).catch(err=>{console.error('Community API request error:',String(err?.message||err));if(!res.headersSent)json({error:'Community service temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname==='/api/editor/calls'||u.pathname.startsWith('/api/admin/')){editorRoute(req,res,u.pathname).catch(err=>{console.error('Editor route error',err);if(!res.headersSent)json({error:'Editorial desk unavailable'},503);else res.end()});return;}
  if(u.pathname==='/api/election'){
@@ -302,6 +304,7 @@ const server=http.createServer((req,res)=>{
   });
  }
 
+ if(u.pathname==='/members.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/members.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/editor-calls.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/editor-calls.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/reactions.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/reactions.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'public, max-age=180'});res.end(b)}).catch(()=>json({error:'Resource unavailable'},404));return;}
  if(u.pathname==='/election-maps.js'||u.pathname==='/election-maps.css'){
