@@ -64,9 +64,9 @@ export async function editorRoute(req,res,path){
   let b;try{b=await input(req,1500)}catch(e){send(res,400,{error:e.message});return true}
   if(!validPassword(b.password)){const f=last&&n-last.start<900000?last:{start:n,count:0};f.count++;failures.set(address,f);send(res,401,{error:'Incorrect administrator password'});return true}
   failures.delete(address);const key=randomBytes(32).toString('hex');sessions.set(key,n+43200000);
-  send(res,200,{authenticated:true,...meta(),count:calls.length},{'Set-Cookie':'ew_editor_session='+key+'; HttpOnly; Secure; SameSite=Strict; Path=/api/admin/; Max-Age=43200'});return true;
+  send(res,200,{authenticated:true,...meta(),count:calls.length},{'Set-Cookie':'ew_editor_session='+key+'; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=43200'});return true;
  }
- if(route==='logout'&&req.method==='POST'){const k=(String(req.headers.cookie||'').match(/ew_editor_session=([a-f0-9]{64})/)||[])[1];sessions.delete(k);send(res,200,{authenticated:false},{'Set-Cookie':'ew_editor_session=; HttpOnly; Secure; SameSite=Strict; Path=/api/admin/; Max-Age=0'});return true}
+ if(route==='logout'&&req.method==='POST'){const k=(String(req.headers.cookie||'').match(/ew_editor_session=([a-f0-9]{64})/)||[])[1];sessions.delete(k);send(res,200,{authenticated:false},{'Set-Cookie':'ew_editor_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'});return true}
  if(!authed){send(res,403,{error:'Admin login required'});return true}
  if(route==='backup'&&req.method==='GET'){send(res,200,{...snapshot(),exportedAt:new Date().toISOString(),...meta()},{'Content-Disposition':'attachment; filename="evening-wire-race-calls.json"'});return true}
  if(store==='unavailable'){send(res,503,{error:'Database unavailable. Publishing disabled to prevent data loss.'});return true}
