@@ -12,8 +12,8 @@ input{padding:14px;width:100%;font-size:15px;border:1px solid #3b6883;border-rad
 #status{margin:13px 0 0;color:#f8c586;font-size:13px;min-height:20px}footer{color:#7fa4ba;font-size:11px;text-align:center;margin-top:22px}
 </style></head><body><main class="shell"><div class="kicker">2026 ELECTION NEWSROOM</div>
 <div class="logo">THE EVENING <span>WIRE</span></div><div class="tag">TODAY’S TOP STORIES</div>
-<h1>MEMBER ACCESS REQUIRED</h1><p class="sub">Register to enter the newsroom. Returning members use their email and private four-digit PIN. Your chosen display name appears automatically on every reaction and reply.</p>
-<div class="tabs"><button type="button" id="signInTab" class="sel">SIGN IN</button><button type="button" id="joinTab">CREATE ACCOUNT</button><button type="button" id="legacyTab">HAD AN ACCOUNT BEFORE?</button></div>
+<h1>SIGN IN TO PARTICIPATE</h1><p class="sub">The newsroom is free to browse. Create an account when you want to use a feature, or sign in with your email and four-digit PIN. Your chosen display name appears on your reactions and replies.</p>
+<p class="notice"><a href="/" style="color:#77e9ff">← Return to the newsroom without signing in</a></p><div class="tabs"><button type="button" id="signInTab" class="sel">SIGN IN</button><button type="button" id="joinTab">CREATE ACCOUNT</button><button type="button" id="legacyTab">HAD AN ACCOUNT BEFORE?</button></div>
 <form id="login"><label>EMAIL<input type="email" name="email" required autocomplete="email"></label>
 <label>FOUR-DIGIT SIGN-IN PIN<input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" required autocomplete="off" placeholder="••••"></label>
 <button class="btn" type="submit">ENTER THE EVENING WIRE</button></form>
@@ -31,7 +31,7 @@ input{padding:14px;width:100%;font-size:15px;border:1px solid #3b6883;border-rad
 <button class="btn" type="submit">SET UP PIN & ENTER MY EXISTING ACCOUNT</button>
 </form>
 <p class="notice">For security, five incorrect PIN attempts trigger a 30-minute account lockout. The PIN is not emailed or texted; it is a code you choose. Email ownership is not yet verified.</p>
-<p id="status" role="status"></p><footer>THE EVENING WIRE · MEMBERS-ONLY ELECTION COMMAND CENTER</footer>
+<p id="status" role="status"></p><footer>THE EVENING WIRE · OPEN TO READ · REGISTER TO PARTICIPATE</footer>
 </main><script>
 const $=id=>document.getElementById(id),login=$('login'),signup=$('signup'),activate=$('activate');
 function change(mode){
