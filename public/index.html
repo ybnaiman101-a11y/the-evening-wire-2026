@@ -42,6 +42,14 @@ body{background:#070d16;color:#e7f2ff}
 .command-nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:3px;padding:10px max(16px,calc((100vw - 1510px)/2));background:#061321ed;border-bottom:1px solid #284357;backdrop-filter:blur(16px);overflow-x:auto;scrollbar-width:thin}
 .command-nav button{border:0;border-radius:7px;background:transparent;flex:0 0 auto;font-size:10px;letter-spacing:.45px;text-transform:uppercase;color:#9bb2cb;padding:12px 13px;white-space:nowrap;font-weight:800}
 .command-nav button:hover{background:#142c42;color:#fff}.command-nav button.sel{color:#f8fdff;background:#15516c;box-shadow:inset 0 -2px #55e2fa}.command-nav button .num{color:#81d9ec;margin-right:5px;font-weight:700}
+/* Make the community Reaction Hub a distinctive, larger navigation destination. */
+.command-nav button[data-ew-tab="reactions"]{background:linear-gradient(125deg,#7433bb 0%,#a72f9b 100%);border:1px solid #d18ce9;border-radius:10px;color:#fff;padding:15px 23px;font-size:12px;letter-spacing:.7px;font-weight:900;box-shadow:0 3px 16px #a23acb45;margin-left:8px;transition:background .18s,box-shadow .18s,transform .18s}
+.command-nav button[data-ew-tab="reactions"] .num{color:#fae4ff;font-weight:900;margin-right:8px}
+.command-nav button[data-ew-tab="reactions"]:hover{background:linear-gradient(125deg,#9746d0,#c03bad);color:#fff;box-shadow:0 4px 22px #b34ce675;transform:translateY(-1px)}
+.command-nav button[data-ew-tab="reactions"].sel{background:linear-gradient(125deg,#9641d3,#bd329f);color:#fff;box-shadow:inset 0 -3px #ffe4fb,0 3px 18px #a745d16b}
+.command-nav button[data-ew-tab="reactions"]:focus-visible{outline:2px solid #f4c4ff;outline-offset:3px}
+@media(max-width:650px){.command-nav button[data-ew-tab="reactions"]{font-size:11px;padding:13px 16px;margin-left:4px}}
+
 #commandDesk{max-width:1530px;margin:0 auto;padding:26px 30px 70px}.news-legacy{display:none!important}body[data-ew-view="news"] .news-legacy{display:block!important}body[data-ew-view="news"] #commandDesk{display:none!important}
 .cmd-banner{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,.8fr);gap:17px;margin-bottom:21px}
 .cmd-hero{border:1px solid #3e607b;border-radius:17px;padding:32px 34px;position:relative;overflow:hidden;background:radial-gradient(circle at 92% 0%,#1c6a8650,transparent 48%),linear-gradient(125deg,#11283c,#0b1b2e);min-height:215px}
