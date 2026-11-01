@@ -312,6 +312,38 @@ html,body{max-width:100%;overflow-x:clip}
 .ew-call-disabled{border:1px solid #b36b47;border-radius:9px;padding:12px;color:#f7c7a8;background:#442b2566;font-size:12px;line-height:1.6}
 .ew-candidate-provenance{font-size:10px;line-height:1.7;color:#9fbbce}
 @media(max-width:720px){.ew-named-race{align-items:flex-start!important;flex-wrap:wrap!important}.ew-named-race .end{margin-left:55px!important;white-space:normal!important}.ew-race-matchup b{font-size:11px}}
+
+/* Exclusive colorful command-center design, scoped to HEADQUARTERS only */
+.ew-hq{min-width:0;max-width:100%;color:#f2f9ff}
+.ew-hq-live-label{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 19px;margin:0 0 14px;border:1px solid #3b9bb7;background:linear-gradient(110deg,#103e53,#1b395d);color:#bceff7;border-radius:12px;font-size:10px;letter-spacing:1.2px;font-weight:900}
+.ew-hq-live-label i{width:9px;height:9px;border-radius:50%;background:#69e5b1;box-shadow:0 0 0 5px #4fe5ac30,0 0 15px #4fe5ac;flex:none}
+.ew-hq-live-label b{margin-left:auto;color:#f3cd87;font-size:12px}
+.ew-hq .cmd-banner{grid-template-columns:minmax(0,1.5fr) minmax(230px,.65fr)}
+.ew-hq .cmd-hero{border:1px solid #5c9ab8;border-top:5px solid #e96982;background:radial-gradient(circle at 10% 105%,#ab2a5b66,transparent 52%),radial-gradient(circle at 100% 0%,#2c8fbd63,transparent 45%),linear-gradient(120deg,#152c4a,#081b32);box-shadow:0 14px 36px #0004;min-height:263px}
+.ew-hq .cmd-hero h1{font:1000 clamp(48px,5.7vw,84px)/.9 'Barlow Condensed',Impact,sans-serif;letter-spacing:-.8px;margin:20px 0}
+.ew-hq .cmd-hero h1 em{display:block;font-style:normal;background:linear-gradient(90deg,#ffffff,#87ebf0,#78aeed,#ddb9ff);color:#86d8ec;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.ew-hq .cmd-hero p{font-size:13px;color:#cee1ed;line-height:1.85}
+.ew-hq .cmd-mini{border:1px solid #79a6c3;border-top:5px solid #f4c981;background:radial-gradient(circle at 80% 0%,#417fa960,transparent 65%),linear-gradient(135deg,#16435a,#202d4b);text-align:center;display:flex;flex-direction:column;justify-content:center;box-shadow:0 12px 34px #0005}
+.ew-hq .cmd-mini .main-number{font:1000 clamp(43px,5vw,77px)/1 'Barlow Condensed',Impact,sans-serif;color:#fbd39e;text-shadow:0 0 28px #d99d6880;overflow-wrap:anywhere}
+.ew-hq-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:20px 0 31px}
+.ew-hq-metrics>div{display:grid;gap:8px;padding:18px;border:1px solid #ffffff35;border-radius:14px;min-width:0}
+.ew-hq-metrics .cyan{background:linear-gradient(120deg,#15566b,#153149)}.ew-hq-metrics .gold{background:linear-gradient(120deg,#685033,#303143)}
+.ew-hq-metrics .red{background:linear-gradient(120deg,#73344e,#33283b)}.ew-hq-metrics .blue{background:linear-gradient(120deg,#20518a,#1c304f)}
+.ew-hq-metrics span{font-size:10px;font-weight:900;letter-spacing:.65px;color:#e4f3fa}
+.ew-hq-metrics strong{font:1000 clamp(41px,4.3vw,65px)/1 'Barlow Condensed',Impact,sans-serif;color:#fff}
+.ew-hq-metrics small{font-size:10px;color:#d1ddea;line-height:1.6}
+.ew-hq-section-heading{margin:0 0 15px}
+.ew-hq-section-heading small{font-size:10px;font-weight:900;letter-spacing:1.25px;color:#96d1e4}
+.ew-hq-section-heading h2{font:1000 clamp(29px,3.5vw,42px)/1 'Barlow Condensed',Impact,sans-serif;color:#fff;margin:7px 0}
+.ew-hq-race-grid .cmd-card{border:1px solid #ffffff55;box-shadow:inset 0 1px #ffffff1a;border-top:4px solid #d26f8c}
+.ew-hq-race-grid .cmd-card:nth-child(1){background:linear-gradient(120deg,#743849,#302840);border-top-color:#f47b86}
+.ew-hq-race-grid .cmd-card:nth-child(2){background:linear-gradient(120deg,#6b518d,#2b3157);border-top-color:#c7a3f3}
+.ew-hq-race-grid .cmd-card:nth-child(3){background:linear-gradient(120deg,#236d9e,#182c4c);border-top-color:#62c5ef}
+.ew-hq-race-grid .cmd-card h3,.ew-hq-race-grid .cmd-card p{color:#f2f8ff}
+.ew-hq-covers .cmd-card{border:1px solid #537e9c;border-top:4px solid #5ce0e8;background:linear-gradient(135deg,#1a4659,#12243e)}
+.ew-hq-covers .cmd-card:nth-child(2){border-top-color:#efba7d;background:linear-gradient(130deg,#39384a,#1a2941)}
+@media(max-width:920px){.ew-hq .cmd-banner{grid-template-columns:1fr}.ew-hq .cmd-mini{min-height:165px}.ew-hq-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.ew-hq .cmd-hero{padding:24px}.ew-hq .cmd-hero h1{font-size:clamp(47px,10vw,65px)}.ew-hq-metrics>div{padding:14px}}
 </style>
 <link rel="stylesheet" href="/election-maps.css"><link rel="stylesheet" href="/studio.css"></head>
 <body>
@@ -344,7 +376,7 @@ html,body{max-width:100%;overflow-x:clip}
     <div class="clock" id="clock">EASTERN TIME</div>
   </div>
 </header>
-<nav class="command-nav" aria-label="Election command center sections"><button type="button" data-ew-tab="hq" aria-current="page"><span class="num">01</span> HEADQUARTERS</button><button type="button" data-ew-tab="news" aria-current="false"><span class="num">02</span> LIVE NEWS</button><button type="button" data-ew-tab="senate" aria-current="false"><span class="num">03</span> SENATE</button><button type="button" data-ew-tab="house" aria-current="false"><span class="num">04</span> HOUSE · 435</button><button type="button" data-ew-tab="governor" aria-current="false"><span class="num">05</span> GOVERNORS</button><button type="button" data-ew-tab="calls" aria-current="false"><span class="num">06</span> RACES CALLED</button><button type="button" data-ew-tab="battleground" aria-current="false"><span class="num">07</span> WATCHLIST</button><button type="button" data-ew-tab="states" aria-current="false"><span class="num">08</span> 50 STATES</button><button type="button" data-ew-tab="turnout" aria-current="false"><span class="num">09</span> TURNOUT</button><button type="button" data-ew-tab="sources" aria-current="false"><span class="num">10</span> SOURCES</button><button type="button" data-ew-tab="mydesk" aria-current="false"><span class="num">11</span> MY DESK</button><button type="button" data-ew-tab="reactions" aria-current="false"><span class="num">12</span> REACTION HUB</button><button type="button" data-ew-tab="members" aria-current="false"><span class="num">13</span> MEMBERS / LOGIN</button><button type="button" data-ew-tab="traffic" aria-current="false"><span class="num">14</span> TRAFFIC · ADMIN</button><button type="button" data-ew-tab="election-map" aria-current="false"><span class="num">15</span> LIVE ELECTION MAP</button><button type="button" data-ew-tab="swing" aria-current="false"><span class="num">16</span> SWING ANALYZER</button><button type="button" data-ew-tab="predictions" aria-current="false"><span class="num">17</span> PREDICTION CHALLENGE</button></nav>
+<nav class="command-nav" aria-label="Election command center sections"><button type="button" data-ew-tab="hq" aria-current="page"><span class="num">01</span> HEADQUARTERS</button><button type="button" data-ew-tab="news" aria-current="false"><span class="num">02</span> LIVE NEWS</button><button type="button" data-ew-tab="senate" aria-current="false"><span class="num">03</span> SENATE</button><button type="button" data-ew-tab="house" aria-current="false"><span class="num">04</span> HOUSE · 435</button><button type="button" data-ew-tab="governor" aria-current="false"><span class="num">05</span> GOVERNORS</button><button type="button" data-ew-tab="calls" aria-current="false"><span class="num">06</span> RACES CALLED</button><button type="button" data-ew-tab="battleground" aria-current="false"><span class="num">07</span> WATCHLIST</button><button type="button" data-ew-tab="states" aria-current="false"><span class="num">08</span> 50 STATES</button><button type="button" data-ew-tab="turnout" aria-current="false"><span class="num">09</span> TURNOUT</button><button type="button" data-ew-tab="sources" aria-current="false"><span class="num">10</span> SOURCES</button><button type="button" data-ew-tab="mydesk" aria-current="false"><span class="num">11</span> MY DESK</button><button type="button" data-ew-tab="swing" aria-current="false"><span class="num">12</span> SWING ANALYZER</button><button type="button" data-ew-tab="predictions" aria-current="false"><span class="num">13</span> PREDICTION CHALLENGE</button><button type="button" data-ew-tab="reactions" aria-current="false"><span class="num">14</span> REACTION HUB</button><button type="button" data-ew-tab="members" aria-current="false"><span class="num">15</span> MEMBERS / LOGIN</button><button type="button" data-ew-tab="traffic" aria-current="false"><span class="num">16</span> TRAFFIC · ADMIN</button></nav>
 <div class="ticker"><strong>✦ NEWS ALERTS</strong><div id="ticker">Connecting to 27 newsrooms. Only verified feed headlines appear here.</div></div>
 <main id="commandDesk" role="main" aria-live="polite"><div class="cmd-void"><strong>Initializing Election Command Center</strong>Connecting to live news and checking election-data availability.</div></main><div class="cmd-modal" id="cmdModal" hidden><div class="cmd-dialog" role="dialog" aria-modal="true" aria-label="Election race details" id="cmdDialog"></div></div><main class="wrap news-legacy" id="legacyNews"><div class="desk-nav"><div><span class="on-air">● ON AIR</span><span>AMERICA VOTES · 2026</span></div><div><button id="savedOpen" type="button">◇ SAVED <span class="counter-bubble" id="savedCount">0</span></button><button id="focusToggle" type="button" aria-pressed="false">▣ FOCUS MODE</button></div></div>
 <section class="hero"><div class="eyebrow">THE MIDTERM ELECTIONS &nbsp; 2026</div><h1>ELECTION NIGHT <span>LIVE</span></h1><p>One screen. Every major outlet. Election headlines appear as they are discovered.</p>
@@ -680,12 +712,13 @@ function hq(){
  const lead=news[0];const calledList=(results.calls||[]).slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt));
  const countTo=new Date('2026-11-03T00:00:00-05:00').getTime()-Date.now();
  const days=Math.max(0,Math.ceil(countTo/86400000)),onElection=Date.now()>=new Date('2026-11-03T00:00:00-05:00').getTime();
- return '<div class="cmd-banner"><div class="cmd-hero"><span class="cmd-kicker">2026 U.S. MIDTERM ELECTIONS</span><h1>AMERICA <em>DECIDES.</em></h1><p>Your real-time election newsroom for all 435 House contests, regularly scheduled Senate and gubernatorial races, original publisher headlines, and attributed race calls.</p><div class="cmd-toolbar"><button class="cmd-primary" data-tab="news">LIVE NEWSROOM ↗</button><button class="cmd-minibtn" data-tab="calls">RACE CALL DESK</button><button class="cmd-minibtn" data-tab="senate">SENATE RACES ↗</button></div></div><div class="cmd-mini"><strong>'+esc(onElection?'ELECTION DESK':'COUNTDOWN TO ELECTION DAY')+'</strong><span class="main-number">'+(onElection?'ON AIR':days+' DAYS')+'</span><small>TUESDAY · NOVEMBER 3, 2026<br>Reporting and race calls require a verified provider.</small></div></div>'
- +'<div class="cmd-grid">'+infoCard('senate',SENATE)+infoCard('governor',GOVERNOR)+infoCard('house',HOUSE)+'</div>'
+ return '<div class="ew-hq"><div class="ew-hq-live-label"><i></i> THE EVENING WIRE · ELECTION HEADQUARTERS <b>2026</b></div><div class="cmd-banner"><div class="cmd-hero"><span class="cmd-kicker">NATIONAL MIDTERM COMMAND CENTER</span><h1>ELECTION <em>HEADQUARTERS.</em></h1><p>The national election newsroom: 35 Senate seats, 435 House contests, 36 governor elections, trusted publisher headlines and your attributed race calls.</p><div class="cmd-toolbar"><button class="cmd-primary" data-tab="news">LIVE NEWSROOM ↗</button><button class="cmd-minibtn" data-tab="calls">RACE CALL DESK</button><button class="cmd-minibtn" data-tab="senate">SENATE RACES ↗</button></div></div><div class="cmd-mini"><strong>'+esc(onElection?'ELECTION DESK':'COUNTDOWN TO ELECTION DAY')+'</strong><span class="main-number">'+(onElection?'ON AIR':days+' DAYS')+'</span><small>TUESDAY · NOVEMBER 3, 2026<br>Reporting and race calls require a verified provider.</small></div></div>'
+ +'<section class="ew-hq-metrics"><div class="cyan"><span>LIVE NEWS STORIES</span><strong>'+news.length+'</strong><small>Publisher feed</small></div><div class="gold"><span>RACES CALLED</span><strong>'+calledList.length+'</strong><small>Owner projections</small></div><div class="red"><span>GOP CALLS</span><strong>'+calledList.filter(x=>x.party==='R').length+'</strong><small>Source-linked</small></div><div class="blue"><span>DEMOCRATIC CALLS</span><strong>'+calledList.filter(x=>x.party==='D').length+'</strong><small>Source-linked</small></div></section>'+
+ '<div class="ew-hq-section-heading"><small>01 / YOUR ELECTION RACE CENTER</small><h2>THE BATTLEGROUND BOARD</h2></div><div class="cmd-grid ew-hq-race-grid">'+infoCard('senate',SENATE)+infoCard('governor',GOVERNOR)+infoCard('house',HOUSE)+'</div>'
  +'<div class="cmd-toolbar" style="margin:16px 0 10px;gap:10px"><button class="cmd-primary" data-tab="senate">VIEW ALL SENATE RACES →</button><button class="cmd-primary" data-tab="house">VIEW ALL 435 HOUSE RACES →</button><button class="cmd-primary" data-tab="governor">VIEW ALL GOVERNOR RACES →</button></div>'+notice()
- +wrap('<div class="cmd-split"><div class="cmd-card"><div class="cmd-eyebrow">LATEST VERIFIED PUBLISHER COVERAGE</div><h3>THE LEAD STORY</h3>'+(lead?'<h2 style="font:700 clamp(23px,3vw,36px)/1.25 Georgia,serif;margin:17px 0"><a href="'+siteURL(lead.url)+'" target="_blank" rel="noopener noreferrer">'+esc(lead.title)+'</a></h2><p>'+esc(lead.source)+' · '+formatTime(lead.published)+'</p>':unavail('Waiting for the first published election headline.'))+'<div class="cmd-toolbar"><button data-tab="news">OPEN LIVE NEWS →</button></div></div><div class="cmd-card"><div class="cmd-eyebrow">RACE CALL DESK</div><h3>RECENT PROJECTIONS</h3>'+(calledList.length?callCards(calledList.slice(0,2)):unavail('No attributable race calls received from a configured results provider.'))+'<div class="cmd-toolbar"><button data-tab="calls">VIEW ALL CALLS →</button></div></div></div>')
+ +'<div class="ew-hq-section-heading"><small>02 / LATEST NATIONAL COVERAGE</small><h2>THE LIVE NEWSROOM</h2></div>'+wrap('<div class="cmd-split ew-hq-covers"><div class="cmd-card"><div class="cmd-eyebrow">LATEST VERIFIED PUBLISHER COVERAGE</div><h3>THE LEAD STORY</h3>'+(lead?'<h2 style="font:700 clamp(23px,3vw,36px)/1.25 Georgia,serif;margin:17px 0"><a href="'+siteURL(lead.url)+'" target="_blank" rel="noopener noreferrer">'+esc(lead.title)+'</a></h2><p>'+esc(lead.source)+' · '+formatTime(lead.published)+'</p>':unavail('Waiting for the first published election headline.'))+'<div class="cmd-toolbar"><button data-tab="news">OPEN LIVE NEWS →</button></div></div><div class="cmd-card"><div class="cmd-eyebrow">RACE CALL DESK</div><h3>RECENT PROJECTIONS</h3>'+(calledList.length?callCards(calledList.slice(0,2)):unavail('No attributable race calls received from a configured results provider.'))+'<div class="cmd-toolbar"><button data-tab="calls">VIEW ALL CALLS →</button></div></div></div>')
  +recentTimeline()
- +wrap(title('The National Newswire','Recent election coverage from the configured publisher feeds.')+'<div class="cmd-card">'+latestStories(6)+'</div>')+'<div class="cmd-footer-info">'+liveSummary()+'</div>'
+ +'<div class="ew-hq-section-heading"><small>03 / PUBLISHER DISPATCHES</small><h2>NATIONAL NEWSWIRE</h2></div>'+wrap(title('The National Newswire','Recent election coverage from the configured publisher feeds.')+'<div class="cmd-card">'+latestStories(6)+'</div>')+'<div class="cmd-footer-info">'+liveSummary()+'</div></div>'
 }
 function raceTitle(x){return stateName(x.state)+' '+(x.office==='senate'?(x.special?'Special Senate':'Senate'):x.office==='governor'?'Governor':'House District '+x.district)}
 function catalogRace(x){return window.EWRaceCatalog?.byKey?.[x.key]||null}
@@ -765,7 +798,6 @@ function render(){
  if(active==='reactions'){window.EWReactions?.open();return;}
  if(active==='members'){window.EWMembers?.open();return;}
  if(active==='traffic'){window.EWTraffic?.open();return;}
- if(active==='election-map'){window.EWStudio?.open('map');return;}
  if(active==='swing'){window.EWStudio?.open('swing');return;}
  if(active==='predictions'){window.EWStudio?.open('challenge');return;}
  const pages={hq:hq,senate:()=>raceList('senate'),governor:()=>raceList('governor'),house:()=>raceList('house'),calls:callsView,battleground:watched,states:statesView,turnout:turnoutView,sources:sourceView,mydesk:myDesk};
@@ -784,7 +816,7 @@ document.addEventListener('click',event=>{
 });
 setInterval(()=>{if(!document.hidden)recordTraffic(active,false)},30000);
 function go(tab){
- active=['hq','news','senate','governor','house','calls','battleground','states','turnout','sources','mydesk','reactions','members','traffic','election-map','swing','predictions'].includes(tab)?tab:'hq';
+ active=['hq','news','senate','governor','house','calls','battleground','states','turnout','sources','mydesk','reactions','members','traffic','swing','predictions'].includes(tab)?tab:'hq';
  if(active!=='house')houseLimit=55;
  history.replaceState(null,'','#'+active);
  recordTraffic(active,true);
@@ -826,7 +858,7 @@ async function sync(){
   if(values[0]){news=(values[0].stories||[]).sort((a,b)=>Date.parse(b.published)-Date.parse(a.published));newsScan=values[0].lastScan}
   if(values[1]){sources=values[1].sources||sources;newsScan=values[1].lastScan||newsScan;feedConnected=true}
   if(values[2])results=values[2];
-  if(active!=='news'&&active!=='reactions'&&active!=='members'&&active!=='traffic'&&active!=='election-map'&&active!=='swing'&&active!=='predictions'&&!(active==='calls'&&window.EWEditor?.isEditing())&&!document.activeElement?.matches('#cmdRaceSearch'))render();
+  if(active!=='news'&&active!=='reactions'&&active!=='members'&&active!=='traffic'&&active!=='swing'&&active!=='predictions'&&!(active==='calls'&&window.EWEditor?.isEditing())&&!document.activeElement?.matches('#cmdRaceSearch'))render();
  }catch(e){console.warn('Election Desk sync',e)}
 }
 document.querySelector('.command-nav').addEventListener('click',e=>{const b=e.target.closest('[data-ew-tab]');if(b)go(b.dataset.ewTab)});
