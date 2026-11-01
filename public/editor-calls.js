@@ -29,7 +29,7 @@ function view(){
  const panel=q('ewEditorMount');if(!panel)return;
  if(!open){
   panel.innerHTML='<section class="ew-editor-teaser"><div><span class="cmd-eyebrow">THE EVENING WIRE · EDITORIAL DESK</span><h3>OWNER RACE-CALL CONTROLS</h3><p>Only the authenticated owner can publish or retract election calls. Every published call includes an attributed source and a link to the original report.</p></div><button type="button" id="ewOpenEditor" class="cmd-primary">🔒 OPEN ADMIN DESK</button></section>';
-  q('ewOpenEditor').onclick=async()=>{open=true;await check();view()};return
+  q('ewOpenEditor').onclick=async()=>{open=true;await check();if(logged)await load();view()};return
  }
  const warning=meta.storage==='temporary'?'<div class="cmd-notice"><strong>IMPORTANT: TEMPORARY STORAGE.</strong> Calls may disappear on server restart or deploy. Export your calls after changes. A PostgreSQL connection is still required for permanent publication.</div>':'';
  panel.innerHTML='<section class="ew-editor-console"><div class="ew-editor-head"><div><span class="cmd-eyebrow">PRIVATE · OWNER ONLY</span><h2>RACE CALL ADMIN DESK</h2><p>Editor-issued calls are displayed publicly as attributed editorial projections, not official certified results.</p></div><button type="button" id="ewCloseEditor" class="cmd-minibtn">CLOSE ✕</button></div>'+
