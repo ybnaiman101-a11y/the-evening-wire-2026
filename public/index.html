@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08111d"><meta name="description" content="THE EVENING WIRE: 2026 live election headlines from 27 news outlets.">
+<title>THE EVENING WIRE — 2026 Election Night LIVE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&display=swap');
+:root{color-scheme:dark;--bg:#090f19;--panel:#131e2d;--line:#2b3950;--text:#f1f6ff;--muted:#8da1bc;--red:#ec3d51;--cyan:#21cff3;--green:#3be0a0;font-family:'DM Sans',system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse 500px 420px at 85% 15%,#18335b55,transparent),var(--bg);color:var(--text)}
+button,input,select{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+header{border-bottom:1px solid #205976;background:#07121fae;padding:13px 3%;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:104px}
+.brand{display:flex;align-items:center;gap:7px;min-width:0}.brand svg{width:76px;min-width:60px;height:69px;filter:drop-shadow(0 0 8px #00b4ff44)}.brand-text{min-width:0}.brand .the{font-size:11px;letter-spacing:8px;font-weight:900;color:#d2edff}.brand .main{font:900 clamp(24px,4vw,51px)/.88 'Barlow Condensed',Impact,sans-serif;white-space:nowrap;letter-spacing:.2px}.brand .main span{color:var(--cyan);text-shadow:0 0 20px #06b9fa66}.brand .tag{font-size:10px;letter-spacing:3.4px;color:#c4d6e6;margin-top:8px;font-weight:800}.status{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:800;letter-spacing:1px;white-space:nowrap}.dot{height:9px;width:9px;background:#eab36b;box-shadow:0 0 0 4px #eab36b22;border-radius:50%}.dot.live{background:var(--green);box-shadow:0 0 0 4px #3be0a022}.clock{color:#9bb1cc;font-size:11px;margin-top:7px;text-align:right}
+.ticker{display:flex;align-items:stretch;background:#28141d;border-bottom:1px solid #803342;height:43px;overflow:hidden}.ticker strong{background:var(--red);padding:12px 21px;font:900 14px 'Barlow Condensed',sans-serif;letter-spacing:1.5px;white-space:nowrap}.ticker div{display:flex;align-items:center;min-width:0;padding:0 19px;font-size:11px;color:#f7c7d1;font-weight:800;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.wrap{max-width:1460px;margin:auto;padding:25px 30px}.hero{background:linear-gradient(110deg,#172237,#111b2b 60%,#202b42);border:1px solid #37455e;border-radius:6px;position:relative;overflow:hidden;padding:35px 40px 24px}.hero:after{content:'2026';position:absolute;right:15px;top:20px;color:#6d8fc51c;font:900 190px 'Barlow Condensed';pointer-events:none}.eyebrow{font-size:11px;letter-spacing:3px;font-weight:900;color:#a7d8f1}.eyebrow:before{content:'';display:inline-block;background:var(--red);width:21px;height:4px;margin-right:13px;vertical-align:middle}.hero h1{font:900 clamp(55px,7.4vw,100px)/1 'Barlow Condensed',Impact,sans-serif;letter-spacing:.2px;margin:12px 0 4px;position:relative;z-index:1}.hero h1 span{color:var(--red)}.hero p{font-size:13px;color:#b1bfd1;position:relative;z-index:1}.hero-foot{margin-top:42px;border-top:1px solid #34465e;padding-top:18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;position:relative;z-index:1}.election-date{font-size:12px;font-weight:900;letter-spacing:.7px}.election-date small{display:block;color:var(--muted);margin-top:5px;font-weight:600}.buttons{display:flex;gap:8px;flex-wrap:wrap}button{border:1px solid #44516a;background:#202b3d;color:white;border-radius:4px;padding:10px 13px;font-size:11px;font-weight:800}.primary{background:var(--red);border-color:var(--red)}.active{background:var(--red)!important;color:white!important;border-color:var(--red)!important}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);background:#121e2e;border:1px solid var(--line);border-radius:5px;margin-top:18px}.metric{padding:19px 24px;border-right:1px solid var(--line)}.metric:last-child{border-right:0}.metric label{font-size:9px;letter-spacing:1.3px;color:var(--muted);font-weight:900;display:block}.metric strong{font-size:27px;margin-top:3px;display:block}.metric small{font-size:11px;color:var(--muted);font-weight:500}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:23px;margin-top:32px}.section-cap{font-size:10px;letter-spacing:2px;color:#ff858f;font-weight:900}.news h2{font:800 33px 'Barlow Condensed';margin:6px 0 14px}.filters{border:1px solid var(--line);background:#141f30;border-radius:5px;padding:12px}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs button{background:transparent;border-color:transparent;color:#a6b4c8}.formrow{margin-top:10px;display:flex;gap:8px}.formrow input,.formrow select{background:#0e1725;border:1px solid #354761;border-radius:4px;color:#dce9fa;padding:11px;min-width:0}.formrow input{flex:1;width:50%}.formrow select{width:178px}.story-list{border:1px solid var(--line);border-top:0;border-radius:0 0 6px 6px;background:#101928;min-height:250px}.story{padding:19px 21px;border-bottom:1px solid #27354a}.story:last-child{border-bottom:0}.story-header{display:flex;gap:9px;align-items:center;color:#88a1bf;font-size:10px;font-weight:800}.story-header img{width:16px;height:16px;background:white;border-radius:3px}.story-header time{margin-left:auto;white-space:nowrap;color:#7087a2}.story h3{margin:11px 0 7px;font-size:17px;line-height:1.42}.story h3 a:hover{color:#9ecffd}.story p{color:#a3b5c9;font-size:11px;line-height:1.6;margin:0}.badges{margin-top:11px;display:flex;gap:6px}.badge{display:inline-block;padding:4px 7px;background:#22334d;border:1px solid #355071;font-size:9px;letter-spacing:1px;font-weight:800;color:#c2ddff;border-radius:2px}.empty{padding:55px 22px;text-align:center;color:#aec0d7}.empty strong{font-size:17px;display:block;margin-bottom:9px}.empty p{font-size:12px;line-height:1.6;color:#8298b3}.footnote{color:#91a1b7;font-size:10px;margin-top:13px}
+.sidebar{display:flex;flex-direction:column;gap:18px}.sidebox{border:1px solid var(--line);border-radius:5px;background:#141f30;padding:20px}.sidebox h3{font:800 28px 'Barlow Condensed';margin:7px 0}.sidebox p{font-size:11px;color:#9fb1c9;line-height:1.65}.sources{display:grid;gap:1px;margin-top:14px}.source{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #29364a;font-size:11px}.source span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.source i{display:inline-block;width:8px;height:8px;background:#75859b;border-radius:50%;margin-right:7px}.source i.ok{background:var(--green)}.source i.fail{background:var(--red)}.source small{color:var(--muted);font-size:9px;white-space:nowrap}.bar{height:6px;border-radius:7px;background:#37465d;overflow:hidden;margin-top:10px}.bar div{height:100%;width:0;background:var(--green);transition:width .4s}.side-date{text-align:center;background:linear-gradient(130deg,#1a2940,#152139)}.side-date .big{font:900 100px/.9 'Barlow Condensed';margin:5px 0}.side-date strong{color:#ff6b76;font-size:17px;letter-spacing:3px}.footer{margin:33px 0 12px;border-top:1px solid var(--line);padding-top:24px;color:#7e92ad;font-size:11px;line-height:1.6}
+.alerts{position:fixed;bottom:20px;right:20px;width:min(420px,calc(100vw - 40px));z-index:99;display:grid;gap:10px}.toast{background:#1b2a40;box-shadow:0 14px 60px #0009;border:1px solid #58708c;border-left:4px solid var(--red);border-radius:5px;padding:15px;animation:appear .2s ease-out}.toast strong{color:#ff7c88;font-size:10px;letter-spacing:1px}.toast a{display:block;font-size:14px;font-weight:800;margin:8px 0 6px;line-height:1.4}.toast small{font-size:10px;color:#a9bad0}@keyframes appear{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}[hidden]{display:none!important}
+@media(max-width:1050px){.layout{grid-template-columns:1fr}.sidebar{display:grid;grid-template-columns:1fr 1fr}.sidebar .sidebox:first-child{grid-row:span 2}}@media(max-width:650px){header{padding:10px 12px;min-height:82px}.brand svg{width:48px;min-width:48px;height:49px}.brand .the{font-size:8px;letter-spacing:4px}.brand .main{font-size:26px}.brand .tag{font-size:7px;letter-spacing:1.8px}.clock{display:none}.status{font-size:9px}.wrap{padding:14px}.hero{padding:25px 20px}.hero h1{font-size:57px}.hero:after{font-size:105px}.hero-foot{margin-top:25px}.metrics{grid-template-columns:1fr 1fr}.metric{padding:16px}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid var(--line)}.metric strong{font-size:23px}.layout{margin-top:24px}.formrow{flex-wrap:wrap}.formrow input,.formrow select{width:100%}.sidebar{display:flex}.ticker strong{padding:13px 12px;font-size:12px}.ticker div{font-size:10px}}
+</style></head>
+<body>
+<header>
+ <a class="brand" href="/" aria-label="THE EVENING WIRE home">
+  <svg viewBox="0 0 90 74" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Evening Wire E logo"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2=".4"><stop stop-color="#dffbff"/><stop offset=".52" stop-color="#15cbff"/><stop offset="1" stop-color="#1269dd"/></linearGradient></defs><path d="M7 12H77L68 23H24V29H66L57 41H24V49H72L63 62H7Z" fill="url(#g)"/><path d="M74 7Q92 30 73 68" stroke="#34dfff" fill="none" stroke-width="3" opacity=".8"/><circle cx="76" cy="6" r="5" fill="#63eeff"/></svg>
+  <div class="brand-text"><div class="the">THE</div><div class="main">EVENING <span>WIRE</span></div><div class="tag">TODAY'S TOP STORIES</div></div>
+ </a>
+ <div><div class="status"><span class="dot" id="dot"></span><span id="conn">CONNECTING</span></div><div class="clock" id="clock">EASTERN TIME</div></div>
+</header>
+<div class="ticker"><strong>✦ NEWS ALERTS</strong><div id="ticker">Connecting to 27 newsrooms. Only verified feed headlines appear here.</div></div>
+<main class="wrap">
+<section class="hero"><div class="eyebrow">THE MIDTERM ELECTIONS &nbsp; 2026</div><h1>ELECTION NIGHT <span>LIVE</span></h1><p>One screen. Every major outlet. Election headlines appear as they are discovered.</p>
+ <div class="hero-foot"><div class="election-date">▦ &nbsp; TUESDAY, NOVEMBER 3, 2026<small>United States midterm elections</small></div><div class="buttons"><button id="alertsToggle" class="primary">🔔 ON-SCREEN ALERTS: ON</button><button id="soundToggle">🔊 SOUND: OFF</button><button id="notifyToggle">DESKTOP ALERTS</button></div></div>
+</section>
+<div class="metrics"><div class="metric"><label>COVERED SOURCES</label><strong>27 <small>news outlets</small></strong></div><div class="metric"><label>RESPONDING FEEDS</label><strong id="healthy">—</strong></div><div class="metric"><label>HEADLINES IN LAST HOUR</label><strong id="lastHour">—</strong></div><div class="metric"><label>NEW SINCE OPENED</label><strong id="newCount">0</strong></div></div>
+<div class="layout">
+<section class="news"><div class="section-cap">● LIVE NEWSSTREAM</div><h2>Latest Election Updates</h2><div class="filters"><div class="tabs" id="tabs"><button class="active" data-topic="all">All Updates</button><button data-topic="results">Results</button><button data-topic="voting">Voting</button><button data-topic="senate">Senate</button><button data-topic="house">House</button><button data-topic="governors">Governors</button></div><div class="formrow"><input id="search" type="search" placeholder="Search headlines, candidates, states…" aria-label="Search headlines"><select id="sourceFilter" aria-label="Filter publisher"><option value="all">All news sources</option></select></div></div><div class="story-list" id="stories"><div class="empty"><strong>Connecting to the newsrooms</strong><p>The server is checking publisher RSS feeds. Headlines appear after a successful scan, not from made-up examples.</p></div></div><div class="footnote" id="lastScan">Waiting for the first completed feed scan.</div></section>
+<aside class="sidebar"><section class="sidebox"><div class="section-cap">NETWORK STATUS</div><h3>Source Monitor</h3><p>Feed health is checked every 60 seconds. An offline feed is reported instead of silently displaying fake headlines.</p><div class="bar"><div id="progress"></div></div><div class="sources" id="sources"></div></section><section class="sidebox side-date"><div class="section-cap">ELECTION DAY</div><div class="big">03</div><strong>NOVEMBER 2026</strong><p>Real headlines, not official election results. Verify race calls with publishers and election authorities.</p></section><section class="sidebox"><div class="section-cap">THE EVENING WIRE</div><h3>How this works</h3><p>Checks original publisher RSS feeds and Google News-indexed coverage. When a new headline is detected, a popup appears to everyone who has this page open.</p><p>Publisher and indexing delays vary. This is not a guaranteed instant election-results feed.</p></section></aside>
+</div><div class="footer">THE EVENING WIRE — TODAY'S TOP STORIES © 2026. Independent headline aggregation; news articles remain with their original publishers. No affiliation or endorsement implied.</div>
+</main><div class="alerts" id="toasts" aria-live="polite"></div>
+<script>
+(function(){
+ 'use strict';
+ const $=x=>document.getElementById(x);
+ let stories=[],sources=[],initialized=false,lastScan=null,topic='all',source='all',query='',alertOn=true,soundOn=false,newCount=0,once=false,connected=false;
+ let audio;
+ const esc=x=>{const e=document.createElement('span');e.textContent=String(x||'');return e.innerHTML};
+ const time=x=>{try{return new Date(x).toLocaleString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'})+' ET'}catch{return ''}};
+ const ago=x=>{const m=Math.max(0,Math.floor((Date.now()-Date.parse(x))/60000));return m<1?'Just now':m<60?m+' min ago':Math.floor(m/60)+' hr ago'};
+ const favicon=d=>'https://www.google.com/s2/favicons?domain='+encodeURIComponent(d)+'&sz=32';
+ function render(){
+  const filtered=stories.filter(s=>(topic==='all'||s.topics.includes(topic))&&(source==='all'||source===s.sourceId)&&(!query||(s.title+' '+s.excerpt+' '+s.source).toLowerCase().includes(query)));
+  $('healthy').textContent=sources.filter(s=>s.ok).length+' / 27';
+  $('lastHour').textContent=stories.filter(s=>Date.parse(s.published)>Date.now()-3600000).length;
+  $('newCount').textContent=newCount;
+  $('progress').style.width=(sources.filter(s=>s.ok).length/27*100)+'%';
+  $('lastScan').textContent=lastScan?'Last completed scan: '+time(lastScan)+' • '+filtered.length+' matching headlines':'Connecting to feeds…';
+  const ticker=stories[0];$('ticker').textContent=ticker?(ticker.source+' • '+ticker.title):'Waiting for verified election headlines from connected newsrooms.';
+  const target=$('stories');target.textContent='';
+  if(!filtered.length){const b=document.createElement('div');b.className='empty';b.innerHTML='<strong>No matching headlines yet</strong><p>Try another filter or check the Source Monitor. Stories appear only when real RSS feeds supply election news.</p>';target.append(b)}
+  for(const s of filtered.slice(0,100)){
+   const card=document.createElement('article');card.className='story';
+   const head=document.createElement('div');head.className='story-header';
+   const img=document.createElement('img');img.src=favicon(s.domain);img.alt='';img.loading='lazy';
+   const label=document.createElement('span');label.textContent=s.source+' • '+s.via;
+   const stamp=document.createElement('time');stamp.dateTime=s.published;stamp.textContent=ago(s.published);
+   head.append(img,label,stamp);
+   const h=document.createElement('h3'),link=document.createElement('a');link.href=s.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=s.title;h.append(link);
+   card.append(head,h);
+   if(s.excerpt){const p=document.createElement('p');p.textContent=s.excerpt;card.append(p)}
+   const tags=document.createElement('div');tags.className='badges';for(const t of s.topics.slice(0,3)){const b=document.createElement('span');b.className='badge';b.textContent=t.toUpperCase();tags.append(b)}card.append(tags);target.append(card);
+  }
+ }
+ function renderSources(){
+  const target=$('sources');target.textContent='';
+  const select=$('sourceFilter'),value=select.value;select.innerHTML='<option value="all">All news sources</option>';
+  for(const s of sources){
+   const o=document.createElement('option');o.value=s.id;o.textContent=s.name;select.append(o);
+   const d=document.createElement('div');d.className='source';
+   const name=document.createElement('span');const led=document.createElement('i');led.className=s.ok?'ok':s.error?'fail':'';name.append(led,document.createTextNode(s.name));
+   const stat=document.createElement('small');stat.textContent=s.ok?'RESPONDING':s.error?'ERROR':'WAITING';stat.title=s.error||s.via||'';
+   d.append(name,stat);target.append(d);
+  }select.value=value;
+  render();
+ }
+ function beep(){if(!soundOn)return;try{const C=window.AudioContext||window.webkitAudioContext;audio=audio||new C();const osc=audio.createOscillator(),gain=audio.createGain();osc.connect(gain);gain.connect(audio.destination);osc.frequency.value=780;gain.gain.value=.045;osc.start();osc.stop(audio.currentTime+.12)}catch{}}
+ function alertStory(s){
+  if(!alertOn)return;const d=document.createElement('div');d.className='toast';
+  const l=document.createElement('strong');l.textContent='● BREAKING NEWS UPDATE • '+s.source;
+  const a=document.createElement('a');a.href=s.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=s.title;
+  const t=document.createElement('small');t.textContent=ago(s.published)+' • OPEN ORIGINAL ARTICLE';
+  d.append(l,a,t);$('toasts').prepend(d);
+  while($('toasts').children.length>4)$('toasts').lastElementChild.remove();
+  setTimeout(()=>d.remove(),13000);beep();
+  if(Notification.permission==='granted'&&document.visibilityState!=='visible'){try{new Notification('THE EVENING WIRE • '+s.source,{body:s.title})}catch{}}
+ }
+ function acceptStatus(x){sources=x.sources||sources;lastScan=x.lastScan||lastScan;initialized=!!x.initialized;renderSources()}
+ function connect(){
+  const es=new EventSource('/api/stream');
+  es.addEventListener('open',()=>{connected=true;$('dot').classList.add('live');$('conn').textContent='LIVE CONNECTION'});
+  es.addEventListener('error',()=>{connected=false;$('dot').classList.remove('live');$('conn').textContent='RECONNECTING'});
+  es.addEventListener('snapshot',e=>{const v=JSON.parse(e.data);stories=v.stories||[];acceptStatus(v);once=true});
+  es.addEventListener('status',e=>acceptStatus(JSON.parse(e.data)));
+  es.addEventListener('new',e=>{const fresh=JSON.parse(e.data);const ids=new Set(stories.map(s=>s.id));let count=0;for(const s of fresh){if(ids.has(s.id))continue;stories.unshift(s);ids.add(s.id);count++;if(once)alertStory(s)}stories.sort((a,b)=>Date.parse(b.published)-Date.parse(a.published));stories=stories.slice(0,600);newCount+=count;render()});
+ }
+ $('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-topic]');if(!b)return;topic=b.dataset.topic;for(const x of $('tabs').querySelectorAll('button'))x.classList.toggle('active',x===b);render()});
+ $('search').addEventListener('input',e=>{query=e.target.value.trim().toLowerCase();render()});
+ $('sourceFilter').addEventListener('change',e=>{source=e.target.value;render()});
+ $('alertsToggle').onclick=()=>{alertOn=!alertOn;$('alertsToggle').textContent='🔔 ON-SCREEN ALERTS: '+(alertOn?'ON':'OFF');$('alertsToggle').classList.toggle('primary',alertOn)};
+ $('soundToggle').onclick=()=>{soundOn=!soundOn;$('soundToggle').textContent='🔊 SOUND: '+(soundOn?'ON':'OFF');if(soundOn)beep()};
+ $('notifyToggle').onclick=async()=>{if(!('Notification'in window)){alert('This browser does not support desktop notifications');return}try{const p=await Notification.requestPermission();$('notifyToggle').textContent=p==='granted'?'DESKTOP ALERTS: ON':'DESKTOP ALERTS: '+p.toUpperCase()}catch{}};
+ setInterval(()=>{$('clock').textContent=new Date().toLocaleString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'},1000);
+ setInterval(render,60000);
+ connect();
+})();
+</script>
+</body></html>
