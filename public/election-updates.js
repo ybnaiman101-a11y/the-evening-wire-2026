@@ -73,6 +73,7 @@ async function refresh(){
  }catch{}finally{busy=false}
 }
 window.EWElectionUpdates={refresh};
+render();
 refresh();
 setInterval(refresh,4000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
