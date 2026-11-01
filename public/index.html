@@ -147,7 +147,7 @@ body{background:#070d16;color:#e7f2ff}
     <div class="clock" id="clock">EASTERN TIME</div>
   </div>
 </header>
-<nav class="command-nav" aria-label="Election command center sections"><button type="button" data-ew-tab="hq" aria-current="page"><span class="num">01</span> HEADQUARTERS</button><button type="button" data-ew-tab="news" aria-current="false"><span class="num">02</span> LIVE NEWS</button><button type="button" data-ew-tab="senate" aria-current="false"><span class="num">03</span> SENATE</button><button type="button" data-ew-tab="governor" aria-current="false"><span class="num">04</span> GOVERNORS</button><button type="button" data-ew-tab="house" aria-current="false"><span class="num">05</span> HOUSE · 435</button><button type="button" data-ew-tab="calls" aria-current="false"><span class="num">06</span> RACES CALLED</button><button type="button" data-ew-tab="battleground" aria-current="false"><span class="num">07</span> WATCHLIST</button><button type="button" data-ew-tab="map" aria-current="false"><span class="num">08</span> U.S. MAP</button><button type="button" data-ew-tab="states" aria-current="false"><span class="num">09</span> 50 STATES</button><button type="button" data-ew-tab="turnout" aria-current="false"><span class="num">10</span> TURNOUT</button><button type="button" data-ew-tab="sources" aria-current="false"><span class="num">11</span> SOURCES</button><button type="button" data-ew-tab="mydesk" aria-current="false"><span class="num">12</span> MY DESK</button></nav>
+<nav class="command-nav" aria-label="Election command center sections"><button type="button" data-ew-tab="hq" aria-current="page"><span class="num">01</span> HEADQUARTERS</button><button type="button" data-ew-tab="news" aria-current="false"><span class="num">02</span> LIVE NEWS</button><button type="button" data-ew-tab="senate" aria-current="false"><span class="num">03</span> SENATE</button><button type="button" data-ew-tab="governor" aria-current="false"><span class="num">04</span> GOVERNORS</button><button type="button" data-ew-tab="house" aria-current="false"><span class="num">05</span> HOUSE · 435</button><button type="button" data-ew-tab="calls" aria-current="false"><span class="num">06</span> RACES CALLED</button><button type="button" data-ew-tab="battleground" aria-current="false"><span class="num">07</span> WATCHLIST</button><button type="button" data-ew-tab="states" aria-current="false"><span class="num">08</span> 50 STATES</button><button type="button" data-ew-tab="turnout" aria-current="false"><span class="num">09</span> TURNOUT</button><button type="button" data-ew-tab="sources" aria-current="false"><span class="num">10</span> SOURCES</button><button type="button" data-ew-tab="mydesk" aria-current="false"><span class="num">11</span> MY DESK</button></nav>
 <div class="ticker"><strong>✦ NEWS ALERTS</strong><div id="ticker">Connecting to 27 newsrooms. Only verified feed headlines appear here.</div></div>
 <main id="commandDesk" role="main" aria-live="polite"><div class="cmd-void"><strong>Initializing Election Command Center</strong>Connecting to live news and checking election-data availability.</div></main><div class="cmd-modal" id="cmdModal" hidden><div class="cmd-dialog" role="dialog" aria-modal="true" aria-label="Election race details" id="cmdDialog"></div></div><main class="wrap news-legacy" id="legacyNews"><div class="desk-nav"><div><span class="on-air">● ON AIR</span><span>AMERICA VOTES · 2026</span></div><div><button id="savedOpen" type="button">◇ SAVED <span class="counter-bubble" id="savedCount">0</span></button><button id="focusToggle" type="button" aria-pressed="false">▣ FOCUS MODE</button></div></div>
 <section class="hero"><div class="eyebrow">THE MIDTERM ELECTIONS &nbsp; 2026</div><h1>ELECTION NIGHT <span>LIVE</span></h1><p>One screen. Every major outlet. Election headlines appear as they are discovered.</p>
@@ -405,7 +405,7 @@ function electMapMarkup(mode,mini=false){
   +'</article>';
 }
 function mapsHubMarkup(){
- return '<section class="cmd-section"><div class="ew-maps-title"><div><span class="ew-maps-kicker">LIVE 2026 ELECTION COMMAND CENTER</span><h2>THREE MAPS. ONE NEWSROOM.</h2><p>Explore the Senate, all 435 congressional districts, and every governor race. Each shape opens the relevant race. No result color is assigned without a verifiable source call.</p></div><button class="cmd-primary" data-tv-mode="1">▣ OPEN FULL-SCREEN TV MODE</button></div><div class="ew-triple">'
+ return '<section class="cmd-section" id="ewMapsHub"><div class="ew-maps-title"><div><span class="ew-maps-kicker">LIVE 2026 ELECTION COMMAND CENTER</span><h2>THREE MAPS. ONE NEWSROOM.</h2><p>Explore the Senate, all 435 congressional districts, and every governor race. Each shape opens the relevant race. No result color is assigned without a verifiable source call.</p></div><button class="cmd-primary" data-tv-mode="1">▣ OPEN FULL-SCREEN TV MODE</button></div><div class="ew-triple">'
    +electMapMarkup('senate',true)+electMapMarkup('house',true)+electMapMarkup('governor',true)
    +'</div><p class="ew-maps-foot">Cartography: U.S. Census Bureau TIGERweb 2026 / 120th Congressional Districts. Missouri uses 2022/2024 congressional boundaries following September 2026 court action. Geography does not imply vote results.</p></section>';
 }
@@ -436,7 +436,7 @@ function showTv(){
    if(document.fullscreenElement)document.exitFullscreen?.();
    else layer.requestFullscreen?.().catch(()=>{});
  });
- layer.addEventListener('click',e=>{const b=e.target.closest('[data-open-map]');if(b){closeTv();mapOffice=b.dataset.openMap;go('map')}});
+ layer.addEventListener('click',e=>{const b=e.target.closest('[data-open-map]');if(b){closeTv();go(b.dataset.openMap)}});
 }
 function closeTv(){const layer=document.getElementById('ewTvMode');if(!layer)return;if(document.fullscreenElement)document.exitFullscreen?.();layer.remove();document.body.style.overflow=''}
 
@@ -477,7 +477,7 @@ function hq(){
  const lead=news[0];const calledList=(results.calls||[]).slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt));
  const countTo=new Date('2026-11-03T00:00:00-05:00').getTime()-Date.now();
  const days=Math.max(0,Math.ceil(countTo/86400000)),onElection=Date.now()>=new Date('2026-11-03T00:00:00-05:00').getTime();
- return '<div class="cmd-banner"><div class="cmd-hero"><span class="cmd-kicker">2026 U.S. MIDTERM ELECTIONS</span><h1>AMERICA <em>DECIDES.</em></h1><p>Your real-time election newsroom for all 435 House contests, regularly scheduled Senate and gubernatorial races, original publisher headlines, and attributed race calls.</p><div class="cmd-toolbar"><button class="cmd-primary" data-tab="news">LIVE NEWSROOM ↗</button><button class="cmd-minibtn" data-tab="calls">RACE CALL DESK</button><button class="cmd-minibtn" data-tab="map">EXPLORE U.S. MAP</button></div></div><div class="cmd-mini"><strong>'+esc(onElection?'ELECTION DESK':'COUNTDOWN TO ELECTION DAY')+'</strong><span class="main-number">'+(onElection?'ON AIR':days+' DAYS')+'</span><small>TUESDAY · NOVEMBER 3, 2026<br>Reporting and race calls require a verified provider.</small></div></div>'
+ return '<div class="cmd-banner"><div class="cmd-hero"><span class="cmd-kicker">2026 U.S. MIDTERM ELECTIONS</span><h1>AMERICA <em>DECIDES.</em></h1><p>Your real-time election newsroom for all 435 House contests, regularly scheduled Senate and gubernatorial races, original publisher headlines, and attributed race calls.</p><div class="cmd-toolbar"><button class="cmd-primary" data-tab="news">LIVE NEWSROOM ↗</button><button class="cmd-minibtn" data-tab="calls">RACE CALL DESK</button><button class="cmd-minibtn" data-scroll-maps="1">VIEW THREE MAPS ↓</button></div></div><div class="cmd-mini"><strong>'+esc(onElection?'ELECTION DESK':'COUNTDOWN TO ELECTION DAY')+'</strong><span class="main-number">'+(onElection?'ON AIR':days+' DAYS')+'</span><small>TUESDAY · NOVEMBER 3, 2026<br>Reporting and race calls require a verified provider.</small></div></div>'
  +mapsHubMarkup()
  +'<div class="cmd-grid">'+infoCard('senate',SENATE)+infoCard('governor',GOVERNOR)+infoCard('house',HOUSE)+'</div>'+notice()
  +wrap('<div class="cmd-split"><div class="cmd-card"><div class="cmd-eyebrow">LATEST VERIFIED PUBLISHER COVERAGE</div><h3>THE LEAD STORY</h3>'+(lead?'<h2 style="font:700 clamp(23px,3vw,36px)/1.25 Georgia,serif;margin:17px 0"><a href="'+siteURL(lead.url)+'" target="_blank" rel="noopener noreferrer">'+esc(lead.title)+'</a></h2><p>'+esc(lead.source)+' · '+formatTime(lead.published)+'</p>':unavail('Waiting for the first published election headline.'))+'<div class="cmd-toolbar"><button data-tab="news">OPEN LIVE NEWS →</button></div></div><div class="cmd-card"><div class="cmd-eyebrow">RACE CALL DESK</div><h3>RECENT PROJECTIONS</h3>'+(calledList.length?callCards(calledList.slice(0,2)):unavail('No attributable race calls received from a configured results provider.'))+'<div class="cmd-toolbar"><button data-tab="calls">VIEW ALL CALLS →</button></div></div></div>')
@@ -550,13 +550,13 @@ function render(){
  document.body.dataset.ewView=active;
  for(const b of document.querySelectorAll('.command-nav button')){const is=b.dataset.ewTab===active;b.classList.toggle('sel',is);b.setAttribute('aria-current',is?'page':'false')}
  if(active==='news')return;
- const pages={hq:hq,senate:()=>raceList('senate'),governor:()=>raceList('governor'),house:()=>raceList('house'),calls:callsView,battleground:watched,map:mapView,states:statesView,turnout:turnoutView,sources:sourceView,mydesk:myDesk};
+ const pages={hq:hq,senate:()=>raceList('senate'),governor:()=>raceList('governor'),house:()=>raceList('house'),calls:callsView,battleground:watched,states:statesView,turnout:turnoutView,sources:sourceView,mydesk:myDesk};
  const fn=pages[active]||hq;
  app.innerHTML=fn();
  mountElectionMaps();
 }
 function go(tab){
- active=['hq','news','senate','governor','house','calls','battleground','map','states','turnout','sources','mydesk'].includes(tab)?tab:'hq';
+ active=['hq','news','senate','governor','house','calls','battleground','states','turnout','sources','mydesk'].includes(tab)?tab:'hq';
  if(active!=='house')houseLimit=55;
  history.replaceState(null,'','#'+active);
  render();
@@ -622,7 +622,8 @@ async function sync(){
 document.querySelector('.command-nav').addEventListener('click',e=>{const b=e.target.closest('[data-ew-tab]');if(b)go(b.dataset.ewTab)});
 app.addEventListener('click',e=>{
  const btn=e.target.closest('button');if(!btn)return;
- if(btn.dataset.openMap){mapOffice=btn.dataset.openMap;go('map');return}
+ if(btn.dataset.openMap){go(btn.dataset.openMap);return}
+ if(btn.dataset.scrollMaps){document.getElementById('ewMapsHub')?.scrollIntoView({behavior:'smooth',block:'start'});return}
  if(btn.dataset.tvMode){showTv();return}
  if(btn.dataset.tab){go(btn.dataset.tab);return}
  if(btn.dataset.race){showRace(btn.dataset.race);return}
