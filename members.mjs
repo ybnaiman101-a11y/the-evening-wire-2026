@@ -76,6 +76,40 @@ export async function memberRoute(req,res,path){
   send(res,200,{ok:true},{'Set-Cookie':sessionCookie('',0)});return true
  }
  if(!ready){send(res,503,{error:'Member registration is disabled until the permanent PostgreSQL database is connected.'});return true}
+ // One-time activation for accounts that were registered BEFORE PINs existed.
+ // Requires the account's original scrypt-protected password, not the admin password.
+ // It deliberately uses separate rate limits so a legacy user is not trapped by
+ // failed PIN attempts for a PIN that was never created.
+ if(route==='activate-pin'&&req.method==='POST'){
+  if(!rate(req,'activate-pin',6,1800000)){send(res,429,{error:'Too many PIN setup attempts from this connection. Try again after 30 minutes.'});return true}
+  let obj;try{obj=await input(req)}catch(e){send(res,400,{error:e.message});return true}
+  const mail=email(obj.email),secret=String(obj.password||''),pin=String(obj.pin||'');
+  if(!checkEmail(mail)||secret.length<12||secret.length>128||!/^[0-9]{4}$/.test(pin)){
+   send(res,400,{error:'Use your existing email, original account password (12+ characters), and a new four-digit PIN.'});return true
+  }
+  // The account-specific migration lockout is not the existing PIN lockout.
+  const attemptKey='legacy-'+createHash('sha256').update(mail).digest('hex');
+  const existing=await db.query('SELECT locked_until FROM ew_member_login_attempts WHERE email=$1',[attemptKey]);
+  if(existing.rows[0]?.locked_until&&new Date(existing.rows[0].locked_until)>new Date()){
+   send(res,429,{error:'Too many incorrect old-password attempts. Try again after 30 minutes.'});return true
+  }
+  const result=await db.query('SELECT id,display_name,email,password_hash,pin_hash,joined_at,last_login_at FROM ew_members WHERE email=$1 LIMIT 1',[mail]);
+  const account=result.rows[0];
+  if(account?.pin_hash){
+   send(res,409,{error:'A PIN is already set on this account. Use the ordinary four-digit PIN login.'});return true
+  }
+  const valid=!!account&&await verifyPassword(secret,account.password_hash);
+  if(!valid){
+   await db.query("INSERT INTO ew_member_login_attempts(email,attempts,locked_until,updated_at) VALUES($1,1,NULL,now()) ON CONFLICT(email) DO UPDATE SET attempts=CASE WHEN ew_member_login_attempts.updated_at<now()-interval '30 minutes' THEN 1 ELSE ew_member_login_attempts.attempts+1 END,locked_until=CASE WHEN ew_member_login_attempts.updated_at<now()-interval '30 minutes' THEN NULL WHEN ew_member_login_attempts.attempts>=4 THEN now()+interval '30 minutes' ELSE NULL END,updated_at=now()",[attemptKey]);
+   send(res,401,{error:'Original email or password was incorrect. Your old account password—not a PIN—is required for this one-time setup.'});return true
+  }
+  const newPinHash=await hashPassword(pin);
+  const saved=await db.query("UPDATE ew_members SET pin_hash=$2,last_login_at=now() WHERE id=$1 AND pin_hash IS NULL RETURNING id,display_name,email,joined_at,last_login_at",[account.id,newPinHash]);
+  if(!saved.rowCount){send(res,409,{error:'A PIN has already been set for this account. Please sign in.'});return true}
+  await db.query('DELETE FROM ew_member_login_attempts WHERE email=$1 OR email=$2',[mail,attemptKey]);
+  console.log('EW_LEGACY_MEMBER_PIN_ACTIVATED');
+  await createSession(res,saved.rows[0]);return true
+ }
  if((route==='signup'||route==='login')&&req.method==='POST'){
   if(!rate(req,route,route==='login'?5:3,900000)){send(res,429,{error:'Too many attempts. Please try again later.'});return true}
   let obj;try{obj=await input(req)}catch(e){send(res,400,{error:e.message});return true}
