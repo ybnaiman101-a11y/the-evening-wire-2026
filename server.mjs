@@ -2,7 +2,8 @@ import http from 'node:http';
 import {editorRoute,publicCalls,publicMeta} from './editor-calls.mjs';
 import {apSnapshot} from './ap-election-results.mjs';
 import {communityRoute} from './community.mjs';
-import {memberRoute} from './members.mjs';
+import {memberRoute,authenticatedMember} from './members.mjs';
+import {trafficRoute} from './traffic.mjs';
 import {URL} from 'node:url';
 
 const PORT = Number(process.env.PORT || 3000);
@@ -283,10 +284,25 @@ async function censusMap(kind,state){
 }
 
 const page=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/index.html',import.meta.url),'utf8'));
-const server=http.createServer((req,res)=>{
+const loginPage=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/login.html',import.meta.url),'utf8'));
+const server=http.createServer(async (req,res)=>{
  const u=new URL(req.url,'http://localhost');
  const json=(obj,code=200)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
  if(u.pathname.startsWith('/api/members/')||u.pathname==='/api/admin/members'){memberRoute(req,res,u.pathname).catch(err=>{console.error('Members API error:',String(err?.message||err));if(!res.headersSent)json({error:'Member service temporarily unavailable'},503);else res.end()});return;}
+ // Actual server-side membership gate; the public cannot retrieve news, calls,
+ // discussion, or traffic endpoints without a signed-in member session.
+ if(u.pathname==='/health')return json({ready:true,memberGate:true});
+ const visitor=await authenticatedMember(req).catch(()=>null);
+ if(!visitor){
+  if(u.pathname==='/'||u.pathname==='/index.html'){
+   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});
+   return res.end(loginPage);
+  }
+  if(u.pathname.startsWith('/api/'))return json({error:'Member registration or sign-in required',login:'/'} ,401);
+  return json({error:'Member registration or sign-in required'},401);
+ }
+ if(u.pathname.startsWith('/api/traffic/')){trafficRoute(req,res,u.pathname).catch(err=>{console.error('Traffic API error',err);if(!res.headersSent)json({error:'Traffic temporarily unavailable'},503);else res.end()});return;}
+
  if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname).catch(err=>{console.error('Community API request error:',String(err?.message||err));if(!res.headersSent)json({error:'Community service temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname==='/api/editor/calls'||u.pathname.startsWith('/api/admin/')){editorRoute(req,res,u.pathname).catch(err=>{console.error('Editor route error',err);if(!res.headersSent)json({error:'Editorial desk unavailable'},503);else res.end()});return;}
  if(u.pathname==='/api/election'){
