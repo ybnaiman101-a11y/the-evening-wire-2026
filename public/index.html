@@ -358,7 +358,7 @@ html,body{max-width:100%;overflow-x:clip}
 (function(){
  'use strict';
  const $=x=>document.getElementById(x);
- let stories=[],sources=[],initialized=false,lastScan=null,topic='all',source='all',query='',alertOn=true,soundOn=false,newCount=0,once=false,connected=false;
+ let stories=[],sources=[],initialized=false,lastScan=null,topic='all',source='all',query='',alertOn=true,soundOn=false,newCount=0,once=false,connected=false,lastFeedError='',feedRequestInFlight=false,firstLoadFinished=false;
  let audio;
  const esc=x=>{const e=document.createElement('span');e.textContent=String(x||'');return e.innerHTML};
  const time=x=>{try{return new Date(x).toLocaleString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'})+' ET'}catch{return ''}};
@@ -373,7 +373,15 @@ html,body{max-width:100%;overflow-x:clip}
   $('lastScan').textContent=lastScan?'Last completed scan: '+time(lastScan)+' • '+filtered.length+' matching headlines':'Connecting to feeds…';
   const ticker=stories[0];$('ticker').textContent=ticker?(ticker.source+' • '+ticker.title):'Waiting for verified election headlines from connected newsrooms.';
   const target=$('stories');target.textContent='';
-  if(!filtered.length){const b=document.createElement('div');b.className='empty';b.innerHTML='<strong>No matching headlines yet</strong><p>Try another filter or check the Source Monitor. Stories appear only when real RSS feeds supply election news.</p>';target.append(b)}
+  if(!filtered.length){
+   const b=document.createElement('div');b.className='empty';
+   const h=document.createElement('strong'),p=document.createElement('p');
+   if(!firstLoadFinished){h.textContent='Loading the latest election headlines…';p.textContent='Checking the connected news feeds.'}
+   else if(lastFeedError&&!stories.length){h.textContent='News connection temporarily interrupted';p.textContent=lastFeedError+' · The newsroom will retry automatically in 30 seconds.'}
+   else if(stories.length){h.textContent='No headlines match the selected filters';p.textContent='Try All Updates, clear the search box, or choose All news sources.'}
+   else{h.textContent='Waiting for fresh election headlines';p.textContent='The latest feed scan found no qualifying recent stories. The newsroom checks the publisher feeds automatically.'}
+   b.append(h,p);target.append(b)
+  }
   for(const s of filtered.slice(0,100)){
    const card=document.createElement('article');card.className='story';
    const head=document.createElement('div');head.className='story-header';
@@ -411,11 +419,40 @@ html,body{max-width:100%;overflow-x:clip}
   if(Notification.permission==='granted'&&document.visibilityState!=='visible'){try{new Notification('THE EVENING WIRE • '+s.source,{body:s.title})}catch{}}
  }
  function acceptStatus(x){sources=x.sources||sources;lastScan=x.lastScan||lastScan;initialized=!!x.initialized;renderSources()}
+ // Durable HTTP fallback for browsers, proxies, and service restarts that interrupt
+ // the EventSource stream. The spotlight already uses /api/stories; the central news
+ // list must always use that same live snapshot rather than relying only on SSE.
+ async function syncNewsFallback(){
+  if(feedRequestInFlight)return;
+  feedRequestInFlight=true;
+  try{
+   const response=await fetch('/api/stories',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
+   if(!response.ok)throw Error('News endpoint returned '+response.status);
+   const snapshot=await response.json();
+   const current=Array.isArray(snapshot.stories)?snapshot.stories.filter(s=>s&&s.id&&s.title&&s.published&&Array.isArray(s.topics)):[];
+   stories=current.sort((a,b)=>Date.parse(b.published)-Date.parse(a.published));
+   lastScan=snapshot.lastScan||lastScan;
+   initialized=Boolean(snapshot.initialized);
+   firstLoadFinished=true;lastFeedError='';once=true;
+   render();
+   if(!sources.length||!connected){
+    try{
+     const r=await fetch('/api/status',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(8000)});
+     if(r.ok){const d=await r.json();sources=Array.isArray(d.sources)?d.sources:sources;lastScan=d.lastScan||lastScan;renderSources()}
+    }catch{}
+   }
+  }catch(err){
+   lastFeedError=String(err.message||err).slice(0,150);
+   firstLoadFinished=true;
+   if(!connected)render();
+   console.warn('Evening Wire news snapshot retry scheduled:',lastFeedError)
+  }finally{feedRequestInFlight=false}
+ }
  function connect(){
   const es=new EventSource('/api/stream');
   es.addEventListener('open',()=>{connected=true;$('dot').classList.add('live');$('conn').textContent='LIVE CONNECTION'});
   es.addEventListener('error',()=>{connected=false;$('dot').classList.remove('live');$('conn').textContent='RECONNECTING'});
-  es.addEventListener('snapshot',e=>{const v=JSON.parse(e.data);stories=v.stories||[];acceptStatus(v);once=true});
+  es.addEventListener('snapshot',e=>{const v=JSON.parse(e.data);stories=(Array.isArray(v.stories)?v.stories:[]);firstLoadFinished=true;lastFeedError='';acceptStatus(v);once=true});
   es.addEventListener('status',e=>acceptStatus(JSON.parse(e.data)));
   es.addEventListener('new',e=>{const fresh=JSON.parse(e.data);const ids=new Set(stories.map(s=>s.id));let count=0;for(const s of fresh){if(ids.has(s.id))continue;stories.unshift(s);ids.add(s.id);count++;if(once)alertStory(s)}stories.sort((a,b)=>Date.parse(b.published)-Date.parse(a.published));stories=stories.slice(0,600);newCount+=count;render()});
  }
@@ -428,6 +465,9 @@ html,body{max-width:100%;overflow-x:clip}
  setInterval(()=>{$('clock').textContent=new Date().toLocaleString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'},1000);
  setInterval(render,60000);
  connect();
+ syncNewsFallback();
+ setInterval(syncNewsFallback,30000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncNewsFallback()});
 })();
 </script>
 <script>
