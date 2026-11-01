@@ -1,9 +1,9 @@
 import {Pool} from 'pg';
 import {randomUUID,createHash,timingSafeEqual} from 'node:crypto';
-const connection=process.env.DATABASE_URL||'';
+const connection=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
 const adminSecret=process.env.REACTION_ADMIN_TOKEN||'';
 let pool=null,ready=false;
-console.log('REACTION_HUB_CONFIG database_url_present='+Boolean(connection));
+console.log('REACTION_HUB_CONFIG connection_present='+Boolean(connection)+' matching_env_keys='+['DATABASE_URL','REACTION_DATABASE_URL','POSTGRES_URL','POSTGRESQL_URL','DB_URL'].filter(key=>Boolean(process.env[key])).join(','));
 const limits=new Map();
 const topics=new Set(['general','senate','house','governors','election-night','news']);
 const respond=(r,n,x)=>{r.writeHead(n,{'Content-Type':'application/json','Cache-Control':'no-store'});r.end(JSON.stringify(x))};
