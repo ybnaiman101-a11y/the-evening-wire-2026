@@ -233,6 +233,8 @@ async function censusMap(kind,state){
     features=await fetchCensusLayer("State_County/MapServer/1/query",where,"GEOID,STATE,NAME",state?".001":".012");
   }else throw Error("Invalid geography type");
   features=features.filter(f=>f&&f.geometry&&FIPS_TO_CODE[String(f.properties?.STATE??f.properties?.GEOID?.slice(0,2))]);
+  // Census ZZ water / unassigned shapes are NOT voting House districts (CT, IL, NH).
+  if(kind==="districts")features=features.filter(f=>String(f.properties?.CD120??f.properties?.CD119??"")!=="ZZ");
   const value={type:"FeatureCollection",features,meta:{source:"U.S. Census Bureau TIGERweb",vintage:"2026 current / 120th Congressional Districts",layer:kind,updatedAt:new Date().toISOString(),caveat}};
   censusGeoCache.set(key,{value,at:Date.now()});
   return value;
