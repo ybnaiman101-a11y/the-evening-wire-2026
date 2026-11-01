@@ -288,6 +288,15 @@ html,body{max-width:100%;overflow-x:clip}
 @keyframes ewAlertArrival{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
 @media(max-width:550px){#ew-global-updates{bottom:10px;right:12px;width:calc(100vw - 24px)}.ew-alert-card{max-height:57vh;overflow:auto}.ew-alert-card p{font-size:14px}.ew-alert-bell{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.ew-alert-card{animation:none}}
+
+/* In-place editing of signed-in members' own Reaction Hub posts */
+.ew-edit-message-form{margin:9px 0 15px;padding:13px;border:1px solid #5d9eae;border-radius:10px;background:#0a2836}
+.ew-edit-message-form label{display:grid;gap:8px;font-size:11px;font-weight:900;letter-spacing:.4px;color:#8be1ed}
+.ew-edit-message-form textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:100px;padding:12px;border:1px solid #45889e;border-radius:7px;background:#071d2b;color:#f0f9ff;font:500 13px/1.55 'DM Sans',sans-serif}
+.ew-edit-message-form>div{display:flex;gap:9px;margin-top:10px;flex-wrap:wrap}
+.ew-edit-message-form button{padding:9px 14px;border-radius:7px;border:1px solid #5795ad;background:#144c63;color:#f0fcff;font-size:11px;font-weight:900}
+.ew-edit-message-form button[type=submit]{background:#157488;border-color:#39b7cb}
+.reaction-post .reaction-message[hidden]{display:none}
 </style></head>
 <body>
 <header class="ew-masthead">
