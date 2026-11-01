@@ -218,7 +218,7 @@ body{background:#070d16;color:#e7f2ff}
     <div class="clock" id="clock">EASTERN TIME</div>
   </div>
 </header>
-<nav class="command-nav" aria-label="Election command center sections"><button type="button" data-ew-tab="hq" aria-current="page"><span class="num">01</span> HEADQUARTERS</button><button type="button" data-ew-tab="news" aria-current="false"><span class="num">02</span> LIVE NEWS</button><button type="button" data-ew-tab="senate" aria-current="false"><span class="num">03</span> SENATE</button><button type="button" data-ew-tab="governor" aria-current="false"><span class="num">04</span> GOVERNORS</button><button type="button" data-ew-tab="house" aria-current="false"><span class="num">05</span> HOUSE · 435</button><button type="button" data-ew-tab="calls" aria-current="false"><span class="num">06</span> RACES CALLED</button><button type="button" data-ew-tab="battleground" aria-current="false"><span class="num">07</span> WATCHLIST</button><button type="button" data-ew-tab="states" aria-current="false"><span class="num">08</span> 50 STATES</button><button type="button" data-ew-tab="turnout" aria-current="false"><span class="num">09</span> TURNOUT</button><button type="button" data-ew-tab="sources" aria-current="false"><span class="num">10</span> SOURCES</button><button type="button" data-ew-tab="mydesk" aria-current="false"><span class="num">11</span> MY DESK</button><button type="button" data-ew-tab="reactions" aria-current="false"><span class="num">12</span> REACTION HUB</button><button type="button" data-ew-tab="members" aria-current="false"><span class="num">13</span> MEMBERS / LOGIN</button></nav>
+<nav class="command-nav" aria-label="Election command center sections"><button type="button" data-ew-tab="hq" aria-current="page"><span class="num">01</span> HEADQUARTERS</button><button type="button" data-ew-tab="news" aria-current="false"><span class="num">02</span> LIVE NEWS</button><button type="button" data-ew-tab="senate" aria-current="false"><span class="num">03</span> SENATE</button><button type="button" data-ew-tab="house" aria-current="false"><span class="num">04</span> HOUSE · 435</button><button type="button" data-ew-tab="governor" aria-current="false"><span class="num">05</span> GOVERNORS</button><button type="button" data-ew-tab="calls" aria-current="false"><span class="num">06</span> RACES CALLED</button><button type="button" data-ew-tab="battleground" aria-current="false"><span class="num">07</span> WATCHLIST</button><button type="button" data-ew-tab="states" aria-current="false"><span class="num">08</span> 50 STATES</button><button type="button" data-ew-tab="turnout" aria-current="false"><span class="num">09</span> TURNOUT</button><button type="button" data-ew-tab="sources" aria-current="false"><span class="num">10</span> SOURCES</button><button type="button" data-ew-tab="mydesk" aria-current="false"><span class="num">11</span> MY DESK</button><button type="button" data-ew-tab="reactions" aria-current="false"><span class="num">12</span> REACTION HUB</button><button type="button" data-ew-tab="members" aria-current="false"><span class="num">13</span> MEMBERS / LOGIN</button><button type="button" data-ew-tab="traffic" aria-current="false"><span class="num">14</span> TRAFFIC · ADMIN</button></nav>
 <div class="ticker"><strong>✦ NEWS ALERTS</strong><div id="ticker">Connecting to 27 newsrooms. Only verified feed headlines appear here.</div></div>
 <main id="commandDesk" role="main" aria-live="polite"><div class="cmd-void"><strong>Initializing Election Command Center</strong>Connecting to live news and checking election-data availability.</div></main><div class="cmd-modal" id="cmdModal" hidden><div class="cmd-dialog" role="dialog" aria-modal="true" aria-label="Election race details" id="cmdDialog"></div></div><main class="wrap news-legacy" id="legacyNews"><div class="desk-nav"><div><span class="on-air">● ON AIR</span><span>AMERICA VOTES · 2026</span></div><div><button id="savedOpen" type="button">◇ SAVED <span class="counter-bubble" id="savedCount">0</span></button><button id="focusToggle" type="button" aria-pressed="false">▣ FOCUS MODE</button></div></div>
 <section class="hero"><div class="eyebrow">THE MIDTERM ELECTIONS &nbsp; 2026</div><h1>ELECTION NIGHT <span>LIVE</span></h1><p>One screen. Every major outlet. Election headlines appear as they are discovered.</p>
@@ -417,6 +417,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()}
 <script src="/reactions.js"></script>
 <script src="/editor-calls.js"></script>
 <script src="/members.js"></script>
+<script src="/traffic.js"></script>
 <script>
 /* EVENING WIRE COMMAND ENGINE — no synthetic votes, calls or publication times */
 (function(){
@@ -430,7 +431,7 @@ const BY_CODE=Object.fromEntries(STATES.map(x=>[x.code,x]));
 const REGULAR_SENATE='AL AK AR CO DE GA ID IL IA KS KY LA ME MA MI MN MS MT NE NH NJ NM NC OK OR RI SC SD TN TX VA WV WY'.split(' ');
 const GOVERNORS='AL AK AZ AR CA CO CT FL GA HI ID IL IA KS ME MD MA MI MN NE NV NH NM NY OH OK OR PA RI SC SD TN TX VT WI WY'.split(' ');
 const HOUSE=STATES.filter(x=>x.districts).flatMap(st=>Array.from({length:st.districts},(_,i)=>({office:'house',state:st.code,district:i+1,key:'house-'+st.code+'-'+(i+1)})));
-const SENATE=REGULAR_SENATE.map(code=>({office:'senate',state:code,key:'senate-'+code}));
+const SENATE=[...REGULAR_SENATE.map(code=>({office:'senate',state:code,key:'senate-'+code})),...['OH','FL'].map(code=>({office:'senate',state:code,special:true,key:'senate-'+code+'-special'}))];
 const GOVERNOR=GOVERNORS.map(code=>({office:'governor',state:code,key:'governor-'+code}));
 const COUNT_HOUSE=HOUSE.length;
 let active='hq',news=[],sources=[],results={configured:false,updatedAt:null,checkedAt:null,races:[],calls:[],turnout:[],source:null,error:null},feedConnected=false,newsScan=null;
@@ -528,7 +529,7 @@ function raceList(type){
  const extras=(results.races||[]).filter(x=>x.office===type&&!data.some(y=>y.key===keyFor(x))).map(x=>({office:type,state:x.state,district:x.district,key:keyFor(x)}));
  data=[...data,...extras].filter(x=>((x.state+' '+stateName(x.state)+' '+raceTitle(x)).toLowerCase().includes(raceQuery.toLowerCase()))&&(raceState==='ALL'||x.state===raceState));
  const page=type==='senate'?'SENATE ELECTIONS':type==='governor'?'GOVERNOR ELECTIONS':'HOUSE ELECTIONS';
- const subtitle=type==='senate'?'Regular Class II contests are listed; provider-confirmed special elections are added when available.':type==='governor'?'2026 gubernatorial contests and sourced results, without unsupported winner claims.':'All 435 House districts based on current apportionment. District-boundary changes and special circumstances must be confirmed with election authorities.';
+ const subtitle=type==='senate'?'All 35 seats: 33 regular Class II contests plus Ohio and Florida special elections.':type==='governor'?'2026 gubernatorial contests and sourced results, without unsupported winner claims.':'All 435 House districts based on current apportionment. District-boundary changes and special circumstances must be confirmed with election authorities.';
  const options='<option value="ALL">All states</option>'+STATES.filter(x=>x.districts).map(x=>'<option value="'+x.code+'"'+(raceState===x.code?' selected':'')+'>'+esc(x.name)+'</option>').join('');
  return title(page,subtitle)+notice()+'<div class="cmd-toolbar"><input aria-label="Search races" placeholder="Search states, offices, districts…" id="cmdRaceSearch" value="'+esc(raceQuery)+'"><select id="cmdStateFilter" aria-label="Filter state">'+options+'</select><span class="cmd-pill">'+data.length+' MATCHING CONTESTS</span></div><div class="cmd-card"><div class="cmd-scroll">'+data.slice(0,isHouse?houseLimit:120).map(cardRace).join('')+'</div></div>'+(isHouse&&data.length>houseLimit?'<div class="cmd-toolbar"><button data-show-more="1" class="cmd-primary">SHOW MORE DISTRICTS · '+(data.length-houseLimit)+' REMAINING</button></div>':'')
 }
@@ -557,10 +558,15 @@ function stateDetails(){
 }
 function statesView(){return title('50-STATE ELECTION EXPLORER','Choose any state to explore its Senate, governor and House contests. The District of Columbia is also included.')+stateSelect()+'<div class="cmd-section">'+stateDetails()+'</div>'}
 function turnoutView(){
- const rows=results.turnout||[];
- return title('EARLY VOTING & TURNOUT','Compare only official turnout statistics with matching definitions and election periods.')+notice()
- +(rows.length?'<div class="cmd-card">'+rows.map(x=>'<div class="cmd-row"><div class="txt"><strong>'+esc(stateName(x.state))+'</strong><small>'+esc(x.description||'Reported turnout')+'</small></div><span class="cmd-pill">SOURCE REQUIRED</span></div>').join('')+'</div>':unavail('A verified turnout feed is not yet connected. Early vote registration, ballots requested, ballots returned and votes cast are not interchangeable.'))
- +wrap('<div class="cmd-grid"><article class="cmd-card"><div class="cmd-eyebrow">2026 / 2022 / 2018</div><h3>MIDTERM COMPARISONS</h3><p>Historical data must come from election administrators with compatible cutoff dates and counting rules.</p></article><article class="cmd-card"><div class="cmd-eyebrow">2024 / 2020</div><h3>PRESIDENTIAL CONTEXT</h3><p>Presidential-election turnout is not directly comparable to midterm turnout.</p></article><article class="cmd-card"><div class="cmd-eyebrow">REGISTRATION VS. BALLOTS</div><h3>DIFFERENT METRICS</h3><p>Party registration is not evidence of how a person voted. Avoid unsupported party-vote estimates.</p></article></div>')
+ return title('EARLY VOTING & TURNOUT','Verified 2026 early voting reporting, distinguished from actual candidate votes.')+
+ '<div class="cmd-card"><div class="cmd-eyebrow">OFFICIAL-SOURCE TRACKER · UNIVERSITY OF FLORIDA ELECTION LAB</div><h3>LIVE EARLY VOTING TRACKER — 2026</h3>'+
+ '<p>View updated early and mail ballot counts from the University of Florida Election Lab. States report at different times. These figures are ballots, not candidate votes, and may be revised.</p>'+
+ '<div class="cmd-toolbar"><a class="cmd-primary" href="https://election.lab.ufl.edu/early-vote/2026-early-voting/" target="_blank" rel="noopener noreferrer">OPEN LIVE 2026 EARLY VOTE DATA ↗</a>'+
+ '<a class="cmd-minibtn" href="https://election.lab.ufl.edu/data-archive/national/" target="_blank" rel="noopener noreferrer">HISTORICAL NATIONAL TURNOUT ↗</a></div>'+
+ '<p class="cmd-muted">Source: University of Florida Election Lab and linked election officials. The tracker is available at the source website; automatic numeric import is not enabled because publisher licensing or approved API access is not yet in place.</p></div>'+
+ wrap('<div class="cmd-grid"><article class="cmd-card"><div class="cmd-eyebrow">EARLY IN-PERSON</div><h3>BALLOTS CAST</h3><p>The number of early in-person ballots, not votes for either political party.</p></article>'+
+ '<article class="cmd-card"><div class="cmd-eyebrow">MAIL BALLOTS</div><h3>REQUESTED / RETURNED</h3><p>Requested, mailed and accepted ballots are distinct reporting measures.</p></article>'+
+ '<article class="cmd-card"><div class="cmd-eyebrow">PARTY REGISTRATION</div><h3>NOT VOTE CHOICE</h3><p>A registered Republican or Democrat may vote for any candidate.</p></article></div>');
 }
 function sourceView(){
  const ok=sources.filter(s=>s.ok).length;
@@ -578,15 +584,27 @@ function render(){
  if(active==='news')return;
  if(active==='reactions'){window.EWReactions?.open();return;}
  if(active==='members'){window.EWMembers?.open();return;}
+ if(active==='traffic'){window.EWTraffic?.open();return;}
  const pages={hq:hq,senate:()=>raceList('senate'),governor:()=>raceList('governor'),house:()=>raceList('house'),calls:callsView,battleground:watched,states:statesView,turnout:turnoutView,sources:sourceView,mydesk:myDesk};
  const fn=pages[active]||hq;
  app.innerHTML=fn();
  if(active==='calls')window.EWEditor?.mount();
 }
+function recordTraffic(section,view=false){
+ fetch('/api/traffic/ping',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({section,view,referrer:view?document.referrer:undefined}),keepalive:true}).catch(()=>{});
+}
+document.addEventListener('click',event=>{
+ const anchor=event.target.closest('a[href]');if(!anchor)return;
+ try{const url=new URL(anchor.href);if((url.protocol==='https:'||url.protocol==='http:')&&url.hostname!==location.hostname){
+  fetch('/api/traffic/outbound',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({section:active,domain:url.hostname}),keepalive:true}).catch(()=>{});
+ }}catch{}
+});
+setInterval(()=>{if(!document.hidden)recordTraffic(active,false)},30000);
 function go(tab){
- active=['hq','news','senate','governor','house','calls','battleground','states','turnout','sources','mydesk','reactions','members'].includes(tab)?tab:'hq';
+ active=['hq','news','senate','governor','house','calls','battleground','states','turnout','sources','mydesk','reactions','members','traffic'].includes(tab)?tab:'hq';
  if(active!=='house')houseLimit=55;
  history.replaceState(null,'','#'+active);
+ recordTraffic(active,true);
  render();
  window.scrollTo({top:0,behavior:'instant'});
 }
@@ -617,7 +635,7 @@ async function sync(){
   if(values[0]){news=(values[0].stories||[]).sort((a,b)=>Date.parse(b.published)-Date.parse(a.published));newsScan=values[0].lastScan}
   if(values[1]){sources=values[1].sources||sources;newsScan=values[1].lastScan||newsScan;feedConnected=true}
   if(values[2])results=values[2];
-  if(active!=='news'&&active!=='reactions'&&active!=='members'&&!(active==='calls'&&window.EWEditor?.isEditing())&&!document.activeElement?.matches('#cmdRaceSearch'))render();
+  if(active!=='news'&&active!=='reactions'&&active!=='members'&&active!=='traffic'&&!(active==='calls'&&window.EWEditor?.isEditing())&&!document.activeElement?.matches('#cmdRaceSearch'))render();
  }catch(e){console.warn('Election Desk sync',e)}
 }
 document.querySelector('.command-nav').addEventListener('click',e=>{const b=e.target.closest('[data-ew-tab]');if(b)go(b.dataset.ewTab)});
