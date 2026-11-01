@@ -92,3 +92,14 @@
 @media(max-width:780px){.ew-map-grid,.ew-swing-layout,.ew-pred-grid{grid-template-columns:1fr}.ew-map-aside{max-height:none}.ew-map-main,.ew-map-aside,.ew-studio-panel{padding:13px}.ew-studio-toolbar label{min-width:115px}.ew-swing-row{grid-template-columns:110px 1fr 100px}.ew-swing-row b{font-size:10px}.ew-swing-row small{grid-column:1/4}.ew-swing-metrics{grid-template-columns:1fr}.ew-final-votes{grid-template-columns:1fr}}
 @media(max-width:440px){.ew-studio-stats,.ew-challenge-bar{grid-template-columns:repeat(2,minmax(0,1fr))}.ew-studio-stat,.ew-challenge-bar>div{padding:12px}.ew-studio-hero{padding:18px}.ew-studio-switch button{flex:1 1 110px;padding:10px 6px;font-size:10px}}
 @media(prefers-reduced-motion:reduce){.ew-studio-switch button{transition:none}}
+
+/* County historic margins are clearly identified as non-certified research data. */
+.ew-county-swing{margin-top:24px;background:#0b2639;border:1px solid #477793}
+.ew-county-head{display:flex;flex-wrap:wrap;align-items:start;justify-content:space-between;gap:10px;border-bottom:1px solid #36566e;padding-bottom:13px}
+.ew-county-head h3{font:900 24px 'Barlow Condensed',Impact,sans-serif;margin:0 0 9px}
+.ew-county-head p{font-size:11px;color:#b0d1df;line-height:1.6;margin:0}
+.ew-county-head span{border:1px solid #497d9a;border-radius:7px;background:#173c55;color:#a8e0f2;padding:8px 9px;font-size:9px;font-weight:900;letter-spacing:.5px}
+.ew-county-swing .ew-swing-table-wrap{max-height:560px;margin:16px 0}
+.ew-county-swing .ew-swing-table-wrap table{min-width:540px}
+.ew-county-swing .ew-swing-table-wrap td{white-space:normal}
+.ew-county-swing .ew-swing-table-wrap td:first-child{font-weight:900;color:#e7f6ff}
