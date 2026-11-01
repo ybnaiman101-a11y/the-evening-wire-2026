@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {communityRoute} from './community.mjs';
 import {URL} from 'node:url';
 
 const PORT = Number(process.env.PORT || 3000);
@@ -247,6 +248,7 @@ const page=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./publ
 const server=http.createServer((req,res)=>{
  const u=new URL(req.url,'http://localhost');
  const json=(obj,code=200)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
+ if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname);return;}
  if(u.pathname==='/api/election')return json(electionData);
 
  if(u.pathname==='/election-maps.js'||u.pathname==='/election-maps.css'){
