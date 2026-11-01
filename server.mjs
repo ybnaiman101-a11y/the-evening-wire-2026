@@ -186,11 +186,81 @@ async function updateElectionData(){
  finally{electionScanning=false}
 }
 
+
+// EVENING_WIRE_CENSUS_MAP_PROXY_V1 — official Census 2026 map geometries.
+// Never use news stories to infer a win or to color uncalled districts.
+const GEO_BASE="https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/";
+const FIPS_TO_CODE={
+ "01":"AL","02":"AK","04":"AZ","05":"AR","06":"CA","08":"CO","09":"CT","10":"DE","12":"FL","13":"GA",
+ "15":"HI","16":"ID","17":"IL","18":"IN","19":"IA","20":"KS","21":"KY","22":"LA","23":"ME","24":"MD",
+ "25":"MA","26":"MI","27":"MN","28":"MS","29":"MO","30":"MT","31":"NE","32":"NV","33":"NH","34":"NJ",
+ "35":"NM","36":"NY","37":"NC","38":"ND","39":"OH","40":"OK","41":"OR","42":"PA","44":"RI",
+ "45":"SC","46":"SD","47":"TN","48":"TX","49":"UT","50":"VT","51":"VA","53":"WA","54":"WV","55":"WI","56":"WY"};
+const CODE_TO_FIPS=Object.fromEntries(Object.entries(FIPS_TO_CODE).map(([id,c])=>[c,id]));
+const censusGeoCache=new Map();
+async function fetchCensusLayer(path,where,fields,offset){
+ const url=new URL(GEO_BASE+path);
+ for(const [k,v] of Object.entries({where,outFields:fields,returnGeometry:"true",outSR:"4326",geometryPrecision:"5",maxAllowableOffset:String(offset),f:"geojson"}))url.searchParams.set(k,v);
+ const reply=await fetch(url,{signal:AbortSignal.timeout(50000),headers:{Accept:"application/geo+json,application/json"}});
+ if(!reply.ok)throw Error("Census geography service returned "+reply.status);
+ const body=await reply.json();
+ if(body.error||body.type!=="FeatureCollection"||!Array.isArray(body.features))throw Error("Census geographic layer did not return valid GeoJSON");
+ return body.features;
+}
+async function censusMap(kind,state){
+ const key=kind+":"+(state||"US");
+ const existing=censusGeoCache.get(key);
+ if(existing&&existing.value&&Date.now()-existing.at<86400000)return existing.value;
+ if(existing&&existing.pending)return existing.pending;
+ const pending=(async()=>{
+  let features=[],caveat=null;
+  const fips=state?CODE_TO_FIPS[state]:null;
+  const where=state?"STATE = '"+fips+"'":"1=1";
+  if(kind==="states"){
+    features=await fetchCensusLayer("State_County/MapServer/0/query","1=1","GEOID,NAME,STATE",state?".001":".012");
+  }else if(kind==="districts"){
+    features=await fetchCensusLayer("Legislative/MapServer/0/query",where,"GEOID,STATE,CD120,NAME",state?".0009":".012");
+    // Missouri's 2026 election uses the 2022/2024 map following the September 2026 court decision.
+    // Layer 8 is the 119th congressional districts in Census TIGERweb/Legislative.
+    if(!state||state==="MO"){
+      let old=[];
+      try{old=await fetchCensusLayer("Legislative/MapServer/8/query","STATE = '29'","GEOID,STATE,CD119,NAME",state?".0009":".012")}catch(e){console.warn("Missouri historical district geometry unavailable",e.message)}
+      if(old.length){features=features.filter(f=>String(f.properties?.STATE)!=="29");for(const f of old){f.properties={...f.properties,CD120:f.properties.CD119,geographyNote:"Missouri 2022/2024 boundaries used for 2026 election"};features.push(f)}}
+      else caveat="Missouri Congressional boundaries could not be independently verified; not displayed as district geometry.";
+    }
+  }else if(kind==="counties"){
+    if(!state)throw Error("State required for county boundaries");
+    features=await fetchCensusLayer("State_County/MapServer/1/query",where,"GEOID,STATE,NAME",state?".001":".012");
+  }else throw Error("Invalid geography type");
+  features=features.filter(f=>f&&f.geometry&&FIPS_TO_CODE[String(f.properties?.STATE??f.properties?.GEOID?.slice(0,2))]);
+  const value={type:"FeatureCollection",features,meta:{source:"U.S. Census Bureau TIGERweb",vintage:"2026 current / 120th Congressional Districts",layer:kind,updatedAt:new Date().toISOString(),caveat}};
+  censusGeoCache.set(key,{value,at:Date.now()});
+  return value;
+ })();
+ censusGeoCache.set(key,{pending,at:Date.now()});
+ try{return await pending}catch(e){censusGeoCache.delete(key);throw e}
+}
+
 const page=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/index.html',import.meta.url),'utf8'));
 const server=http.createServer((req,res)=>{
  const u=new URL(req.url,'http://localhost');
  const json=(obj,code=200)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
  if(u.pathname==='/api/election')return json(electionData);
+
+ if(u.pathname==='/election-maps.js'||u.pathname==='/election-maps.css'){
+   const filename=u.pathname.slice(1),ctype=filename.endsWith(".css")?"text/css; charset=utf-8":"text/javascript; charset=utf-8";
+   import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/'+filename,import.meta.url))).then(buf=>{
+     res.writeHead(200,{'Content-Type':ctype,'Cache-Control':'public, max-age=180'});res.end(buf);
+   }).catch(()=>json({error:'Asset not available'},404));return;
+ }
+ if(u.pathname.startsWith('/api/geo/')){
+   const kind=u.pathname.slice('/api/geo/'.length);
+   if(!['states','districts','counties'].includes(kind))return json({error:'Unknown geography'},404);
+   const state=String(u.searchParams.get('state')||'').toUpperCase();
+   if(state&&!CODE_TO_FIPS[state])return json({error:'Unknown state'},400);
+   if(kind==='counties'&&!state)return json({error:'State required'},400);
+   censusMap(kind,state||null).then(data=>json(data)).catch(err=>json({error:'Geography temporarily unavailable',detail:String(err.message)},503));return;
+ }
  if(u.pathname==='/api/stories')return json({stories:stories.slice(0,500),initialized,lastScan});
  if(u.pathname==='/api/status')return json({sources:snapshot().sources,initialized,lastScan,pollIntervalMs:POLL});
  if(u.pathname==='/health')return json({ready:true,initialized,responding:Object.values(status).filter(x=>x.ok).length,lastScan});
