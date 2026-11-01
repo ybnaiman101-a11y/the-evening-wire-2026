@@ -328,6 +328,15 @@ const server=http.createServer(async (req,res)=>{
   });
  }
 
+ if(u.pathname==='/api/historical/counties'){
+  const st=String(u.searchParams.get('state')||'').toUpperCase();
+  if(!/^[A-Z]{2}$/.test(st))return json({error:'A two-letter state code is required'},400);
+  try{
+   const buf=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/historical-county-baselines.json',import.meta.url)));
+   const data=JSON.parse(buf.toString('utf8'));
+   return json({state:st,countyCount:(data.countiesByState[st]||[]).length,source:data.source,sourceUrl:data.sourceUrl,caveat:data.caveat,counties:data.countiesByState[st]||[]});
+  }catch(err){return json({error:'Historical county swing data unavailable'},503)}
+ }
  if(u.pathname==='/api/historical'){
   try{
    const buf=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/historical-state-baselines.json',import.meta.url)));
