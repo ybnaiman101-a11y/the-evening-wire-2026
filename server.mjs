@@ -251,6 +251,7 @@ const server=http.createServer((req,res)=>{
  if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname);return;}
  if(u.pathname==='/api/election')return json(electionData);
 
+ if(u.pathname==='/reactions.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/reactions.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'public, max-age=180'});res.end(b)}).catch(()=>json({error:'Resource unavailable'},404));return;}
  if(u.pathname==='/election-maps.js'||u.pathname==='/election-maps.css'){
    const filename=u.pathname.slice(1),ctype=filename.endsWith(".css")?"text/css; charset=utf-8":"text/javascript; charset=utf-8";
    import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/'+filename,import.meta.url))).then(buf=>{
