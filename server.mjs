@@ -277,3 +277,15 @@ const server=http.createServer((req,res)=>{
  return json({error:'Not found'},404);
 });
 server.listen(PORT,'0.0.0.0',()=>{console.log('THE EVENING WIRE listening on '+PORT);runScan();setInterval(runScan,POLL).unref();updateElectionData();setInterval(updateElectionData,resultsPollingMS).unref()});
+
+setTimeout(async()=>{
+  for(const kind of ["states","districts"]){
+    try{
+      const value=await censusMap(kind,null);
+      console.log("CENSUS_MAP_WARM",kind,"features="+value.features.length,"caveat="+(value.meta?.caveat||"none"));
+    }catch(err){
+      console.warn("CENSUS_MAP_WARM_FAILED",kind,String(err.message||err).slice(0,350));
+    }
+  }
+},1000).unref();
+
