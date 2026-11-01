@@ -334,6 +334,12 @@ const server=http.createServer(async (req,res)=>{
    res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, max-age=86400','X-Content-Type-Options':'nosniff'});return res.end(buf);
   }catch(e){return json({error:'Verified historical election baseline temporarily unavailable'},503)}
  }
+ if(u.pathname==='/studio.css'){
+  try{
+   const buf=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/studio.css',import.meta.url)));
+   res.writeHead(200,{'Content-Type':'text/css; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});return res.end(buf)
+  }catch(e){return json({error:'Studio styles unavailable'},404)}
+ }
  if(u.pathname==='/studio.js'){
   try{
    const buf=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/studio.js',import.meta.url)));
