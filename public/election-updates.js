@@ -1,81 +1,73 @@
-/* THE EVENING WIRE — fixed-position urgent notices on every newsroom tab.
-   Reads only owner-published notices. Other members have no publish access. */
+/* THE EVENING WIRE — owner Election Update: one ten-second popup, then gone.
+   The server delivers ONLY updates that are less than ten seconds old. */
 (function(){
 'use strict';
-const escapeHTML=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const seenKey='ew-election-updates-seen-2026';
-let seen=[];
-try{const x=JSON.parse(localStorage.getItem(seenKey)||'[]');if(Array.isArray(x))seen=x.filter(v=>typeof v==='string').slice(-250)}catch{}
-let updates=[],visibleId=null,historyOpen=false,previousIds='',busy=false;
-const root=document.createElement('div');root.id='ew-global-updates';root.setAttribute('aria-label','Election Updates');document.body.append(root);
-const safeURL=x=>{try{const u=new URL(x);return u.protocol==='https:'?u.href:null}catch{return null}};
-const relativeTime=t=>{const d=new Date(t);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Just now'};
-const kinds={'race-called':'RACE CALL','breaking':'BREAKING','results':'RESULTS','important':'IMPORTANT'};
-function persist(){try{localStorage.setItem(seenKey,JSON.stringify(seen.slice(-250)))}catch{}}
-const unread=()=>updates.filter(u=>!seen.includes(u.id));
-function render(){
- const active=updates.find(u=>u.id===visibleId);
- const n=unread().length;
- const bubble=u=>{
-  const source=safeURL(u.sourceUrl);
-  return '<article class="ew-alert-card ew-alert-'+escapeHTML(u.category)+'" role="alert">'+
-   '<div class="ew-alert-top"><div class="ew-alert-brand"><span class="ew-alert-pulse"></span>ELECTION UPDATE</div>'+
-   '<button type="button" data-ew-alert-close="'+escapeHTML(u.id)+'" aria-label="Dismiss this election update">✕</button></div>'+
-   '<div class="ew-alert-type">'+escapeHTML(kinds[u.category]||'IMPORTANT')+' · THE EVENING WIRE</div>'+
-   '<p>'+escapeHTML(u.message)+'</p>'+
-   (source?'<a href="'+escapeHTML(source)+'" target="_blank" rel="noopener noreferrer">VIEW ORIGINAL SOURCE ↗</a>':'')+
-   '<footer><span>'+escapeHTML(relativeTime(u.createdAt))+'</span><span>Published by site administrator</span></footer>'+
-   '</article>'
- };
- root.innerHTML=
-  '<button type="button" id="ewAlertBell" class="ew-alert-bell" aria-label="Election Updates'+(n?' - '+n+' unread':'')+'" aria-expanded="'+historyOpen+'">🔔 <span>ELECTION UPDATES</span>'+(n?'<b>'+n+'</b>':'')+'</button>'+
-  (active?bubble(active):'')+
-  (historyOpen?'<section class="ew-alert-history" aria-label="Recent election updates"><div class="ew-alert-history-head"><strong>RECENT ELECTION UPDATES</strong><button type="button" data-ew-history-close="1" aria-label="Close updates history">✕</button></div>'+
-   (updates.length?updates.map(u=>'<div class="ew-alert-history-item">'+
-    '<span>'+escapeHTML(kinds[u.category]||'ELECTION UPDATE')+' · '+escapeHTML(relativeTime(u.createdAt))+'</span>'+
-    '<p>'+escapeHTML(u.message)+'</p><button type="button" data-ew-alert-show="'+escapeHTML(u.id)+'">'+(seen.includes(u.id)?'READ AGAIN':'VIEW UPDATE')+'</button></div>').join(''):
-    '<p class="ew-alert-history-empty">No active Election Updates have been posted yet.</p>')+'</section>':'');
-}
-function next(){
- if(visibleId&&updates.some(x=>x.id===visibleId))return;
- const u=unread()[0];visibleId=u?u.id:null;
-}
-root.addEventListener('click',e=>{
- const closer=e.target.closest('[data-ew-alert-close]');
- if(closer){
-  const id=closer.dataset.ewAlertClose;
-  if(!seen.includes(id)){seen.push(id);persist()}
-  visibleId=null;next();render();return
- }
- const show=e.target.closest('[data-ew-alert-show]');
- if(show){visibleId=show.dataset.ewAlertShow;historyOpen=false;render();return}
- const closeHistory=e.target.closest('[data-ew-history-close]');
- if(closeHistory){historyOpen=false;render();return}
- if(e.target.closest('#ewAlertBell')){historyOpen=!historyOpen;render()}
-});
-async function refresh(){
- if(busy||document.hidden)return;busy=true;
+const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeUrl=v=>{try{const u=new URL(v);return u.protocol==='https:'?u.href:null}catch{return null}};
+const kinds={'race-called':'RACE CALLED','breaking':'BREAKING','results':'RESULTS','important':'IMPORTANT'};
+const root=document.createElement('div');root.id='ew-global-updates';root.setAttribute('aria-label','Election Update');root.hidden=true;document.body.append(root);
+let showing=null,latestSeen=new Set(),timer=null,loading=false,hadInteraction=false;
+const key='ew-alerts-seen';
+try{const a=JSON.parse(sessionStorage.getItem(key)||'[]');if(Array.isArray(a))latestSeen=new Set(a.filter(x=>typeof x==='string').slice(-60))}catch{}
+document.addEventListener('pointerdown',()=>{hadInteraction=true},{once:true});
+document.addEventListener('keydown',()=>{hadInteraction=true},{once:true});
+function beep(){
+ if(!hadInteraction||!window.AudioContext)return;
  try{
-  const res=await fetch('/api/updates',{credentials:'same-origin',cache:'no-store'});
-  if(res.status===401){root.hidden=true;return}
-  if(!res.ok)throw Error('No updates');
-  const json=await res.json();
-  const items=Array.isArray(json.updates)?json.updates:[];
-  const signature=items.map(u=>u.id).join('|');
-  const lastTop=updates[0]?.id||null;
-  updates=items.filter(u=>u&&u.id&&u.message);
-  root.hidden=false;
-  // Newly issued updates always take priority, regardless of the current tab.
-  if(updates[0]?.id!==lastTop&&updates[0]&&!seen.includes(updates[0].id))visibleId=updates[0].id;
-  if(!updates.some(u=>u.id===visibleId))visibleId=null;
-  next();
-  if(signature!==previousIds){previousIds=signature;render()}
- }catch{}finally{busy=false}
+  const ctx=new AudioContext();const osc=ctx.createOscillator(),vol=ctx.createGain();
+  osc.type='sine';osc.frequency.value=900;
+  vol.gain.setValueAtTime(.0001,ctx.currentTime);
+  vol.gain.exponentialRampToValueAtTime(.035,ctx.currentTime+.025);
+  vol.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.17);
+  osc.connect(vol).connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.19);
+  osc.onended=()=>ctx.close().catch(()=>{});
+ }catch{}
 }
-window.EWElectionUpdates={refresh};
-render();
+function hide(){
+ if(timer!==null){clearTimeout(timer);timer=null}
+ showing=null;root.hidden=true;root.innerHTML='';
+}
+function render(item){
+ const source=safeUrl(item.sourceUrl);
+ root.innerHTML='<article class="ew-alert-card ew-alert-'+safe(item.category)+'" role="alert" aria-live="assertive">'+
+  '<div class="ew-alert-top"><div class="ew-alert-brand"><span class="ew-alert-pulse"></span>ELECTION UPDATE</div>'+
+  '<button type="button" id="ewAlertDismiss" aria-label="Dismiss this Election Update">✕</button></div>'+
+  '<div class="ew-alert-type">'+safe(kinds[item.category]||'IMPORTANT')+' · THE EVENING WIRE</div>'+
+  '<p>'+safe(item.message)+'</p>'+
+  (source?'<a href="'+safe(source)+'" target="_blank" rel="noopener noreferrer">VIEW ORIGINAL SOURCE ↗</a>':'')+
+  '<footer>ADMIN BROADCAST · AUTOMATICALLY CLOSES IN 10 SECONDS</footer>'+
+  '<div class="ew-alert-progress" aria-hidden="true"></div></article>';
+ root.hidden=false;
+ root.querySelector('#ewAlertDismiss').onclick=hide;
+}
+function deliver(item){
+ const end=Date.parse(item.expiresAt);
+ if(!Number.isFinite(end)||end<=Date.now()||latestSeen.has(item.id))return;
+ latestSeen.add(item.id);
+ try{sessionStorage.setItem(key,JSON.stringify([...latestSeen].slice(-60)))}catch{}
+ if(timer!==null)clearTimeout(timer);
+ showing=item.id;
+ render(item);
+ beep();
+ // A notification's lifetime is fixed at ten seconds FROM PUBLISH TIME,
+ // not ten more seconds after a late poll or page reload.
+ timer=setTimeout(hide,Math.max(0,end-Date.now()));
+}
+async function refresh(){
+ if(loading||document.hidden)return;loading=true;
+ try{
+  const res=await fetch('/api/updates',{cache:'no-store',credentials:'same-origin'});
+  if(res.status===401){hide();return}
+  if(!res.ok)return;
+  const data=await res.json(),items=Array.isArray(data.updates)?data.updates:[];
+  if(showing&&!items.some(u=>u.id===showing)){hide()}
+  const incoming=items.find(u=>u?.id&&!latestSeen.has(u.id)&&Date.parse(u.expiresAt)>Date.now());
+  if(incoming)deliver(incoming);
+ }catch{}finally{loading=false}
+}
 refresh();
-setInterval(refresh,4000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
-window.addEventListener('ew-owner-update-posted',()=>{busy=false;refresh()});
+setInterval(refresh,1000);
+document.addEventListener('visibilitychange',()=>{if(document.hidden){hide()}else refresh()});
+window.addEventListener('ew-owner-update-posted',refresh);
+window.EWElectionUpdates={refresh};
 })();
