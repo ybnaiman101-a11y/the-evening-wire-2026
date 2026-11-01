@@ -124,10 +124,73 @@ async function runScan(){
  }catch(e){console.error('Feed scan error',e)}
  finally{scanning=false}
 }
+
+// EVENING WIRE ELECTION FEED — verified-source-only result ingestion.
+// Optional, explicitly configured licensed/official data source; NEVER parse news headlines as race calls.
+const resultsFeedURL=process.env.ELECTION_RESULTS_FEED_URL||'';
+const resultsFeedToken=process.env.ELECTION_RESULTS_FEED_TOKEN||'';
+const resultsPollingMS=Math.max(30000,Number(process.env.ELECTION_RESULTS_POLL_MS||60000));
+let electionData={configured:Boolean(resultsFeedURL),updatedAt:null,checkedAt:null,error:null,races:[],calls:[],turnout:[],source:null};
+let electionScanning=false;
+function urlAllowed(x){try{const u=new URL(x);return u.protocol==='https:'}catch{return false}}
+function validDate(s){return typeof s==='string'&&Number.isFinite(Date.parse(s))}
+function cleanRace(row){
+ if(!row||typeof row!=='object')return null;
+ const office=String(row.office||'').toLowerCase();
+ if(!['senate','governor','house'].includes(office))return null;
+ const state=String(row.state||'').toUpperCase();
+ if(!/^[A-Z]{2}$/.test(state))return null;
+ const district=office==='house'?Number(row.district):null;
+ if(office==='house'&&(!Number.isInteger(district)||district<1||district>53))return null;
+ const id=String(row.id||(office+'-'+state+(office==='house'?'-'+district:'')));
+ const sourceName=String(row.sourceName||'').trim(),sourceUrl=String(row.sourceUrl||'');
+ if(!sourceName||!urlAllowed(sourceUrl)||!validDate(row.updatedAt))return null;
+ const candidates=Array.isArray(row.candidates)?row.candidates.slice(0,12).filter(c=>c&&typeof c.name==='string'&&c.name.trim()).map(c=>({
+  name:String(c.name).slice(0,130),party:String(c.party||'Other').slice(0,40),
+  votes:Number.isSafeInteger(Number(c.votes))&&Number(c.votes)>=0?Number(c.votes):null,
+  percent:typeof c.percent==='number'&&c.percent>=0&&c.percent<=100?c.percent:null
+ })):[];
+ const pct=typeof row.reportingPct==='number'&&row.reportingPct>=0&&row.reportingPct<=100?row.reportingPct:null;
+ return {id,office,state,district,candidates,reportingPct:pct,sourceName,sourceUrl,updatedAt:row.updatedAt,status:'reporting'};
+}
+function cleanCall(c){
+ if(!c||typeof c!=='object')return null;
+ const office=String(c.office||'').toLowerCase();
+ if(!['senate','governor','house'].includes(office))return null;
+ const state=String(c.state||'').toUpperCase();
+ if(!/^[A-Z]{2}$/.test(state))return null;
+ const district=office==='house'?Number(c.district):null;
+ if(office==='house'&&(!Number.isInteger(district)||district<1||district>53))return null;
+ const party=String(c.party||'').toUpperCase(),candidate=String(c.candidate||'').trim();
+ const sourceName=String(c.sourceName||'').trim(),sourceUrl=String(c.sourceUrl||'');
+ if(!candidate||!sourceName||!urlAllowed(sourceUrl)||!validDate(c.calledAt))return null;
+ if(!['R','D','OTHER','I'].includes(party))return null;
+ return {id:String(c.id||(office+'-'+state+(office==='house'?'-'+district:''))),office,state,district,
+  candidate:candidate.slice(0,130),party,sourceName,sourceUrl,calledAt:c.calledAt,callType:'publisher projection'};
+}
+async function updateElectionData(){
+ if(!resultsFeedURL||electionScanning)return;
+ electionScanning=true;const state={...electionData,checkedAt:new Date().toISOString()};
+ try{
+  if(!urlAllowed(resultsFeedURL))throw Error('ELECTION_RESULTS_FEED_URL must use HTTPS');
+  const headers={Accept:'application/json'};if(resultsFeedToken)headers.Authorization='Bearer '+resultsFeedToken;
+  const response=await fetch(resultsFeedURL,{headers,signal:AbortSignal.timeout(15000)});
+  if(!response.ok)throw Error('Election data provider HTTP '+response.status);
+  const payload=await response.json();
+  if(!payload||typeof payload!=='object'||!Array.isArray(payload.races)||!Array.isArray(payload.calls))throw Error('Provider must return races[] and calls[] arrays');
+  const races=payload.races.slice(0,1000).map(cleanRace).filter(Boolean);
+  const calls=payload.calls.slice(0,1000).map(cleanCall).filter(Boolean);
+  electionData={...state,updatedAt:new Date().toISOString(),error:null,source:String(payload.source||new URL(resultsFeedURL).hostname).slice(0,130),races,calls};
+  broadcast('election',electionData);
+ }catch(err){electionData={...state,error:String(err.message||err).slice(0,220)};broadcast('election',electionData)}
+ finally{electionScanning=false}
+}
+
 const page=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/index.html',import.meta.url),'utf8'));
 const server=http.createServer((req,res)=>{
  const u=new URL(req.url,'http://localhost');
  const json=(obj,code=200)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
+ if(u.pathname==='/api/election')return json(electionData);
  if(u.pathname==='/api/stories')return json({stories:stories.slice(0,500),initialized,lastScan});
  if(u.pathname==='/api/status')return json({sources:snapshot().sources,initialized,lastScan,pollIntervalMs:POLL});
  if(u.pathname==='/health')return json({ready:true,initialized,responding:Object.values(status).filter(x=>x.ok).length,lastScan});
@@ -143,4 +206,4 @@ const server=http.createServer((req,res)=>{
  }
  return json({error:'Not found'},404);
 });
-server.listen(PORT,'0.0.0.0',()=>{console.log('THE EVENING WIRE listening on '+PORT);runScan();setInterval(runScan,POLL).unref()});
+server.listen(PORT,'0.0.0.0',()=>{console.log('THE EVENING WIRE listening on '+PORT);runScan();setInterval(runScan,POLL).unref();updateElectionData();setInterval(updateElectionData,resultsPollingMS).unref()});
