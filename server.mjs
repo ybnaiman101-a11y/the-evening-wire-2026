@@ -324,6 +324,16 @@ const server=http.createServer(async (req,res)=>{
   });
  }
 
+ if(u.pathname==='/api/race-catalog'){
+  try{const buf=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/race-candidates.json',import.meta.url)));
+   res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, max-age=300','X-Content-Type-Options':'nosniff'});return res.end(buf);
+  }catch(e){return json({error:'2026 race catalog temporarily unavailable'},503)}
+ }
+ if(u.pathname==='/race-catalog.js'){
+  try{const buf=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/race-catalog.js',import.meta.url)));
+   res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});return res.end(buf);
+  }catch(e){return json({error:'Catalog script unavailable'},404)}
+ }
  if(u.pathname==='/election-updates.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/election-updates.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Election updates script unavailable'},404));return;}
  if(u.pathname==='/traffic.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/traffic.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store'});res.end(b)}).catch(()=>json({error:'Traffic script unavailable'},404));return;}
  if(u.pathname==='/members.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/members.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
