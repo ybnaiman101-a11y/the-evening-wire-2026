@@ -28,13 +28,12 @@ let mode='senate',active='map',selected=null,err='',results={calls:[],races:[]},
 let predOffice='senate',predState='OH',predRace='senate-OH-special',predNotice='',finalNotice='',swingState='TX',open=false,countyData=null,countyState='';
 function renderHeader(page,description,activeTab){
  return '<div class="ew-studio-hero"><div class="cmd-eyebrow">THE EVENING WIRE · ELECTION NIGHT 2026</div><h1>'+esc(page)+'</h1><p>'+esc(description)+'</p>'+
-  '<div class="ew-studio-switch"><button data-ew-studio="map" class="'+(activeTab==='map'?'sel':'')+'">🗺 LIVE ELECTION MAP</button>'+
-  '<button data-ew-studio="swing" class="'+(activeTab==='swing'?'sel':'')+'">↗ SWING ANALYZER</button>'+
+  '<div class="ew-studio-switch"><button data-ew-studio="swing" class="'+(activeTab==='swing'?'sel':'')+'">↗ SWING ANALYZER</button>'+
   '<button data-ew-studio="challenge" class="'+(activeTab==='challenge'?'sel':'')+'">✦ PREDICTION CHALLENGE</button></div></div>';
 }
 function setupLinks(){
  app.querySelectorAll('[data-ew-studio]').forEach(b=>b.onclick=()=>{
-  const tab=b.dataset.ewStudio==='map'?'election-map':b.dataset.ewStudio==='swing'?'swing':'predictions';
+  const tab=b.dataset.ewStudio==='swing'?'swing':'predictions';
   document.dispatchEvent(new CustomEvent('ew-studio-navigate',{detail:{tab}}));
  })
 }
