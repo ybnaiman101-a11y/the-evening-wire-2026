@@ -31,12 +31,12 @@
   const active=adminUpdates.filter(u=>!u.retractedAt&&Date.parse(u.expiresAt)>Date.now());
   const kinds={'breaking':'BREAKING','race-called':'RACE CALLED','results':'ELECTION RESULTS','important':'IMPORTANT'};
   return '<section class="ew-alert-owner"><div class="cmd-eyebrow">ADMIN ONLY · ALL SCREENS</div>'+
-   '<h2>📣 ELECTION UPDATE</h2><p>Send a prominent announcement to every signed-in visitor, whichever tab they are using. Updates appear automatically within a few seconds.</p>'+
+   '<h2>📣 ELECTION UPDATE</h2><p>Send a prominent announcement to every signed-in visitor, whichever tab they are using. Each Election Update flashes for ten seconds and then disappears automatically.</p>'+
    '<form id="ewBroadcastForm" class="ew-member-form">'+
    '<label>ANNOUNCEMENT TYPE<select name="category"><option value="race-called">RACE CALLED</option><option value="breaking">BREAKING</option><option value="results">ELECTION RESULTS</option><option value="important">IMPORTANT MESSAGE</option></select></label>'+
    '<label>YOUR ELECTION UPDATE MESSAGE<textarea name="message" placeholder="Example: The Evening Wire has called the Ohio Senate race for ..." minlength="8" maxlength="700" rows="4" required></textarea></label>'+
    '<label>ORIGINAL SOURCE LINK (OPTIONAL)<input name="sourceUrl" type="url" placeholder="https://..."></label>'+
-   '<label>KEEP THIS ALERT ACTIVE FOR<select name="durationHours"><option value="3">3 HOURS</option><option value="6" selected>6 HOURS</option><option value="12">12 HOURS</option><option value="24">24 HOURS</option><option value="1">1 HOUR</option></select></label>'+
+   '<p class="ew-owner-alert-explain">10-SECOND POPUP · This notice appears briefly on every active reader screen and then automatically disappears. There is no lasting banner.</p>'+
    '<button type="submit" class="cmd-primary">📣 SEND ELECTION UPDATE TO EVERYONE</button></form>'+
    '<p class="ew-owner-alert-explain">This sends an editorial notice only. It does not automatically publish or change official race calls.</p>'+
    '<div class="ew-owner-alert-list-head"><strong>RECENT ANNOUNCEMENTS</strong><span>'+active.length+' ACTIVE</span></div>'+
@@ -139,8 +139,8 @@
   if(broadcast)broadcast.onsubmit=e=>{e.preventDefault();perform(async()=>{
    const data=new FormData(broadcast),message=String(data.get('message')||'').trim();
    if(!window.confirm('Broadcast this ELECTION UPDATE to every signed-in visitor right now?'))return;
-   await request('/api/updates','POST',{category:data.get('category'),message,sourceUrl:data.get('sourceUrl'),durationHours:Number(data.get('durationHours'))});
-   status='Election Update published. Visitors will see it within a few seconds.';
+   await request('/api/updates','POST',{category:data.get('category'),message,sourceUrl:data.get('sourceUrl')});
+   status='Election Update sent. It disappears automatically ten seconds after publishing.';
    await fetchUpdates();render();
    window.dispatchEvent(new Event('ew-owner-update-posted'));
   })};
