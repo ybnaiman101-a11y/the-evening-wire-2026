@@ -102,7 +102,7 @@ body{background:#070d16;color:#e7f2ff}
 @media(max-width:1100px){.ew-masthead{min-height:140px;padding:18px 25px}.ew-masthead-right{padding-left:16px}.ew-masthead-caption{font-size:8px;letter-spacing:1px}.ew-masthead .ew-word-line{font-size:clamp(35px,4.3vw,60px)}.ew-globe-art{right:0}}
 @media(max-width:760px){.ew-masthead{min-height:116px;padding:16px;gap:8px}.ew-masthead .ew-mark{width:46px;height:52px}.ew-masthead .ew-integrated-brand{gap:5px}.ew-the{font-size:9px;letter-spacing:4px;margin-bottom:2px}.ew-masthead .ew-word-line{font-size:clamp(27px,6vw,40px);letter-spacing:0}.ew-tagline{font-size:8px;letter-spacing:1.4px;margin-top:6px}.ew-brand-orbit{display:none}.ew-masthead-caption{display:none}.ew-masthead-right{padding-left:6px;gap:7px}.ew-masthead-right .status{font-size:8px;padding:7px}.ew-masthead-right .clock{font-size:9px}.ew-globe-art{right:-170px;width:430px;opacity:.55}}
 @media(max-width:470px){.ew-masthead{min-height:98px;padding:12px 10px}.ew-masthead .ew-mark{width:35px;height:44px}.ew-masthead .ew-integrated-brand{gap:3px}.ew-masthead .ew-word-line{font-size:clamp(24px,6.1vw,29px)}.ew-the{font-size:8px;letter-spacing:3px}.ew-tagline{font-size:7px;letter-spacing:1px}.ew-masthead-right .status{font-size:0;min-width:20px;max-width:21px;min-height:23px;padding:8px}.ew-masthead-right .dot{width:7px;height:7px}.ew-masthead-right .clock{font-size:8px}}
-</style><link rel="stylesheet" href="/election-maps.css"></head>
+</style></head>
 <body>
 <header class="ew-masthead">
   <div class="ew-masthead-atmosphere" aria-hidden="true">
@@ -339,7 +339,7 @@ new MutationObserver(decorate).observe($('stories'),{childList:true});decorate()
 refresh();setInterval(refresh,45000);setInterval(rotateHeadline,8500);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 })();
-</script><script src="/election-maps.js"></script>
+</script>
 <script>
 /* EVENING WIRE COMMAND ENGINE — no synthetic votes, calls or publication times */
 (function(){
@@ -390,56 +390,6 @@ function liveSummary(){
  return '<span class="cmd-clock"><span class="pulse"></span>Publisher feeds responding: '+healthy+' / 27 · Newsroom last scan: '+formatTime(newsScan)+'</span>'
 }
 
-/* EW THREE MAP DASHBOARD INTEGRATION */
-function electMapMarkup(mode,mini=false){
- const total=mode==='house'?435:mode==='senate'?SENATE.length:GOVERNOR.length;
- const calls=(results.calls||[]).filter(c=>c.office===mode).length;
- const titleText=mode==='house'?'HOUSE OF REPRESENTATIVES':mode==='senate'?'U.S. SENATE':'U.S. GOVERNORS';
- const sub=mode==='house'?'435 voting districts · 218 majority':mode==='senate'?'2026 regularly scheduled contests':'2026 governor elections';
- const wrapperClass=mini?'ew-mapcard':'cmd-card ew-map-detailed';
- return '<article class="'+wrapperClass+'">'
-  +(mini?'<div class="ew-mapcard-head"><div><small>'+sub.toUpperCase()+'</small><h3>'+titleText+'</h3></div><span class="ew-mapcard-stat">'+(results.configured?calls+' CALLED':'NO CALL FEED')+'</span></div>':'<div class="cmd-eyebrow">U.S. CENSUS / OFFICIAL 2026 BOUNDARIES</div>')
-  +'<div class="ew-map '+(mini?'mini':'large')+'" data-ew-map="'+mode+'" data-mini="'+(mini?'1':'0')+'"><div class="ew-map-message">Loading official state and district boundaries…</div></div>'
-  +'<div class="ew-map-legend"><span><i class="r"></i>Republican called</span><span><i class="d"></i>Democratic called</span><span><i class="uncalled"></i>Not called</span></div>'
-  +(mini?'<div class="ew-mapcard-actions"><button data-open-map="'+mode+'">EXPAND '+(mode==='house'?'HOUSE':mode==='senate'?'SENATE':'GOVERNORS')+' MAP ↗</button></div>':'<div class="ew-map-caption">'+sub+'. Click any state or House district to open race details. Boundaries © U.S. Census Bureau. No fake vote totals or projections.</div>')
-  +'</article>';
-}
-function mapsHubMarkup(){
- return '<section class="cmd-section" id="ewMapsHub"><div class="ew-maps-title"><div><span class="ew-maps-kicker">LIVE 2026 ELECTION COMMAND CENTER</span><h2>THREE MAPS. ONE NEWSROOM.</h2><p>Explore the Senate, all 435 congressional districts, and every governor race. Each shape opens the relevant race. No result color is assigned without a verifiable source call.</p></div><button class="cmd-primary" data-tv-mode="1">▣ OPEN FULL-SCREEN TV MODE</button></div><div class="ew-triple">'
-   +electMapMarkup('senate',true)+electMapMarkup('house',true)+electMapMarkup('governor',true)
-   +'</div><p class="ew-maps-foot">Cartography: U.S. Census Bureau TIGERweb 2026 / 120th Congressional Districts. Missouri uses 2022/2024 congressional boundaries following September 2026 court action. Geography does not imply vote results.</p></section>';
-}
-function mountElectionMaps(container=app){
- if(!window.EWMaps){const targets=container.querySelectorAll('[data-ew-map]');for(const item of targets)item.textContent='Loading map engine…';return}
- for(const target of container.querySelectorAll('[data-ew-map]')){
-  const type=target.dataset.ewMap,mini=target.dataset.mini==='1';
-  window.EWMaps.mount(target,{
-    mode:type,mini,results,senateStates:SENATE.map(x=>x.state),governorStates:GOVERNOR.map(x=>x.state),
-    onSelect:info=>{
-      if(info.office==='house'&&info.key){showRace(info.key);return}
-      const key=info.office+'-'+info.state;
-      const entries=info.office==='senate'?SENATE.filter(x=>x.state===info.state):GOVERNOR.filter(x=>x.state===info.state);
-      if(entries.length===1){showRace(key);return}
-      selectedState=info.state;go('states');
-    }
-  });
- }
-}
-function showTv(){
- if(document.getElementById('ewTvMode'))return;
- const layer=document.createElement('div');layer.id='ewTvMode';layer.className='ew-tv';
- layer.innerHTML='<div class="ew-tv-header"><div><b>THE EVENING WIRE · AMERICA VOTES 2026</b><br><span>THREE ELECTION MAPS · CENSUS 2026 GEOGRAPHY</span></div><button id="ewTvClose">CLOSE TV MODE ✕</button></div><div class="ew-triple">'+electMapMarkup('senate',true)+electMapMarkup('house',true)+electMapMarkup('governor',true)+'</div><div class="ew-tv-bar"><span class="cmd-clock">RACES CALLED '+(results.configured?(results.calls||[]).length:'—')+' · LAST NEWS SCAN '+formatTime(newsScan)+'</span><button id="ewTvFull" class="cmd-primary">⛶ FULL SCREEN</button></div><div class="ew-no-data">Election projection colors and totals are displayed only when supported by sourced race calls. News feed updates remain separate from election results.</div>';
- document.body.append(layer);document.body.style.overflow='hidden';
- mountElectionMaps(layer);
- layer.querySelector('#ewTvClose').addEventListener('click',closeTv);
- layer.querySelector('#ewTvFull').addEventListener('click',()=>{
-   if(document.fullscreenElement)document.exitFullscreen?.();
-   else layer.requestFullscreen?.().catch(()=>{});
- });
- layer.addEventListener('click',e=>{const b=e.target.closest('[data-open-map]');if(b){closeTv();go(b.dataset.openMap)}});
-}
-function closeTv(){const layer=document.getElementById('ewTvMode');if(!layer)return;if(document.fullscreenElement)document.exitFullscreen?.();layer.remove();document.body.style.overflow=''}
-
 /* EW MAP RACE FOLLOW & COMPARISON V1 */
 let followedRaces=[];
 try{const v=JSON.parse(localStorage.getItem('ew-followed-races-v1')||'[]');if(Array.isArray(v))followedRaces=v.filter(x=>typeof x==='string').slice(0,150)}catch{}
@@ -477,9 +427,9 @@ function hq(){
  const lead=news[0];const calledList=(results.calls||[]).slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt));
  const countTo=new Date('2026-11-03T00:00:00-05:00').getTime()-Date.now();
  const days=Math.max(0,Math.ceil(countTo/86400000)),onElection=Date.now()>=new Date('2026-11-03T00:00:00-05:00').getTime();
- return '<div class="cmd-banner"><div class="cmd-hero"><span class="cmd-kicker">2026 U.S. MIDTERM ELECTIONS</span><h1>AMERICA <em>DECIDES.</em></h1><p>Your real-time election newsroom for all 435 House contests, regularly scheduled Senate and gubernatorial races, original publisher headlines, and attributed race calls.</p><div class="cmd-toolbar"><button class="cmd-primary" data-tab="news">LIVE NEWSROOM ↗</button><button class="cmd-minibtn" data-tab="calls">RACE CALL DESK</button><button class="cmd-minibtn" data-scroll-maps="1">VIEW THREE MAPS ↓</button></div></div><div class="cmd-mini"><strong>'+esc(onElection?'ELECTION DESK':'COUNTDOWN TO ELECTION DAY')+'</strong><span class="main-number">'+(onElection?'ON AIR':days+' DAYS')+'</span><small>TUESDAY · NOVEMBER 3, 2026<br>Reporting and race calls require a verified provider.</small></div></div>'
- +mapsHubMarkup()
- +'<div class="cmd-grid">'+infoCard('senate',SENATE)+infoCard('governor',GOVERNOR)+infoCard('house',HOUSE)+'</div>'+notice()
+ return '<div class="cmd-banner"><div class="cmd-hero"><span class="cmd-kicker">2026 U.S. MIDTERM ELECTIONS</span><h1>AMERICA <em>DECIDES.</em></h1><p>Your real-time election newsroom for all 435 House contests, regularly scheduled Senate and gubernatorial races, original publisher headlines, and attributed race calls.</p><div class="cmd-toolbar"><button class="cmd-primary" data-tab="news">LIVE NEWSROOM ↗</button><button class="cmd-minibtn" data-tab="calls">RACE CALL DESK</button><button class="cmd-minibtn" data-tab="senate">SENATE RACES ↗</button></div></div><div class="cmd-mini"><strong>'+esc(onElection?'ELECTION DESK':'COUNTDOWN TO ELECTION DAY')+'</strong><span class="main-number">'+(onElection?'ON AIR':days+' DAYS')+'</span><small>TUESDAY · NOVEMBER 3, 2026<br>Reporting and race calls require a verified provider.</small></div></div>'
+ +'<div class="cmd-grid">'+infoCard('senate',SENATE)+infoCard('governor',GOVERNOR)+infoCard('house',HOUSE)+'</div>'
+ +'<div class="cmd-toolbar" style="margin:16px 0 10px;gap:10px"><button class="cmd-primary" data-tab="senate">VIEW ALL SENATE RACES →</button><button class="cmd-primary" data-tab="house">VIEW ALL 435 HOUSE RACES →</button><button class="cmd-primary" data-tab="governor">VIEW ALL GOVERNOR RACES →</button></div>'+notice()
  +wrap('<div class="cmd-split"><div class="cmd-card"><div class="cmd-eyebrow">LATEST VERIFIED PUBLISHER COVERAGE</div><h3>THE LEAD STORY</h3>'+(lead?'<h2 style="font:700 clamp(23px,3vw,36px)/1.25 Georgia,serif;margin:17px 0"><a href="'+siteURL(lead.url)+'" target="_blank" rel="noopener noreferrer">'+esc(lead.title)+'</a></h2><p>'+esc(lead.source)+' · '+formatTime(lead.published)+'</p>':unavail('Waiting for the first published election headline.'))+'<div class="cmd-toolbar"><button data-tab="news">OPEN LIVE NEWS →</button></div></div><div class="cmd-card"><div class="cmd-eyebrow">RACE CALL DESK</div><h3>RECENT PROJECTIONS</h3>'+(calledList.length?callCards(calledList.slice(0,2)):unavail('No attributable race calls received from a configured results provider.'))+'<div class="cmd-toolbar"><button data-tab="calls">VIEW ALL CALLS →</button></div></div></div>')
  +recentTimeline()
  +wrap(title('The National Newswire','Recent election coverage from the configured publisher feeds.')+'<div class="cmd-card">'+latestStories(6)+'</div>')+'<div class="cmd-footer-info">'+liveSummary()+'</div>'
@@ -498,7 +448,7 @@ function raceList(type){
  const page=type==='senate'?'SENATE ELECTIONS':type==='governor'?'GOVERNOR ELECTIONS':'HOUSE ELECTIONS';
  const subtitle=type==='senate'?'Regular Class II contests are listed; provider-confirmed special elections are added when available.':type==='governor'?'2026 gubernatorial contests and sourced results, without unsupported winner claims.':'All 435 House districts based on current apportionment. District-boundary changes and special circumstances must be confirmed with election authorities.';
  const options='<option value="ALL">All states</option>'+STATES.filter(x=>x.districts).map(x=>'<option value="'+x.code+'"'+(raceState===x.code?' selected':'')+'>'+esc(x.name)+'</option>').join('');
- return title(page,subtitle)+notice()+electMapMarkup(type,false)+'<div class="cmd-toolbar"><input aria-label="Search races" placeholder="Search states, offices, districts…" id="cmdRaceSearch" value="'+esc(raceQuery)+'"><select id="cmdStateFilter" aria-label="Filter state">'+options+'</select><span class="cmd-pill">'+data.length+' MATCHING CONTESTS</span></div><div class="cmd-card"><div class="cmd-scroll">'+data.slice(0,isHouse?houseLimit:120).map(cardRace).join('')+'</div></div>'+(isHouse&&data.length>houseLimit?'<div class="cmd-toolbar"><button data-show-more="1" class="cmd-primary">SHOW MORE DISTRICTS · '+(data.length-houseLimit)+' REMAINING</button></div>':'')
+ return title(page,subtitle)+notice()+'<div class="cmd-toolbar"><input aria-label="Search races" placeholder="Search states, offices, districts…" id="cmdRaceSearch" value="'+esc(raceQuery)+'"><select id="cmdStateFilter" aria-label="Filter state">'+options+'</select><span class="cmd-pill">'+data.length+' MATCHING CONTESTS</span></div><div class="cmd-card"><div class="cmd-scroll">'+data.slice(0,isHouse?houseLimit:120).map(cardRace).join('')+'</div></div>'+(isHouse&&data.length>houseLimit?'<div class="cmd-toolbar"><button data-show-more="1" class="cmd-primary">SHOW MORE DISTRICTS · '+(data.length-houseLimit)+' REMAINING</button></div>':'')
 }
 function callCards(arr){
  return arr.map(c=>'<div class="cmd-call '+(c.party==='R'?'r':c.party==='D'?'d':'')+'"><span class="cmd-pill '+(c.party==='R'?'red':c.party==='D'?'blue':'')+'">'+esc(partyLabel(c.party))+' · SOURCE PROJECTION</span><h3>'+esc(c.candidate)+'</h3><small>'+esc(stateName(c.state))+' · '+esc(c.office.toUpperCase())+(c.district?' · District '+c.district:'')+'<br>'+esc(c.sourceName)+' · '+formatTime(c.calledAt)+'</small><a href="'+siteURL(c.sourceUrl)+'" target="_blank" rel="noopener noreferrer">OPEN ORIGINAL CALL ANNOUNCEMENT ↗</a></div>').join('')
@@ -523,13 +473,6 @@ function stateDetails(){
  return '<div class="cmd-card"><div class="cmd-eyebrow">'+esc(state.name.toUpperCase())+' · STATE RESULTS DESK</div><h3>'+esc(state.name)+'</h3><p>'+(state.code==='DC'?'Washington, D.C. elects a nonvoting House delegate, not one of the 435 voting House seats.':'2026 election contests listed below, with verified results when available.')+'</p>'+(races.length?races.map(cardRace).join(''):unavail('No U.S. Senate, state governor, or voting House election directory entry for this jurisdiction.'))+'</div>'
 }
 function statesView(){return title('50-STATE ELECTION EXPLORER','Choose any state to explore its Senate, governor and House contests. The District of Columbia is also included.')+stateSelect()+'<div class="cmd-section">'+stateDetails()+'</div>'}
-function mapView(){
- return title('THREE INTERACTIVE ELECTION MAPS','The same official 2026 Census geography powers all three maps. Choose an office or use the controls to zoom, pan and open the map in full screen.')
- +notice()
- +'<div class="ew-map-tabs">'+['senate','house','governor'].map(type=>'<button data-map-type="'+type+'" class="'+(mapOffice===type?'active':'')+'">'+(type==='house'?'HOUSE · 435':type==='senate'?'U.S. SENATE':'GOVERNORS')+'</button>').join('')+'<button data-tv-mode="1">▣ 3-MAP TV MODE</button></div>'
- +electMapMarkup(mapOffice,false)
- +'<div class="ew-maps-foot">Source: U.S. Census Bureau 2026 TIGERweb, 120th Congressional Districts. Missouri has a documented 2026 map exception. A race-call feed is required to color projected winners.</div>';
-}
 function turnoutView(){
  const rows=results.turnout||[];
  return title('EARLY VOTING & TURNOUT','Compare only official turnout statistics with matching definitions and election periods.')+notice()
@@ -553,7 +496,6 @@ function render(){
  const pages={hq:hq,senate:()=>raceList('senate'),governor:()=>raceList('governor'),house:()=>raceList('house'),calls:callsView,battleground:watched,states:statesView,turnout:turnoutView,sources:sourceView,mydesk:myDesk};
  const fn=pages[active]||hq;
  app.innerHTML=fn();
- mountElectionMaps();
 }
 function go(tab){
  active=['hq','news','senate','governor','house','calls','battleground','states','turnout','sources','mydesk'].includes(tab)?tab:'hq';
@@ -582,33 +524,6 @@ function showRace(key){
 }
 function closeModal(){modal.hidden=true;document.body.style.overflow=''}
 function switchState(code){if(!BY_CODE[code])return;selectedState=code;go('states')}
-async function loadMap(){
- const el=document.getElementById('cmdMap');if(!el)return;
- const fallback=()=>{if(!document.getElementById('cmdMap'))return;el.innerHTML='<p class="cmd-muted">Geographic map libraries could not load. State selection remains available below.</p>'+stateSelect()};
- const js=(url,global)=>new Promise((resolve,reject)=>{if(window[global])return resolve();const script=document.createElement('script');script.src=url;script.onload=resolve;script.onerror=reject;document.head.append(script)});
- try{
-  await Promise.all([js('https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js','d3'),js('https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js','topojson')]);
-  const response=await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json');if(!response.ok)throw Error('Map geometry unavailable');
-  const topology=await response.json();if(!document.getElementById('cmdMap'))return;
-  const features=topojson.feature(topology,topology.objects.states);const projection=d3.geoAlbersUsa().fitSize([960,540],features);const path=d3.geoPath(projection);
-  el.innerHTML='';const svg=d3.select(el).append('svg').attr('viewBox','0 0 970 550').attr('role','img').attr('aria-label','Clickable geographic United States map, colors indicate verified source projections only');
-  const codeByFips=Object.fromEntries(STATES.map(s=>[s.fips,s.code]));
-  svg.selectAll('path').data(features.features).join('path').attr('class','state-path').attr('d',path)
-   .attr('fill',f=>{
-    const state=codeByFips[String(f.id).padStart(2,'0')];
-    if(mapOffice==='house')return '#53687c';
-    const records=(results.calls||[]).filter(c=>c.office===mapOffice&&c.state===state);
-    if(!records.length)return '#53687c';
-    const all=records.every(c=>c.party===records[0].party);
-    return all?partyColor(records[0].party):'#53687c';
-   }).append('title').text(f=>{
-    const code=codeByFips[String(f.id).padStart(2,'0')];
-    const call=(results.calls||[]).find(c=>c.office===mapOffice&&c.state===code);
-    return stateName(code)+' — '+(call?partyLabel(call.party)+' publisher projection by '+call.sourceName:'no verified race call');
-   });
-  svg.selectAll('path').on('click',(e,f)=>{const code=codeByFips[String(f.id).padStart(2,'0')];if(code)switchState(code)});
- }catch(e){fallback()}
-}
 async function sync(){
  try{
   const all=await Promise.all([fetch('/api/stories',{cache:'no-store'}),fetch('/api/status',{cache:'no-store'}),fetch('/api/election',{cache:'no-store'})]);
@@ -622,13 +537,9 @@ async function sync(){
 document.querySelector('.command-nav').addEventListener('click',e=>{const b=e.target.closest('[data-ew-tab]');if(b)go(b.dataset.ewTab)});
 app.addEventListener('click',e=>{
  const btn=e.target.closest('button');if(!btn)return;
- if(btn.dataset.openMap){go(btn.dataset.openMap);return}
- if(btn.dataset.scrollMaps){document.getElementById('ewMapsHub')?.scrollIntoView({behavior:'smooth',block:'start'});return}
- if(btn.dataset.tvMode){showTv();return}
  if(btn.dataset.tab){go(btn.dataset.tab);return}
  if(btn.dataset.race){showRace(btn.dataset.race);return}
  if(btn.dataset.state){switchState(btn.dataset.state);return}
- if(btn.dataset.mapType){mapOffice=btn.dataset.mapType;render();return}
  if(btn.dataset.callFilter){callFilter=btn.dataset.callFilter;render();return}
  if(btn.dataset.showMore){houseLimit+=65;render();return}
  if(btn.dataset.openSaved){document.getElementById('savedOpen')?.click();return}
@@ -661,7 +572,6 @@ modal.addEventListener('click',e=>{
  if(e.target===modal||btn?.dataset.closeModal!==undefined)closeModal();
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTv()});
 try{const tab=location.hash.slice(1);if(tab)active=tab}catch{}
 go(active);sync();setInterval(sync,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 })();
