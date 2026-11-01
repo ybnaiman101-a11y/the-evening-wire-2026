@@ -5,7 +5,7 @@ import {authenticatedMember} from './members.mjs';
 import {isEditorAdmin} from './editor-calls.mjs';
 const connection=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
 let pool=null,ready=false;
-const pages=new Set(['hq','news','senate','house','governor','calls','battleground','states','turnout','sources','mydesk','reactions','members','traffic']);
+const pages=new Set(['hq','news','senate','house','governor','calls','battleground','states','turnout','sources','mydesk','reactions','members','traffic','election-map','swing','predictions']);
 const send=(res,n,o)=>{res.writeHead(n,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(o))};
 const init=(async()=>{
  if(!connection)return;
