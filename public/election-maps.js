@@ -124,7 +124,7 @@ async function mount(host,options={}){
    .attr('aria-label',f=>displayName(f,mode)+', '+callLabel(f,mode,options))
    .on('click',(event,f)=>{
       const state=stateOf(f),district=mode==='house'?districtOf(f):null;
-      if(state&&typeof options.onSelect==='function')options.onSelect({state,district,office:mode,key:mode==='house'?districtKey(f):mode+'-'+state});
+      if(state&&typeof options.onSelect==='function')options.onSelect({state,district,office:mode,key:mode==='house'?districtKey(f):mode+'-'+state+(mode==='senate'&&options.senateSpecialStates?.includes(state)?'-special':'')});
    })
    .on('keydown',(event,f)=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.currentTarget.dispatchEvent(new MouseEvent('click',{bubbles:true}))}})
    .on('mouseenter',(event,f)=>{
