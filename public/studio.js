@@ -25,7 +25,7 @@ const post=async(endpoint,body)=>{
  const data=await r.json();if(!r.ok)throw Error(data.error||'Request not accepted');return data
 };
 let mode='senate',active='map',selected=null,err='',results={calls:[],races:[]},historical=null,challenge=null,admin=false;
-let predOffice='senate',predState='OH',predRace='senate-OH-special',predNotice='',finalNotice='',swingState='TX',open=false;
+let predOffice='senate',predState='OH',predRace='senate-OH-special',predNotice='',finalNotice='',swingState='TX',open=false,countyData=null,countyState='';
 function renderHeader(page,description,activeTab){
  return '<div class="ew-studio-hero"><div class="cmd-eyebrow">THE EVENING WIRE · ELECTION NIGHT 2026</div><h1>'+esc(page)+'</h1><p>'+esc(description)+'</p>'+
   '<div class="ew-studio-switch"><button data-ew-studio="map" class="'+(activeTab==='map'?'sel':'')+'">🗺 LIVE ELECTION MAP</button>'+
@@ -123,6 +123,38 @@ function bar(label,value,more){
 function swingFinals(code){
  return (challenge?.finals||[]).filter(f=>namesByKey(f.raceKey)?.state===code).sort((a,b)=>(namesByKey(a.raceKey)?.office||'').localeCompare(namesByKey(b.raceKey)?.office||''));
 }
+function countyMargin(x){return (x.rep-x.dem)/x.total*100}
+function countySection(){
+ if(countyState!==swingState)return '<p class="ew-studio-note">Loading county-by-county presidential comparisons…</p>';
+ const rows=countyData?.counties||[];
+ if(!rows.length)return '<p class="ew-studio-note">No comparable county units available for this state. Alaska and Washington, D.C. have non-county reporting units; unsupported county comparisons are not displayed.</p>';
+ const prepared=rows.map(c=>{
+  const old=countyMargin(c.years['2020']),latest=countyMargin(c.years['2024']);
+  return {...c,oldMargin:old,newMargin:latest,swing:latest-old};
+ }).sort((a,b)=>Math.abs(b.swing)-Math.abs(a.swing));
+ const flips=prepared.filter(c=>Math.sign(c.oldMargin)!==Math.sign(c.newMargin)&&c.oldMargin!==0&&c.newMargin!==0);
+ return '<div class="ew-studio-panel ew-county-swing"><div class="ew-county-head"><div><h3>COUNTY-BY-COUNTY · 2020 → 2024</h3>'+
+  '<p>'+prepared.length+' matched reporting counties · '+flips.length+' counties changed which party led · sorted by size of margin change</p></div>'+
+  '<span>HISTORICAL PRESIDENTIAL RESULTS</span></div>'+
+  '<div class="ew-swing-table-wrap"><table><thead><tr><th>COUNTY</th><th>2020</th><th>2024</th><th>GOP MARGIN Δ</th><th>STATUS</th></tr></thead><tbody>'+
+  prepared.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+fmtMargin(c.oldMargin)+'</td><td>'+fmtMargin(c.newMargin)+'</td>'+
+   '<td class="'+(c.swing>=0?'ew-rchange':'ew-dchange')+'">'+delta(c.swing)+'</td>'+
+   '<td>'+(Math.sign(c.oldMargin)!==Math.sign(c.newMargin)&&c.oldMargin&&c.newMargin?'PARTY FLIP':'—')+'</td></tr>').join('')+
+  '</tbody></table></div><p class="ew-studio-note">'+esc(countyData?.caveat||'')+
+  ' <a href="'+esc(sourceLink(countyData?.sourceUrl))+'" target="_blank" rel="noopener noreferrer">See research dataset and methodology ↗</a></p></div>'
+}
+async function loadCounty(state){
+ try{
+  const data=await get('/api/historical/counties?state='+encodeURIComponent(state));
+  if(swingState!==state)return;
+  countyState=state;countyData=data;
+  const target=app.querySelector('#ewCountySwing');if(target)target.innerHTML=countySection();
+ }catch(e){
+  if(swingState!==state)return;
+  countyState=state;countyData={counties:[]};
+  const target=app.querySelector('#ewCountySwing');if(target)target.innerHTML='<p class="ew-studio-note">County comparison currently unavailable: '+esc(e.message)+'</p>'
+ }
+}
 function swingDetail(){
  const p20=historicLine(swingState,'2020'),p24=historicLine(swingState,'2024');
  if(!p20||!p24)return '<p>Historic source unavailable for selected state.</p>';
@@ -146,6 +178,7 @@ function swingDetail(){
    (numerical?'<p class="ew-studio-note">Relative to the 2024 presidential statewide margin: '+delta(margin-margin24)+'. Different office and electorate; this is a comparison, not a like-for-like swing.</p>':'')+
    '</div>'
  }).join(''):'<div class="ew-studio-empty">No owner-entered official final results for this state yet. Editorial race calls are deliberately excluded from this section.</div>')+
+ '<div id="ewCountySwing">'+countySection()+'</div>'+ 
  '<p class="ew-studio-note">Presidential baseline source: <a href="https://www.presidency.ucsb.edu/statistics/elections/2020" target="_blank" rel="noopener noreferrer">2020</a> and <a href="https://www.presidency.ucsb.edu/statistics/elections/2024" target="_blank" rel="noopener noreferrer">2024</a>, American Presidency Project (UCSB), compiled from state results. County comparisons require verified county-by-county data; none are fabricated.</p>';
 }
 function swingView(){
@@ -161,8 +194,9 @@ function swingView(){
    '<td>'+fmtMargin(v20.margin)+'</td><td>'+fmtMargin(v24.margin)+'</td><td class="'+(v24.margin-v20.margin>=0?'ew-rchange':'ew-dchange')+'">'+delta(v24.margin-v20.margin)+'</td></tr>'
  }).join('')+'</tbody></table></div></aside></div>';
  setupLinks();
- app.querySelector('#ewSwingState').onchange=e=>{swingState=e.target.value;app.querySelector('#ewSwingDetail').innerHTML=swingDetail()};
- app.querySelectorAll('[data-ew-swing-state]').forEach(b=>b.onclick=()=>{swingState=b.dataset.ewSwingState;app.querySelector('#ewSwingState').value=swingState;app.querySelector('#ewSwingDetail').innerHTML=swingDetail();app.querySelector('#ewSwingDetail').scrollIntoView({behavior:'smooth',block:'center'})});
+ app.querySelector('#ewSwingState').onchange=e=>{swingState=e.target.value;countyState='';app.querySelector('#ewSwingDetail').innerHTML=swingDetail();loadCounty(swingState)};
+ app.querySelectorAll('[data-ew-swing-state]').forEach(b=>b.onclick=()=>{swingState=b.dataset.ewSwingState;countyState='';app.querySelector('#ewSwingState').value=swingState;app.querySelector('#ewSwingDetail').innerHTML=swingDetail();loadCounty(swingState);app.querySelector('#ewSwingDetail').scrollIntoView({behavior:'smooth',block:'center'})});
+ loadCounty(swingState);
 }
 function pickStateOptions(){
  const codes=[...new Set(states().filter(r=>r.office===predOffice).map(r=>r.state))].sort();
