@@ -129,6 +129,29 @@ body{background:#070d16;color:#e7f2ff}
 .reaction-post p{font-size:13px;line-height:1.75;color:#c8d9eb;white-space:pre-wrap;overflow-wrap:anywhere}.reaction-controls{justify-content:flex-start}.reaction-controls button:hover,.reaction-top button:hover{background:#255476}
 .reaction-empty{padding:44px 20px;text-align:center;color:#96aec4;font-size:12px;line-height:1.7;border:1px dashed #36536d;border-radius:10px}
 @media(max-width:850px){.reaction-layout{grid-template-columns:1fr}.reaction-header{padding:22px;flex-wrap:wrap}}@media(max-width:480px){.reaction-panel{padding:18px}.reaction-header{padding:18px}.reaction-live{font-size:9px}}
+
+/* Clean network identity, legible editorial wordmark and restrained globe-and-wire mark. */
+.ew-masthead{min-height:132px;padding:20px clamp(18px,3.3vw,58px);background:linear-gradient(104deg,#030c16 0%,#092038 61%,#071627 100%)}
+.ew-masthead-atmosphere{opacity:.15}.ew-masthead .ew-integrated-brand{gap:18px}
+.ew-masthead .ew-mark{width:79px;height:79px;filter:drop-shadow(0 0 6px #169bc845)}
+.ew-masthead .ew-wordmark{gap:2px}.ew-the{font-size:13px;letter-spacing:7px;color:#a9c6d8}
+.ew-word-line{font:900 clamp(37px,4.4vw,70px)/.91 'Barlow Condensed',Impact,sans-serif;letter-spacing:.5px}
+.ew-electric{background:linear-gradient(180deg,#9af4fe,#38d9fc 65%,#29a4ed);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:none}
+.ew-tagline{align-self:flex-start;font-size:11px;letter-spacing:3.8px;margin-top:8px;color:#c8dfee}
+.ew-masthead-caption{color:#a6cce2}.ew-masthead-right{border-left-color:#26516c}
+@media(max-width:760px){.ew-masthead{min-height:108px;padding:13px}.ew-masthead .ew-mark{width:51px;height:51px}.ew-masthead .ew-integrated-brand{gap:9px}.ew-the{font-size:9px;letter-spacing:4px}.ew-word-line{font-size:clamp(28px,6vw,41px)}.ew-tagline{font-size:8px;letter-spacing:1.4px;margin-top:5px}}
+@media(max-width:470px){.ew-masthead{min-height:94px}.ew-masthead .ew-mark{width:36px;height:36px}.ew-masthead .ew-integrated-brand{gap:5px}.ew-word-line{font-size:clamp(23px,6vw,31px)}.ew-tagline{font-size:7px;letter-spacing:1px}}
+.ew-editor-teaser,.ew-editor-console{border:1px solid #355773;border-radius:15px;background:linear-gradient(130deg,#132a40,#071927);padding:23px;margin-top:8px}
+.ew-editor-teaser{display:flex;align-items:center;justify-content:space-between;gap:18px}.ew-editor-teaser h3{font:800 27px 'Barlow Condensed',sans-serif;margin:8px 0}.ew-editor-teaser p,.ew-editor-head p{font-size:12px;color:#aac4d8;line-height:1.7;max-width:710px}
+.ew-editor-head{display:flex;align-items:start;justify-content:space-between;gap:15px}.ew-editor-head h2{font:900 40px 'Barlow Condensed',sans-serif;margin:8px 0}
+.ew-call-form,.ew-admin-login{display:grid;gap:17px;margin-top:22px}.ew-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.ew-call-form label,.ew-admin-login label{display:flex;flex-direction:column;gap:8px;font-size:11px;letter-spacing:.7px;color:#b6d8ea;font-weight:800}
+.ew-call-form input:not([type=checkbox]),.ew-call-form select,.ew-call-form textarea,.ew-admin-login input{min-width:0;width:100%;padding:12px;border-radius:8px;border:1px solid #366280;color:#fff;background:#091b2c;font:500 13px 'DM Sans',sans-serif;letter-spacing:0}
+.ew-check-inline{display:flex!important;flex-direction:row!important;align-items:center;gap:9px!important;letter-spacing:0!important;text-transform:none}
+.ew-editor-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.ew-editor-actions button,.ew-import-label{border:1px solid #366280;border-radius:8px;padding:11px 13px;background:#143753;color:#fff;cursor:pointer;font-size:11px;font-weight:800}.ew-import-label input{display:none}
+.ew-editor-managed{margin-top:26px;padding-top:18px;border-top:1px solid #35536b}.ew-editor-managed h3{font:800 25px 'Barlow Condensed',sans-serif}
+.ew-managed-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid #27435c}.ew-managed-row>div{flex:1;min-width:0}.ew-managed-row small{display:block;color:#95b5cd;margin-top:5px}.ew-managed-row button{padding:8px 12px;background:#143b5a;border:1px solid #3b6482;border-radius:7px;color:#e7f4ff}.ew-managed-row .ew-retract{background:#633044}
+@media(max-width:720px){.ew-form-grid{grid-template-columns:1fr}.ew-editor-teaser{flex-direction:column;align-items:start}.ew-editor-console{padding:17px}.ew-editor-head h2{font-size:33px}}
 </style></head>
 <body>
 <header class="ew-masthead">
@@ -153,12 +176,16 @@ body{background:#070d16;color:#e7f2ff}
       <path d="M171 193A245 165 0 0 1 590 118" fill="none" stroke="#26deff" stroke-width=".8" opacity=".4"/>
     </svg>
   </div>
-  <a class="brand ew-integrated-brand" href="/" aria-label="THE EVENING WIRE — TODAY'S TOP STORIES home">
+  <a class="brand ew-integrated-brand" href="/" aria-label="THE EVENING WIRE — TODAY’S TOP STORIES home">
     <span class="ew-mark" aria-hidden="true">
-      <svg viewBox="0 0 90 83" xmlns="http://www.w3.org/2000/svg">
-        <defs><linearGradient id="emblemGrad" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#fff"/><stop offset=".39" stop-color="#d7f7ff"/><stop offset=".74" stop-color="#42e6fb"/><stop offset="1" stop-color="#0075cf"/></linearGradient></defs>
-        <path d="M8 10H79L72 22H26V29H71L64 41H26V49H78L70 63H8Z" fill="url(#emblemGrad)"/>
-        <path d="M5 68H70" stroke="#2be5ff" opacity=".5" stroke-width="2"/>
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img">
+        <defs><linearGradient id="ewSeal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#63e8fd"/><stop offset="1" stop-color="#1b83d4"/></linearGradient></defs>
+        <circle cx="50" cy="50" r="43" fill="#061523" stroke="url(#ewSeal)" stroke-width="3"/>
+        <circle cx="50" cy="50" r="33" fill="none" stroke="#55cfea" stroke-width="1.6" opacity=".65"/>
+        <ellipse cx="50" cy="50" rx="14" ry="33" fill="none" stroke="#60c9ea" stroke-width="1.5"/>
+        <path d="M17 50H83M23 34H77M23 66H77" fill="none" stroke="#55cfea" stroke-width="1.5" opacity=".78"/>
+        <path d="M12 57L28 48L38 53L51 37L61 46L74 27L88 32" fill="none" stroke="#ffffff" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="74" cy="27" r="4.2" fill="#3de7fb"/>
       </svg>
     </span>
     <span class="brand-text ew-wordmark">
@@ -166,7 +193,6 @@ body{background:#070d16;color:#e7f2ff}
       <span class="ew-word-line"><span class="ew-white">EVENING</span> <span class="ew-electric">WIRE</span></span>
       <span class="ew-tagline">TODAY’S TOP STORIES</span>
     </span>
-    <span class="ew-brand-orbit" aria-hidden="true"><span class="ew-orbit-dot"></span></span>
   </a>
   <div class="ew-masthead-right">
     <span class="ew-masthead-caption">2026 U.S. ELECTION COMMAND CENTER</span>
@@ -368,6 +394,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()}
 })();
 </script>
 <script src="/reactions.js"></script>
+<script src="/editor-calls.js"></script>
 <script>
 /* EVENING WIRE COMMAND ENGINE — no synthetic votes, calls or publication times */
 (function(){
@@ -479,14 +506,15 @@ function raceList(type){
  return title(page,subtitle)+notice()+'<div class="cmd-toolbar"><input aria-label="Search races" placeholder="Search states, offices, districts…" id="cmdRaceSearch" value="'+esc(raceQuery)+'"><select id="cmdStateFilter" aria-label="Filter state">'+options+'</select><span class="cmd-pill">'+data.length+' MATCHING CONTESTS</span></div><div class="cmd-card"><div class="cmd-scroll">'+data.slice(0,isHouse?houseLimit:120).map(cardRace).join('')+'</div></div>'+(isHouse&&data.length>houseLimit?'<div class="cmd-toolbar"><button data-show-more="1" class="cmd-primary">SHOW MORE DISTRICTS · '+(data.length-houseLimit)+' REMAINING</button></div>':'')
 }
 function callCards(arr){
- return arr.map(c=>'<div class="cmd-call '+(c.party==='R'?'r':c.party==='D'?'d':'')+'"><span class="cmd-pill '+(c.party==='R'?'red':c.party==='D'?'blue':'')+'">'+esc(partyLabel(c.party))+' · SOURCE PROJECTION</span><h3>'+esc(c.candidate)+'</h3><small>'+esc(stateName(c.state))+' · '+esc(c.office.toUpperCase())+(c.district?' · District '+c.district:'')+'<br>'+esc(c.sourceName)+' · '+formatTime(c.calledAt)+'</small><a href="'+siteURL(c.sourceUrl)+'" target="_blank" rel="noopener noreferrer">OPEN ORIGINAL CALL ANNOUNCEMENT ↗</a></div>').join('')
+ return arr.map(c=>'<div class="cmd-call '+(c.party==='R'?'r':c.party==='D'?'d':'')+'"><span class="cmd-pill '+(c.party==='R'?'red':c.party==='D'?'blue':'')+'">'+esc(partyLabel(c.party))+' · '+(c.editorial?'EVENING WIRE EDITORIAL CALL':'SOURCE PROJECTION')+'</span><h3>'+esc(c.candidate)+'</h3><small>'+esc(stateName(c.state))+' · '+esc(c.office.toUpperCase())+(c.district?' · District '+c.district:'')+'<br>'+esc(c.sourceName)+' · '+formatTime(c.calledAt)+'</small><a href="'+siteURL(c.sourceUrl)+'" target="_blank" rel="noopener noreferrer">OPEN ORIGINAL CALL ANNOUNCEMENT ↗</a></div>').join('')
 }
 function callsView(){
  const calls=(results.calls||[]).filter(x=>callFilter==='all'||x.office===callFilter).slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt));
  const counts={R:calls.filter(x=>x.party==='R').length,D:calls.filter(x=>x.party==='D').length,other:calls.filter(x=>!['R','D'].includes(x.party)).length};
- return title('RACES CALLED','Only attributable calls supplied by a verified results provider appear here. A media projection is not official certification.')+notice()+'<div class="cmd-toolbar">'+['all','senate','governor','house'].map(v=>'<button data-call-filter="'+v+'" class="'+(callFilter===v?'cmd-primary':'')+'">'+(v==='all'?'ALL RACES':v.toUpperCase())+'</button>').join('')+'</div>'
+ return title('RACES CALLED','Published calls may come from The Evening Wire editorial desk or an explicitly configured results provider. All calls must be sourced; a projection is not official certification.')+notice()+'<div class="cmd-toolbar">'+['all','senate','governor','house'].map(v=>'<button data-call-filter="'+v+'" class="'+(callFilter===v?'cmd-primary':'')+'">'+(v==='all'?'ALL RACES':v.toUpperCase())+'</button>').join('')+'</div>'
  +'<div class="cmd-grid"><article class="cmd-card"><span class="cmd-eyebrow">REPUBLICAN</span><h3>'+(results.configured?counts.R:'—')+' CALLED</h3></article><article class="cmd-card"><span class="cmd-eyebrow">DEMOCRATIC</span><h3>'+(results.configured?counts.D:'—')+' CALLED</h3></article><article class="cmd-card"><span class="cmd-eyebrow">OTHER / INDEPENDENT</span><h3>'+(results.configured?counts.other:'—')+' CALLED</h3></article></div>'
- +wrap(calls.length?'<div class="cmd-grid">'+calls.map(x=>'<article class="cmd-card">'+callCards([x])+'</article>').join('')+'</div>':unavail('No verified publisher race calls have been received. No winner will be displayed based on incomplete counts or news headlines.'))
+ +wrap(calls.length?'<div class="cmd-grid">'+calls.map(x=>'<article class="cmd-card">'+callCards([x])+'</article>').join('')+'</div>':unavail('No administrator-published race calls yet. Winner fields remain empty until a sourced call is explicitly published.'))
+ +wrap('<div id="ewEditorMount"></div>')
 }
 function watched(){
  return title('BATTLEGROUND WATCH','Your editable election-watch list. Inclusion does not imply a forecast or a competitiveness ranking.')+'<div class="cmd-card"><div class="cmd-toolbar"><button data-tab="mydesk" class="cmd-primary">EDIT MY WATCHLIST</button></div>'+followed.map(code=>{
@@ -525,6 +553,7 @@ function render(){
  const pages={hq:hq,senate:()=>raceList('senate'),governor:()=>raceList('governor'),house:()=>raceList('house'),calls:callsView,battleground:watched,states:statesView,turnout:turnoutView,sources:sourceView,mydesk:myDesk};
  const fn=pages[active]||hq;
  app.innerHTML=fn();
+ if(active==='calls')window.EWEditor?.mount();
 }
 function go(tab){
  active=['hq','news','senate','governor','house','calls','battleground','states','turnout','sources','mydesk','reactions'].includes(tab)?tab:'hq';
@@ -560,7 +589,7 @@ async function sync(){
   if(values[0]){news=(values[0].stories||[]).sort((a,b)=>Date.parse(b.published)-Date.parse(a.published));newsScan=values[0].lastScan}
   if(values[1]){sources=values[1].sources||sources;newsScan=values[1].lastScan||newsScan;feedConnected=true}
   if(values[2])results=values[2];
-  if(active!=='news'&&active!=='reactions'&&!document.activeElement?.matches('#cmdRaceSearch'))render();
+  if(active!=='news'&&active!=='reactions'&&!(active==='calls'&&window.EWEditor?.isEditing())&&!document.activeElement?.matches('#cmdRaceSearch'))render();
  }catch(e){console.warn('Election Desk sync',e)}
 }
 document.querySelector('.command-nav').addEventListener('click',e=>{const b=e.target.closest('[data-ew-tab]');if(b)go(b.dataset.ewTab)});
