@@ -6,6 +6,11 @@ import {isEditorAdmin} from './editor-calls.mjs';
 
 const url=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
 let pool=null,ready=false;
+const liveClients=new Set();
+function push(event,detail){
+ const packet='event: '+event+'\ndata: '+JSON.stringify(detail)+'\n\n';
+ for(const res of liveClients){try{res.write(packet)}catch{liveClients.delete(res)}}
+}
 const types=new Set(['breaking','race-called','results','important']);
 const send=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(data))};
 function sameOrigin(req){const o=String(req.headers.origin||'');return o==='https://'+req.headers.host||o==='http://'+req.headers.host}
@@ -27,9 +32,18 @@ export async function updateRoute(req,res,path){
  if(path!=='/api/updates'&&!path.startsWith('/api/updates/'))return false;
  await init;
  if(!ready){send(res,503,{error:'Election Update storage is unavailable. Notices cannot be published without PostgreSQL.'});return true}
+ if(path==='/api/updates/stream'&&req.method==='GET'){
+  res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no','X-Content-Type-Options':'nosniff'});
+  res.write('retry: 2500\n\n');
+  liveClients.add(res);
+  const heartbeat=setInterval(()=>{try{res.write(': election-updates heartbeat\n\n')}catch{liveClients.delete(res);clearInterval(heartbeat)}},18000);
+  heartbeat.unref?.();
+  req.on('close',()=>{liveClients.delete(res);clearInterval(heartbeat)});
+  return true
+ }
  if(path==='/api/updates'&&req.method==='GET'){
-  const rows=await pool.query("SELECT id,category,message,source_url,created_at,expires_at,retracted_at FROM ew_election_updates WHERE retracted_at IS NULL AND expires_at>now() AND created_at > now()-interval '10 seconds' ORDER BY created_at DESC LIMIT 12");
-  send(res,200,{updates:rows.rows.map(record),pollEveryMs:1000,source:'The Evening Wire owner'});
+  const rows=await pool.query("SELECT id,category,message,source_url,created_at,expires_at,retracted_at FROM ew_election_updates WHERE retracted_at IS NULL AND created_at > now()-interval '25 seconds' ORDER BY created_at DESC LIMIT 12");
+  send(res,200,{updates:rows.rows.map(record),pollEveryMs:1500,deliveryGraceMs:25000,popupDurationMs:10000,source:'The Evening Wire owner'});
   return true
  }
  if(path==='/api/updates/admin'&&req.method==='GET'){
@@ -54,13 +68,17 @@ export async function updateRoute(req,res,path){
   if(recent.rows[0].count>=12){send(res,429,{error:'Limit of 12 urgent notices per ten minutes.'});return true}
   const row=await pool.query("INSERT INTO ew_election_updates(id,category,message,source_url,expires_at) VALUES($1,$2,$3,$4,now()+interval '10 seconds') RETURNING id,category,message,source_url,created_at,expires_at,retracted_at",
    [randomUUID(),category,message,sourceUrl]);
-  send(res,201,{ok:true,update:record(row.rows[0])});return true
+  const result=record(row.rows[0]);
+  push('election-update',result);
+  console.log('EW_ELECTION_UPDATE_PUBLISHED id='+result.id+' connected_receivers='+liveClients.size);
+  send(res,201,{ok:true,update:result,connectedReceivers:liveClients.size,message:'Election Update published to all connected readers. Popup lasts ten seconds per screen.'});return true
  }
  const remove=path.match(/^\/api\/updates\/([0-9a-f-]{36})\/retract$/);
  if(remove&&req.method==='POST'){
   if(!isEditorAdmin(req)){send(res,403,{error:'Owner authentication required'});return true}
   const row=await pool.query("UPDATE ew_election_updates SET retracted_at=now() WHERE id=$1 AND retracted_at IS NULL RETURNING id",[remove[1]]);
   if(!row.rowCount){send(res,404,{error:'Election Update not found or already withdrawn'});return true}
+  push('election-update-withdrawn',{id:remove[1]});
   send(res,200,{ok:true});return true
  }
  send(res,404,{error:'Unknown Election Update endpoint'});return true
