@@ -291,17 +291,27 @@ const server=http.createServer(async (req,res)=>{
  const u=new URL(req.url,'http://localhost');
  const json=(obj,code=200)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
  if(u.pathname.startsWith('/api/members/')||u.pathname==='/api/admin/members'){memberRoute(req,res,u.pathname).catch(err=>{console.error('Members API error:',String(err?.message||err));if(!res.headersSent)json({error:'Member service temporarily unavailable'},503);else res.end()});return;}
- // Actual server-side membership gate; the public cannot retrieve news, calls,
- // discussion, or traffic endpoints without a signed-in member session.
- if(u.pathname==='/health')return json({ready:true,memberGate:true});
+ // Public showroom: visitors can view election coverage before creating an account.
+ // Interactive mutations remain protected; sensitive administrative routes retain
+ // their own server-side authentication checks.
+ if(u.pathname==='/health')return json({ready:true,publicPreview:true});
+ if(u.pathname==='/login'){
+  res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});
+  return res.end(loginPage);
+ }
  const visitor=await authenticatedMember(req).catch(()=>null);
- if(!visitor){
-  if(u.pathname==='/'||u.pathname==='/index.html'){
-   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});
-   return res.end(loginPage);
-  }
-  if(u.pathname.startsWith('/api/'))return json({error:'Member registration or sign-in required',login:'/'} ,401);
-  return json({error:'Member registration or sign-in required'},401);
+ const publicRead = req.method==='GET' && (
+  ['/api/stories','/api/status','/api/stream','/api/election','/api/historical','/api/historical/counties','/api/race-catalog','/api/editor/calls'].includes(u.pathname) ||
+  u.pathname.startsWith('/api/geo/') ||
+  u.pathname.startsWith('/api/community/') ||
+  u.pathname.startsWith('/api/challenge') ||
+  u.pathname==='/api/updates'
+ );
+ const publicAsset=['/','/index.html','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/election-maps.js','/election-maps.css'].includes(u.pathname);
+ // The admin API implements its own administrator password checks.
+ const adminEndpoint=u.pathname.startsWith('/api/admin/');
+ if(!visitor && !(publicRead||publicAsset||adminEndpoint)){
+  return json({error:'Sign in or register to use this feature',login:'/login'},401);
  }
  if(u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')){
   updateRoute(req,res,u.pathname).catch(err=>{console.error('Election Update API error',String(err.message||err));if(!res.headersSent)json({error:'Election Update service temporarily unavailable'},503);else res.end()});return;
