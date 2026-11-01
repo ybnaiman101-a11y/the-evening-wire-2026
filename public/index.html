@@ -130,4 +130,109 @@ body.compact .story{padding:12px 20px}body.compact .story p{display:none}body.co
  connect();
 })();
 </script>
-</body></html>
+<script>
+/* EVENING WIRE INTERACTIVE STUDIO */
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const E=(tag,cls,text)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(text!==undefined)x.textContent=String(text);return x};
+const safeURL=x=>{try{const u=new URL(x,location.href);return u.protocol==='https:'||u.protocol==='http:'?u.href:null}catch{return null}};
+const rel=x=>{const mins=Math.max(0,Math.floor((Date.now()-Date.parse(x))/60000));return !Number.isFinite(mins)?'Time unavailable':mins<1?'Just published':mins<60?mins+' min ago':mins<1440?Math.floor(mins/60)+'h ago':Math.floor(mins/1440)+'d ago'};
+const timeET=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit'})+' ET':'time unavailable'};
+const link=(s,label)=>{const a=E('a','',label||s.title);const u=safeURL(s.url);a.href=u||'#';a.target='_blank';a.rel='noopener noreferrer';if(!u)a.addEventListener('click',e=>e.preventDefault());return a};
+let saved=[],latest=[],syncing=false,headlineCursor=0;
+try{const value=JSON.parse(localStorage.getItem('evening-wire-reading-list')||'[]');if(Array.isArray(value))saved=value.filter(x=>x&&typeof x.url==='string').slice(0,200)}catch{}
+const saveToBrowser=()=>{try{localStorage.setItem('evening-wire-reading-list',JSON.stringify(saved.slice(0,200)))}catch{}};
+function renderSpotlight(){
+ const lead=$('spotLead'),source=$('spotSource'),when=$('spotTime'),action=$('spotAction'),more=$('spotMore');more.replaceChildren();
+ if(!latest.length){lead.textContent='Waiting for the first verified publisher headline…';lead.removeAttribute('href');source.textContent='FEED CONNECTION';when.textContent='Waiting for published stories';action.style.visibility='hidden';more.append(E('p','saved-description','No verified election headlines yet.'));return}
+ const s=latest[0];lead.textContent=s.title;lead.href=safeURL(s.url)||'#';source.textContent=(s.source||'PUBLISHER').toUpperCase();when.textContent=rel(s.published);action.href=lead.href;action.style.visibility='visible';
+ for(let i=1;i<Math.min(3,latest.length);i++){const a=link(latest[i]);a.className='spot-mini';a.append(E('span','',latest[i].source+' · '+rel(latest[i].published)),E('b','',latest[i].title));more.append(a)}
+ if(latest.length===1)more.append(E('p','saved-description','More coverage will appear when additional publisher feeds respond.'));
+}
+const STATES=[['Texas','TX'],['Ohio','OH'],['Maine','ME'],['Michigan','MI'],['Iowa','IA'],['Kansas','KS'],['Alaska','AK'],['Nebraska','NE'],['North Carolina','NC'],['Georgia','GA'],['Nevada','NV'],['Pennsylvania','PA'],['Arizona','AZ'],['Wisconsin','WI'],['Florida','FL'],['New York','NY'],['New Jersey','NJ'],['California','CA'],['Virginia','VA'],['South Carolina','SC'],['Colorado','CO'],['New Hampshire','NH'],['Minnesota','MN'],['Oregon','OR'],['Washington','WA'],['Missouri','MO'],['Indiana','IN']];
+function renderRadar(){
+ const container=$('stateRadar');container.replaceChildren();
+ if(!latest.length){container.append(E('div','saved-description','Waiting for real published headlines.'));return}
+ const mentions=STATES.map(pair=>{
+   const pattern=new RegExp('\\b'+pair[0]+'\\b','i');const abbrev=new RegExp('\\b'+pair[1]+'\\b');
+   return {name:pair[0],n:latest.filter(s=>pattern.test(s.title+' '+(s.excerpt||''))||abbrev.test(s.title)).length}
+ }).filter(x=>x.n>0).sort((a,b)=>b.n-a.n||a.name.localeCompare(b.name)).slice(0,6);
+ if(!mentions.length){container.append(E('div','saved-description','No tracked state names found in current headlines.'));return}
+ const top=mentions[0].n;
+ for(const item of mentions){
+   const button=E('button','radar-row');button.type='button';button.title='Search stories mentioning '+item.name;
+   button.append(E('span','radar-name',item.name));
+   const bar=E('span','radar-bar'),fill=E('i');fill.style.width=Math.round(item.n/top*100)+'%';bar.append(fill);button.append(bar,E('span','radar-number',item.n+' '+(item.n===1?'story':'stories')));
+   button.addEventListener('click',()=>{const q=$('search');q.value=item.name;q.dispatchEvent(new Event('input',{bubbles:true}));$('stories').scrollIntoView({behavior:'smooth',block:'start'})});
+   container.append(button);
+ }
+}
+function savedState(){
+ $('savedCount').textContent=saved.length;
+ for(const b of $('stories').querySelectorAll('.save-article')){
+   const a=b.closest('.story')?.querySelector('h3 a'),isSaved=a&&saved.some(v=>v.url===a.href);
+   b.textContent=isSaved?'◆ SAVED':'◇ SAVE ARTICLE';b.classList.toggle('saved',!!isSaved);b.setAttribute('aria-pressed',String(!!isSaved));
+ }
+}
+function decorate(){
+ for(const card of $('stories').querySelectorAll('.story')){
+   if(card.querySelector('.story-tools'))continue;
+   const a=card.querySelector('h3 a');if(!a||!safeURL(a.href))continue;
+   const source=card.querySelector('.story-header span'),stamp=card.querySelector('.story-header time');
+   const item={url:a.href,title:a.textContent,source:source?.textContent||'Publisher',published:stamp?.dateTime||new Date().toISOString()};
+   const tools=E('div','story-tools'),button=E('button','save-article');button.type='button';
+   button.addEventListener('click',()=>{const pos=saved.findIndex(v=>v.url===item.url);if(pos===-1)saved.unshift(item);else saved.splice(pos,1);saveToBrowser();savedState();renderSaved()});
+   tools.append(button);card.append(tools);
+ }
+ savedState();
+}
+function renderSaved(){
+ const container=$('savedItems');container.replaceChildren();savedState();
+ if(!saved.length){container.append(E('div','saved-empty','Your reading list is empty. Select SAVE ARTICLE beneath any headline to keep it here.'));return}
+ for(const item of saved){
+  const card=E('article','saved-item'),heading=E('b'),remove=E('button','saved-remove','REMOVE FROM LIST');remove.type='button';
+  card.append(E('small','',item.source+' · '+rel(item.published)));heading.append(link(item));card.append(heading);
+  remove.addEventListener('click',()=>{saved=saved.filter(v=>v.url!==item.url);saveToBrowser();renderSaved()});
+  card.append(remove);container.append(card);
+ }
+}
+function showSaved(open){$('savedBackdrop').hidden=!open;document.body.style.overflow=open?'hidden':'';if(open){renderSaved();$('savedClose').focus()}}
+function compact(on){document.body.classList.toggle('compact',on);$('compactToggle').setAttribute('aria-pressed',String(on));$('compactToggle').textContent=on?'▤ COMFORT VIEW':'☷ COMPACT';try{localStorage.setItem('ew-compact',on?'1':'0')}catch{}}
+function focus(on){document.body.classList.toggle('focus-mode',on);$('focusToggle').setAttribute('aria-pressed',String(on));$('focusToggle').textContent=on?'▣ EXIT FOCUS':'▣ FOCUS MODE';try{localStorage.setItem('ew-focus',on?'1':'0')}catch{}}
+async function refresh(){
+ if(syncing)return;syncing=true;$('syncButton').disabled=true;$('syncStatus').textContent='Syncing the latest server snapshot…';
+ try{
+  const response=await fetch('/api/stories',{cache:'no-store'});if(!response.ok)throw new Error('Server returned '+response.status);
+  const data=await response.json();latest=(Array.isArray(data.stories)?data.stories:[]).filter(s=>s&&s.title&&s.published).sort((a,b)=>Date.parse(b.published)-Date.parse(a.published));
+  renderSpotlight();renderRadar();
+  $('syncStatus').textContent='Display synced · '+(data.lastScan?'Last publisher scan '+timeET(data.lastScan):'Waiting for first publisher scan');
+ }catch(err){$('syncStatus').textContent='Display sync failed: '+String(err.message||err)}
+ syncing=false;$('syncButton').disabled=false;
+}
+function rotateHeadline(){
+ if(!latest.length)return;
+ const item=latest[headlineCursor++%Math.min(latest.length,6)],box=$('ticker');box.replaceChildren();box.append(link(item,item.source.toUpperCase()+'  ·  '+item.title));
+}
+$('savedOpen').addEventListener('click',()=>showSaved(true));
+$('savedOpen2').addEventListener('click',()=>showSaved(true));
+$('savedClose').addEventListener('click',()=>showSaved(false));
+$('savedBackdrop').addEventListener('click',e=>{if(e.target===$('savedBackdrop'))showSaved(false)});
+$('compactToggle').addEventListener('click',()=>compact(!document.body.classList.contains('compact')));
+$('focusToggle').addEventListener('click',()=>focus(!document.body.classList.contains('focus-mode')));
+$('syncButton').addEventListener('click',refresh);
+document.addEventListener('keydown',e=>{
+ const typing=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);
+ if(e.key==='Escape'){if(!$('savedBackdrop').hidden)showSaved(false);return}
+ if(typing||e.ctrlKey||e.metaKey||e.altKey)return;
+ if(e.key==='/'){e.preventDefault();$('search').focus()}
+ if(e.key.toLowerCase()==='b')showSaved(true);
+ if(e.key.toLowerCase()==='f')focus(!document.body.classList.contains('focus-mode'));
+});
+let compactSaved=false,focusSaved=false;try{compactSaved=localStorage.getItem('ew-compact')==='1';focusSaved=localStorage.getItem('ew-focus')==='1'}catch{}
+compact(compactSaved);focus(focusSaved);
+new MutationObserver(decorate).observe($('stories'),{childList:true});decorate();renderSaved();
+refresh();setInterval(refresh,45000);setInterval(rotateHeadline,8500);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
+})();
+</script></body></html>
