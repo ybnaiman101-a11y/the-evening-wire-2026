@@ -283,7 +283,7 @@ setTimeout(async()=>{
     try{
       const value=await censusMap(kind,null);
       console.log("CENSUS_MAP_WARM",kind,"features="+value.features.length,"caveat="+(value.meta?.caveat||"none"));
-      if(kind==="districts"){const byState={},duplicates={};for(const f of value.features){const k=String(f.properties?.STATE||"??");byState[k]=(byState[k]||0)+1;const id=String(f.properties?.GEOID||"");duplicates[id]=(duplicates[id]||0)+1}console.log("CENSUS_MAP_AUDIT",JSON.stringify(byState));console.log("CENSUS_MAP_DUPLICATE_GEOIDS",JSON.stringify(Object.entries(duplicates).filter(([,n])=>n>1)));}
+      if(kind==="districts"){const byState={},duplicates={};for(const f of value.features){const k=String(f.properties?.STATE||"??");byState[k]=(byState[k]||0)+1;const id=String(f.properties?.GEOID||"");duplicates[id]=(duplicates[id]||0)+1}console.log("CENSUS_MAP_AUDIT",JSON.stringify(byState));console.log("CENSUS_MAP_DUPLICATE_GEOIDS",JSON.stringify(Object.entries(duplicates).filter(([,n])=>n>1)));console.log("CENSUS_MAP_UNEXPECTED_DISTRICTS",JSON.stringify(value.features.filter(f=>["09","17","33"].includes(String(f.properties?.STATE))).map(f=>({geoId:f.properties?.GEOID,cd:f.properties?.CD120,name:f.properties?.NAME}))));}
     }catch(err){
       console.warn("CENSUS_MAP_WARM_FAILED",kind,String(err.message||err).slice(0,350));
     }
