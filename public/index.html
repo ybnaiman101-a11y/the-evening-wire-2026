@@ -297,6 +297,21 @@ html,body{max-width:100%;overflow-x:clip}
 .ew-edit-message-form button{padding:9px 14px;border-radius:7px;border:1px solid #5795ad;background:#144c63;color:#f0fcff;font-size:11px;font-weight:900}
 .ew-edit-message-form button[type=submit]{background:#157488;border-color:#39b7cb}
 .reaction-post .reaction-message[hidden]{display:none}
+
+/* Real candidate names in Senate, House and Governor lists */
+.ew-named-race .ew-race-matchup{font-size:12px!important;display:block;line-height:1.8!important;color:#dcecf8!important;white-space:normal;overflow-wrap:anywhere}
+.ew-race-matchup b{color:#f6fbff;font-weight:800;font-size:12px}
+.ew-race-party{display:inline-block;min-width:26px;text-align:center;font-size:10px;font-weight:900;color:#fff;border-radius:5px;padding:2px 5px;margin-right:3px}
+.ew-race-party.rep{background:#a72e45}.ew-race-party.dem{background:#216eae}.ew-race-party.ind{background:#53667b}
+.ew-race-vs{font-size:10px;font-weight:900;color:#b8c3d4;padding:0 5px}
+.ew-race-unopposed{font-size:10px;font-style:italic;color:#c5ad72;margin-left:6px}
+.ew-call-race-panel{padding:15px;border:1px solid #31516b;background:#0c273b;border-radius:12px}
+.ew-winner-option{display:flex!important;gap:12px!important;align-items:center!important;border:1px solid #396381;background:#092237;padding:13px 15px;border-radius:9px;margin:8px 0;cursor:pointer;font-weight:800;line-height:1.5}
+.ew-winner-option:has(input:checked){border-color:#4de5dc;background:#17506a;box-shadow:0 0 0 2px #00f5e41c}
+.ew-winner-option input{width:20px;height:20px;accent-color:#53efcf;flex:none;margin:0}
+.ew-call-disabled{border:1px solid #b36b47;border-radius:9px;padding:12px;color:#f7c7a8;background:#442b2566;font-size:12px;line-height:1.6}
+.ew-candidate-provenance{font-size:10px;line-height:1.7;color:#9fbbce}
+@media(max-width:720px){.ew-named-race{align-items:flex-start!important;flex-wrap:wrap!important}.ew-named-race .end{margin-left:55px!important;white-space:normal!important}.ew-race-matchup b{font-size:11px}}
 </style></head>
 <body>
 <header class="ew-masthead">
@@ -525,6 +540,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()}
 })();
 </script>
 <script src="/reactions.js"></script>
+<script src="/race-catalog.js"></script>
 <script src="/editor-calls.js"></script>
 <script src="/members.js"></script>
 <script src="/election-updates.js"></script>
@@ -629,16 +645,26 @@ function hq(){
  +wrap(title('The National Newswire','Recent election coverage from the configured publisher feeds.')+'<div class="cmd-card">'+latestStories(6)+'</div>')+'<div class="cmd-footer-info">'+liveSummary()+'</div>'
 }
 function raceTitle(x){return stateName(x.state)+' '+(x.office==='senate'?(x.special?'Special Senate':'Senate'):x.office==='governor'?'Governor':'House District '+x.district)}
+function catalogRace(x){return window.EWRaceCatalog?.byKey?.[x.key]||null}
+function catalogNames(x){
+ const info=catalogRace(x);
+ if(!info)return 'Loading verified candidate roster…';
+ const selected=(info.candidates||[]).slice(0,2);
+ if(!selected.length)return 'Candidate roster not confirmed';
+ const names=selected.map(c=>'<span class="ew-race-party '+(c.party==='R'?'rep':c.party==='D'?'dem':'ind')+'">'+esc(c.party==='R'?'R':c.party==='D'?'D':'IND')+'</span> <b>'+esc(c.name)+'</b>').join(' <span class="ew-race-vs">VS</span> ');
+ return names+(selected.length===1?' <span class="ew-race-unopposed">No confirmed opposing nominee</span>':'')+
+  (info.sourceStatus==='partially verified'?' <span class="ew-race-unopposed">Roster includes unconfirmed names</span>':'')+
+  (info.note==='Same-party top-two election'?' <span class="ew-race-unopposed">Same-party top-two election</span>':'');
+}
 function cardRace(x){
  const report=reported(x.key),call=called(x.key);
- const status=call?'<span class="cmd-pill good">EVENING WIRE CALLED · '+esc(partyLabel(call.party))+'</span>':report&&report.status==='reporting'?'<span class="cmd-pill">AP VOTES REPORTING</span>':report?'<span class="cmd-pill warn">AWAITING FIRST VOTES</span>':'<span class="cmd-pill warn">AWAITING AP DATA</span>';
- const line=report?(report.candidates.slice(0,2).map(c=>esc(c.name)+' '+(Number.isFinite(c.percent)?Number(c.percent).toFixed(1)+'%':'')).join(' vs ')+' · '+formatTime(report.updatedAt)):'Vote totals not yet supplied by Associated Press';
- return '<button type="button" class="cmd-row" data-race="'+esc(x.key)+'"><span class="abbr">'+esc(x.state)+'</span><span class="txt"><strong>'+esc(raceTitle(x))+'</strong><small>'+line+'</small></span><span class="end">'+status+'</span></button>'
+ const status=call?'<span class="cmd-pill good">EVENING WIRE CALLED · '+esc(partyLabel(call.party))+'</span>':report&&report.status==='reporting'?'<span class="cmd-pill">AP VOTES REPORTING</span>':report?'<span class="cmd-pill warn">AWAITING FIRST VOTES</span>':'<span class="cmd-pill warn">NOT YET CALLED</span>';
+ return '<button type="button" class="cmd-row ew-named-race" data-race="'+esc(x.key)+'"><span class="abbr">'+esc(x.state)+'</span><span class="txt"><strong>'+esc(raceTitle(x))+'</strong><small class="ew-race-matchup">'+catalogNames(x)+'</small></span><span class="end">'+status+'</span></button>'
 }
 function raceList(type){
  const isHouse=type==='house';let data=type==='senate'?SENATE:type==='governor'?GOVERNOR:HOUSE;
  const extras=(results.races||[]).filter(x=>x.office===type&&!data.some(y=>y.key===keyFor(x))).map(x=>({office:type,state:x.state,district:x.district,key:keyFor(x)}));
- data=[...data,...extras].filter(x=>((x.state+' '+stateName(x.state)+' '+raceTitle(x)).toLowerCase().includes(raceQuery.toLowerCase()))&&(raceState==='ALL'||x.state===raceState));
+ data=[...data,...extras].filter(x=>((x.state+' '+stateName(x.state)+' '+raceTitle(x)+' '+(catalogRace(x)?.candidates||[]).map(c=>c.name).join(' ')).toLowerCase().includes(raceQuery.toLowerCase()))&&(raceState==='ALL'||x.state===raceState));
  const page=type==='senate'?'SENATE ELECTIONS':type==='governor'?'GOVERNOR ELECTIONS':'HOUSE ELECTIONS';
  const subtitle=type==='senate'?'All 35 seats: 33 regular Class II contests plus Ohio and Florida special elections.':type==='governor'?'2026 gubernatorial contests and sourced results, without unsupported winner claims.':'All 435 House districts based on current apportionment. District-boundary changes and special circumstances must be confirmed with election authorities.';
  const options='<option value="ALL">All states</option>'+STATES.filter(x=>x.districts).map(x=>'<option value="'+x.code+'"'+(raceState===x.code?' selected':'')+'>'+esc(x.name)+'</option>').join('');
@@ -724,6 +750,14 @@ function showRace(key){
  if(!race)return;
  const report=reported(key),call=called(key);
  let body='<div class="cmd-dialog-head"><div><span class="cmd-kicker">2026 ELECTION RACE</span><h2 style="font:800 39px Barlow Condensed;margin:9px 0">'+esc(raceTitle(race))+'</h2></div><button class="cmd-minibtn" data-close-modal="1">CLOSE ×</button></div>';
+ const candidateRoster=window.EWRaceCatalog?.byKey?.[key];
+ if(candidateRoster){
+  body+='<div class="cmd-card"><div class="cmd-eyebrow">2026 CANDIDATES · BEFORE VOTES ARE COUNTED</div><h3>THE MATCHUP</h3>'+
+   (candidateRoster.candidates||[]).map(c=>'<div class="cmd-row"><span class="txt"><strong>'+esc(c.name)+'</strong><small>'+esc(c.party==='R'?'Republican':c.party==='D'?'Democratic':'Independent / Other')+
+    (c.status==='confirmed'?'':' · CANDIDACY NOT FULLY CONFIRMED')+'</small></span></div>').join('')+
+   (candidateRoster.note?'<p class="cmd-muted">'+esc(candidateRoster.note)+'</p>':'')+
+   '<p class="cmd-muted">Candidates compiled from <a target="_blank" rel="noopener noreferrer" href="https://github.com/ElectIndex/26_us_forecast_data/blob/main/races.csv">ElectIndex election roster</a>. This research list is not an official certified ballot. No winner is implied.</p></div>';
+ }else body+=unavail('Candidate list is loading. Check again shortly.');
  body+='<p class="cmd-muted">Status: '+(call?'CALLED BY THE EVENING WIRE ADMIN · '+esc(call.sourceName):report&&report.status==='reporting'?'AP VOTES REPORTING · NOT CALLED':report?'AWAITING FIRST AP VOTES · NOT CALLED':'AWAITING AP VOTE DATA · NOT CALLED')+'</p>';
  if(report){body+='<div class="cmd-card"><h3>AP REPORTED VOTES · NO AUTOMATIC RACE CALL</h3>'+(report.candidates.length?report.candidates.map(c=>'<div class="cmd-row"><span class="txt"><strong>'+esc(c.name)+'</strong><small>'+esc(c.party)+' · '+(Number.isFinite(c.votes)?Number(c.votes).toLocaleString('en-US')+' votes':'Vote count unavailable')+'</small></span><span class="end">'+(Number.isFinite(c.percent)?c.percent.toFixed(1)+'%':'—')+'</span></div>').join(''):unavail('No candidate totals included with this update.'))+'<p class="cmd-muted">Precincts reporting: '+(Number.isFinite(report.reportingPct)?report.reportingPct+'%':'Unspecified')+(Number.isFinite(report.estimatedVotePct)?' · AP estimated vote counted: '+report.estimatedVotePct+'%':'')+' · Updated '+formatTime(report.updatedAt)+' · <a href="'+siteURL(report.sourceUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(report.sourceName)+'</a></p></div>'}
  else body+=unavail('Awaiting Associated Press election results. The AP Elections API requires authorized access.');
@@ -788,6 +822,7 @@ modal.addEventListener('click',e=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal()});
 try{const tab=location.hash.slice(1);if(tab)active=tab}catch{}
+window.addEventListener('ew-race-catalog-ready',()=>{if(['senate','house','governor','calls'].includes(active))render()});
 go(active);sync();setInterval(sync,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 })();
 </script></body></html>
