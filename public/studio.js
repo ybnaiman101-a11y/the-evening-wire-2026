@@ -34,9 +34,8 @@ function renderHeader(page,description,activeTab){
 }
 function setupLinks(){
  app.querySelectorAll('[data-ew-studio]').forEach(b=>b.onclick=()=>{
-  window.location.hash='#'+(b.dataset.ewStudio==='map'?'election-map':b.dataset.ewStudio==='swing'?'swing':'predictions');
-  window.dispatchEvent(new HashChangeEvent('hashchange'));
-  if(window.EWStudio?.open)window.EWStudio.open(b.dataset.ewStudio);
+  const tab=b.dataset.ewStudio==='map'?'election-map':b.dataset.ewStudio==='swing'?'swing':'predictions';
+  document.dispatchEvent(new CustomEvent('ew-studio-navigate',{detail:{tab}}));
  })
 }
 function subsetCalls(office){
