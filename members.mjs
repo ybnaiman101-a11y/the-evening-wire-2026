@@ -35,6 +35,8 @@ async function setup(){
   db=new Pool({connectionString:url,max:3,connectionTimeoutMillis:8000,ssl:url.includes('localhost')?false:{rejectUnauthorized:false}});
   await db.query("CREATE TABLE IF NOT EXISTS ew_members(id uuid PRIMARY KEY,display_name varchar(40) NOT NULL,email varchar(254) UNIQUE NOT NULL,password_hash varchar(255) NOT NULL,joined_at timestamptz NOT NULL DEFAULT now(),last_login_at timestamptz)");
   await db.query("CREATE TABLE IF NOT EXISTS ew_member_sessions(token_hash varchar(64) PRIMARY KEY,member_id uuid NOT NULL REFERENCES ew_members(id) ON DELETE CASCADE,expires_at timestamptz NOT NULL)");
+  await db.query("ALTER TABLE ew_members ADD COLUMN IF NOT EXISTS pin_hash varchar(255)");
+  await db.query("CREATE TABLE IF NOT EXISTS ew_member_login_attempts(email varchar(254) PRIMARY KEY,attempts integer NOT NULL DEFAULT 0,locked_until timestamptz,updated_at timestamptz DEFAULT now())");
   ready=true;diagnostic=null;console.log('EW_MEMBERS_DATABASE_CONNECTED');
  }catch(e){diagnostic=String(e.message||e).slice(0,150);console.warn('EW_MEMBERS_DATABASE_UNAVAILABLE '+diagnostic);await db?.end().catch(()=>{});db=null;ready=false}
  finally{connecting=false}
@@ -48,9 +50,10 @@ async function getMember(req){
 }
 async function createSession(res,member){
  const t=randomBytes(32).toString('hex');
- await db.query("INSERT INTO ew_member_sessions(token_hash,member_id,expires_at) VALUES($1,$2,now()+interval '30 days')",[tokenHash(t),member.id]);
- send(res,200,{ok:true,user:publicUser(member)},{'Set-Cookie':sessionCookie(t,2592000)})
+ await db.query("INSERT INTO ew_member_sessions(token_hash,member_id,expires_at) VALUES($1,$2,now()+interval '12 hours')",[tokenHash(t),member.id]);
+ send(res,200,{ok:true,user:publicUser(member)},{'Set-Cookie':sessionCookie(t,43200)})
 }
+export async function authenticatedMember(req){return ready?getMember(req):null}
 export async function memberRoute(req,res,path){
  if(path==='/api/members/status'){send(res,200,{ready,requiresDatabase:true,adminAvailable:Boolean(process.env.EW_ADMIN_PASSWORD_SHA256),message:ready?'Member sign-in is available':'Account registration and login require the permanent PostgreSQL database connection.'});return true}
  if(path==='/api/admin/members'){
@@ -73,23 +76,35 @@ export async function memberRoute(req,res,path){
  }
  if(!ready){send(res,503,{error:'Member registration is disabled until the permanent PostgreSQL database is connected.'});return true}
  if((route==='signup'||route==='login')&&req.method==='POST'){
-  if(!rate(req,route,route==='login'?8:3,900000)){send(res,429,{error:'Too many attempts. Please try again later.'});return true}
+  if(!rate(req,route,route==='login'?5:3,900000)){send(res,429,{error:'Too many attempts. Please try again later.'});return true}
   let obj;try{obj=await input(req)}catch(e){send(res,400,{error:e.message});return true}
-  const mail=email(obj.email),secret=String(obj.password||'');
-  if(!checkEmail(mail)||secret.length<12||secret.length>128){send(res,400,{error:'Enter a valid email and a password of 12–128 characters.'});return true}
+  const mail=email(obj.email),secret=String(obj.password||''),pin=String(obj.pin||'');
+  if(!checkEmail(mail)){send(res,400,{error:'Enter a valid email address'});return true}
+  if(route==='signup'&&(secret.length<12||secret.length>128||!/^[0-9]{4}$/.test(pin))){send(res,400,{error:'Registration needs a password of 12–128 characters and a four-digit PIN.'});return true}
+  if(route==='login'&&!/^[0-9]{4}$/.test(pin)){send(res,400,{error:'Enter your four-digit PIN.'});return true}
   if(route==='signup'){
    const displayName=name(obj.displayName);
    if(displayName.length<2){send(res,400,{error:'Display name must be at least two characters.'});return true}
    if(obj.agreed!==true){send(res,400,{error:'Please accept the account information notice.'});return true}
-   const passwordHash=await hashPassword(secret),id=randomUUID();
+   const passwordHash=await hashPassword(secret),pinHash=await hashPassword(pin),id=randomUUID();
    try{
-    await db.query("INSERT INTO ew_members(id,display_name,email,password_hash,last_login_at) VALUES($1,$2,$3,$4,now())",[id,displayName,mail,passwordHash]);
+    await db.query("INSERT INTO ew_members(id,display_name,email,password_hash,pin_hash,last_login_at) VALUES($1,$2,$3,$4,$5,now())",[id,displayName,mail,passwordHash,pinHash]);
    }catch(e){if(e.code==='23505'){send(res,409,{error:'This email already has an account. Sign in instead.'});return true}throw e}
    const row=await db.query('SELECT id,display_name,email,joined_at,last_login_at FROM ew_members WHERE id=$1',[id]);
    await createSession(res,row.rows[0]);return true
   }
-  const row=await db.query('SELECT id,display_name,email,password_hash,joined_at,last_login_at FROM ew_members WHERE email=$1 LIMIT 1',[mail]);
-  if(!row.rows.length||!(await verifyPassword(secret,row.rows[0].password_hash))){send(res,401,{error:'Incorrect email or password.'});return true}
+  // Database-persisted lockouts protect short PINs across service restarts.
+  const attempts=await db.query('SELECT locked_until FROM ew_member_login_attempts WHERE email=$1',[mail]);
+  if(attempts.rows[0]?.locked_until&&new Date(attempts.rows[0].locked_until)>new Date()){
+   send(res,429,{error:'PIN locked due to incorrect attempts. Try again in 30 minutes.'});return true
+  }
+  const row=await db.query('SELECT id,display_name,email,pin_hash,joined_at,last_login_at FROM ew_members WHERE email=$1 LIMIT 1',[mail]);
+  const correct=!!row.rows.length&&await verifyPassword(pin,row.rows[0].pin_hash);
+  if(!correct){
+   await db.query("INSERT INTO ew_member_login_attempts(email,attempts,locked_until,updated_at) VALUES($1,1,NULL,now()) ON CONFLICT(email) DO UPDATE SET attempts=CASE WHEN ew_member_login_attempts.updated_at<now()-interval '30 minutes' THEN 1 ELSE ew_member_login_attempts.attempts+1 END,locked_until=CASE WHEN ew_member_login_attempts.updated_at<now()-interval '30 minutes' THEN NULL WHEN ew_member_login_attempts.attempts>=4 THEN now()+interval '30 minutes' ELSE NULL END,updated_at=now()",[mail]);
+   send(res,401,{error:'Incorrect email or PIN. Five failed tries trigger a 30-minute lockout.'});return true
+  }
+  await db.query('DELETE FROM ew_member_login_attempts WHERE email=$1',[mail]);
   await db.query('UPDATE ew_members SET last_login_at=now() WHERE id=$1',[row.rows[0].id]);
   row.rows[0].last_login_at=new Date().toISOString();
   await createSession(res,row.rows[0]);return true
