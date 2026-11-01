@@ -13,7 +13,7 @@ const cookieName='ew_member_session';
 function originOK(req){const origin=String(req.headers.origin||'');return !origin||origin==='https://'+req.headers.host||origin==='http://'+req.headers.host}
 function client(req){return String(req.socket.remoteAddress||'unknown')}
 function rate(req,tag,max,windowMs){const key=client(req)+':'+tag,now=Date.now();let row=rateLimit.get(key);if(!row||now-row.s>windowMs){row={s:now,c:0};rateLimit.set(key,row)}row.c++;return row.c<=max}
-function sessionCookie(token,maxAge){return cookieName+'='+token+'; Path=/api/members/; HttpOnly; Secure; SameSite=Lax; Max-Age='+maxAge}
+function sessionCookie(token,maxAge){return cookieName+'='+token+'; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age='+maxAge}
 function cookie(req){return (String(req.headers.cookie||'').match(/(?:^|;\s*)ew_member_session=([a-f0-9]{64})(?:;|$)/)||[])[1]||''}
 const tokenHash=token=>createHash('sha256').update(token).digest('hex');
 async function input(req){let data='';for await(const part of req){data+=part;if(data.length>5000)throw Error('Request too large')}try{return JSON.parse(data||'{}')}catch{throw Error('Invalid JSON')}}
