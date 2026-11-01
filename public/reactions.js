@@ -6,17 +6,18 @@ const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 const topics=[['all','All'],['general','General'],['senate','Senate'],['house','House'],['governors','Governors'],['election-night','Election Night'],['news','News']];
 const topicLabel=id=>topics.find(t=>t[0]===id)?.[1]||'General';
 const when=x=>{const t=Date.parse(x);return Number.isFinite(t)?new Date(t).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Recently'};
-let list=[],filter='all',activeReply=null,loading=false,ready=false,member=null,lastListSignature='',lastError='';
+let list=[],filter='all',activeReply=null,editingId=null,loading=false,ready=false,member=null,lastListSignature='',lastError='';
 const q=id=>document.getElementById(id),shown=()=>document.body.dataset.ewView==='reactions';
 const shade=(m)=>{const key=String(m.member_id||m.name||m.id||'');let v=0;for(let i=0;i<key.length;i++)v=(v*33+key.charCodeAt(i))>>>0;return v%8};
 function card(p,child=false,replies=[]){
  const color=shade(p);
  return '<article class="reaction-post '+(child?'ew-reply':'ew-root')+' ew-author-'+color+'" data-post-id="'+safe(p.id)+'">'+
  '<div class="reaction-posthead"><div class="ew-avatar ew-avatar-'+color+'">'+safe((p.name||'?').slice(0,1).toUpperCase())+'</div>'+
- '<div class="ew-author-info"><b>'+safe(p.name||'Legacy guest')+'</b><span>'+safe(topicLabel(p.topic))+' · '+safe(when(p.created_at))+'</span></div></div>'+
+ '<div class="ew-author-info"><b>'+safe(p.name||'Legacy guest')+'</b><span>'+safe(topicLabel(p.topic))+' · '+safe(when(p.created_at))+(p.edited_at?' · EDITED':'')+'</span></div></div>'+
  '<p class="reaction-message">'+safe(p.message)+'</p>'+
  '<div class="reaction-controls">'+
- '<button type="button" data-like="'+safe(p.id)+'">♥ '+Number(p.likes||0)+' Likes</button>'+
+ '<button type="button" data-like="'+safe(p.id)+'">♥ '+Number(p.likes||0)+' Likes</button>'+ 
+ (member&&p.member_id===member.id?'<button type="button" data-ew-edit="'+safe(p.id)+'">✎ Edit my message</button>':'')+
  (child?'':'<button type="button" data-reply="'+safe(p.id)+'">↪ Reply'+(replies.length?' ('+replies.length+')':'')+'</button>')+
  '<button type="button" data-report="'+safe(p.id)+'">⚑ Report</button></div>'+
  (child?'':'<div class="ew-replies">'+replies.map(r=>card(r,true,[])).join('')+'</div>')+
@@ -33,7 +34,7 @@ function updateFeed(){
  if(!shown())return;
  const feed=q('reactionList'),count=q('reactionLiveCount'),send=q('reactionSubmit');
  const sig=JSON.stringify(list.map(p=>[p.id,p.likes,p.message,p.parent_id]))+'|'+ready;
- if(feed&&lastListSignature!==sig){feed.innerHTML=listHTML();lastListSignature=sig}
+ if(feed&&lastListSignature!==sig&&!editingId){feed.innerHTML=listHTML();lastListSignature=sig}
  if(count)count.textContent=(ready?list.filter(p=>!p.parent_id).length+' discussions · updates every 7 seconds':'Connection unavailable');
  if(send)send.disabled=!ready;
 }
@@ -93,9 +94,39 @@ async function open(){
  q('reactionRefresh').onclick=refresh;
  host.querySelectorAll('[data-reaction-topic]').forEach(b=>b.onclick=()=>{
   filter=b.dataset.reactionTopic;host.querySelectorAll('[data-reaction-topic]').forEach(x=>x.classList.toggle('chosen',x===b));
-  list=[];lastListSignature='';activeReply=null;replyInfo();refresh()
+  list=[];lastListSignature='';activeReply=null;editingId=null;replyInfo();refresh()
+ });
+ q('reactionList').addEventListener('submit',async e=>{
+  const form=e.target.closest('[data-ew-edit-form]');if(!form)return;
+  e.preventDefault();const id=form.dataset.ewEditForm;const btn=form.querySelector('[type=submit]');btn.disabled=true;
+  try{
+   const message=form.elements.namedItem('message').value;
+   const resp=await fetch('/api/community/'+encodeURIComponent(id)+'/edit',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})});
+   const data=await resp.json();if(!resp.ok)throw Error(data.error||'Could not save changes');
+   editingId=null;lastListSignature='';q('reactionFormStatus').textContent='Your message was updated.';
+   await refresh();
+  }catch(err){q('reactionFormStatus').textContent=err.message;btn.disabled=false}
  });
  q('reactionList').onclick=async e=>{
+  const edit=e.target.closest('[data-ew-edit]'),cancelEdit=e.target.closest('[data-ew-cancel-edit]');
+  if(cancelEdit){editingId=null;lastListSignature='';updateFeed();return}
+  if(edit){
+   const original=list.find(p=>p.id===edit.dataset.ewEdit&&p.member_id===member?.id);
+   const card=edit.closest('[data-post-id]');
+   if(!original||!card)return;
+   editingId=original.id;
+   const content=card.querySelector('.reaction-message');
+   if(!content)return;
+   content.hidden=true;
+   const existing=card.querySelector('[data-ew-edit-form]');if(existing)existing.remove();
+   const form=document.createElement('form');form.dataset.ewEditForm=original.id;form.className='ew-edit-message-form';
+   form.innerHTML='<label>EDIT YOUR MESSAGE<textarea name="message" minlength="8" maxlength="700" required></textarea></label>'+
+    '<div><button type="submit">SAVE CHANGES</button><button type="button" data-ew-cancel-edit="1">CANCEL</button></div>';
+   content.insertAdjacentElement('afterend',form);
+   form.elements.namedItem('message').value=original.message;
+   form.elements.namedItem('message').focus();
+   return
+  }
   const reply=e.target.closest('[data-reply]'),like=e.target.closest('[data-like]'),report=e.target.closest('[data-report]');
   if(reply){const original=list.find(p=>p.id===reply.dataset.reply);if(!original)return;activeReply=original.id;replyInfo();form.scrollIntoView({behavior:'smooth',block:'start'});text.focus();return}
   const b=like||report;if(!b)return;
