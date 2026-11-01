@@ -1,0 +1,94 @@
+/* THE EVENING WIRE / PREMIUM ELECTION STUDIO
+   Components isolated under ew-studio to preserve existing newsroom design. */
+.ew-studio-hero{border:1px solid #315e7c;background:radial-gradient(ellipse at 95% 0%,#09586f77,transparent 51%),linear-gradient(115deg,#173047,#081929);border-radius:17px;padding:clamp(20px,3vw,38px);margin-bottom:17px;position:relative;overflow:hidden}
+.ew-studio-hero h1{font:900 clamp(40px,6.2vw,76px)/1 'Barlow Condensed',Impact,sans-serif;text-transform:uppercase;letter-spacing:.25px;color:#edf7ff;margin:13px 0 12px}
+.ew-studio-hero p{max-width:830px;font-size:13px;color:#adc9d9;line-height:1.7;margin-bottom:19px}
+.ew-studio-switch{display:flex;gap:9px;flex-wrap:wrap}
+.ew-studio-switch button,.ew-studio-toolbar>button{border:1px solid #456a86;border-radius:8px;background:#10283c;color:#b8d7e7;font-weight:900;font-size:11px;letter-spacing:.35px;cursor:pointer;padding:12px 15px}
+.ew-studio-switch button.sel,.ew-studio-toolbar>button.sel{background:#1a7991;color:white;border-color:#3ec5d9}
+.ew-studio-switch button:hover,.ew-studio-toolbar>button:hover{border-color:#89d9ef;color:#fff}
+.ew-studio-toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 19px;align-items:end}
+.ew-studio-toolbar label{display:grid;gap:6px;font-size:10px;letter-spacing:.6px;font-weight:900;color:#add9eb;min-width:155px;flex:1}
+.ew-studio-toolbar select{width:100%;padding:12px 9px;border:1px solid #426c86;border-radius:9px;background:#071b2d;color:#f3fbff;font-size:12px}
+.ew-studio-toolbar button{align-self:end}
+.ew-studio-stats,.ew-challenge-bar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 16px}
+.ew-studio-stat,.ew-challenge-bar>div{display:grid;gap:8px;border:1px solid #2e5674;background:linear-gradient(140deg,#123148,#0c2435);padding:19px;border-radius:13px;min-width:0}
+.ew-studio-stat small,.ew-challenge-bar small{font-size:10px;font-weight:900;color:#91cbde;letter-spacing:.65px}
+.ew-studio-stat b,.ew-challenge-bar b{font:900 clamp(28px,3.3vw,46px)/1 'Barlow Condensed',Impact,sans-serif;color:#f7fdff}
+.ew-challenge-bar .ew-deadline{font-size:clamp(17px,2.1vw,25px);line-height:1.15}
+.ew-studio-stat span{font-size:10px;color:#9ab8ca}
+.ew-map-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(275px,.7fr);gap:16px;align-items:start}
+.ew-map-main,.ew-map-aside,.ew-studio-panel{min-width:0;border:1px solid #315572;background:linear-gradient(140deg,#0f273d,#0a1c2b);border-radius:14px;padding:18px}
+.ew-studio-map{width:100%;min-height:370px;border:1px solid #315776;border-radius:11px;background:#071a2c;overflow:hidden}
+.ew-map-grid .ew-map{border:0;background:transparent}
+.ew-map-aside{max-height:780px;overflow-y:auto}
+.ew-map-aside h3,.ew-studio-panel h3{font:800 23px/1.1 'Barlow Condensed',Impact,sans-serif;margin:4px 0 14px;color:#edf9ff}
+.ew-map-aside h3:not(:first-child){margin-top:24px}
+.ew-map-aside>div>p,.ew-studio-panel>p,.ew-studio-note{font-size:11px;line-height:1.75;color:#a6c3d5;overflow-wrap:anywhere}
+.ew-studio-note a{color:#70ddec;text-decoration:underline}
+.ew-map-legend{display:flex;gap:14px;flex-wrap:wrap;padding:14px 4px;font-size:10px;font-weight:900;color:#c3d9e5}
+.ew-map-legend span{display:inline-flex;align-items:center;gap:7px}
+.ew-map-legend i{display:block;width:12px;height:12px;border-radius:3px;background:#596f84}.ew-map-legend i.red{background:#df5666}
+.ew-map-legend i.blue{background:#448ce0}.ew-map-legend i.gray{background:#586f82}.ew-map-legend i.dark{background:#253b4d}
+.ew-map-selected{padding:12px 0;border-top:1px solid #355570}.ew-map-selected>b{font-size:16px;color:#f1fbff}
+.ew-map-names p{font-size:12px;margin:8px 0;color:#dfefff;line-height:1.5}
+.ew-studio-party{display:inline-block;padding:4px 7px;border-radius:6px;font-size:10px;font-weight:900;letter-spacing:.25px;color:#fff}
+.ew-studio-party.red{background:#a5364c}.ew-studio-party.blue{background:#2567a8}.ew-studio-party.gold{background:#796b44}
+.ew-projection-status{padding:13px;border:1px solid #496a83;background:#172c40;border-radius:8px;font-size:12px;line-height:1.65;color:#e5f4ff}
+.ew-projection-status.red{border-left:5px solid #e05d71}.ew-projection-status.blue{border-left:5px solid #448ce0}
+.ew-projection-status p{margin:5px 0;color:#e3c18c;font-weight:800;font-size:11px}
+.ew-projection-status a,.ew-studio-call a{color:#7fe1f2;font-size:11px}
+.ew-uncalled{padding:12px;border:1px dashed #526d83;border-radius:8px;background:#122b3c;color:#bcd0de;font-weight:900;font-size:11px}
+.ew-studio-call{display:grid;gap:6px;border-top:1px solid #33546a;padding:11px 0;font-size:12px}
+.ew-studio-call b{font-weight:900;color:#f1faff}.ew-studio-call .ew-studio-party{justify-self:start}.ew-studio-call p{margin:0}
+.ew-swing-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:17px}
+.ew-swing-state-head h2{font:900 40px/1.1 'Barlow Condensed',Impact,sans-serif;margin:0 0 8px}
+.ew-swing-state-head p{color:#a5c0d0;font-size:11px;line-height:1.5}
+.ew-swing-row{display:grid;gap:8px;margin:20px 0;grid-template-columns:155px 1fr 115px;align-items:center;font-size:12px;color:#d8edfb}
+.ew-swing-row span{font-size:11px;font-weight:900}.ew-swing-row small{grid-column:2/4;color:#91b0c5;font-size:10px;margin-top:-4px}
+.ew-swing-row b{text-align:right;font-size:12px;white-space:nowrap}
+.ew-swing-bar{height:17px;background:linear-gradient(90deg,#254d91 0%,#203f6c 50%,#743444 50%,#773847 100%);border:1px solid #6185a2;border-radius:4px;overflow:hidden;position:relative}
+.ew-swing-bar i{height:100%;position:absolute;top:0;background:#f2d0d4;box-shadow:0 0 4px #fff8}.ew-swing-bar i.d{background:#8dccff}
+.ew-swing-bar .ew-swing-mid{position:absolute;left:50%;top:0;bottom:0;width:2px;background:#fafcff;z-index:1}
+.ew-swing-metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+.ew-swing-metrics>div{padding:14px;background:#0a2539;border-radius:10px;border:1px solid #365e78}
+.ew-swing-metrics small{color:#92c4d6;font-size:9px;font-weight:900;line-height:1.5;display:block}
+.ew-swing-metrics strong{font:900 28px 'Barlow Condensed',Impact,sans-serif;display:block;margin-top:8px}
+.ew-swing-metrics p{font-size:10px;color:#a3bdcc}
+.ew-swing-table-wrap{overflow:auto;max-height:620px}
+.ew-swing-table-wrap table,.ew-leaderboard table{border-collapse:collapse;width:100%;min-width:340px}
+.ew-swing-table-wrap td,.ew-swing-table-wrap th,.ew-leaderboard td,.ew-leaderboard th{font-size:11px;text-align:left;padding:10px 5px;border-bottom:1px solid #28465e;white-space:nowrap}
+.ew-swing-table-wrap th,.ew-leaderboard th{color:#92dbe9;position:sticky;top:0;background:#112e43}
+.ew-swing-table-wrap td button{border:0;background:transparent;color:#bdeeff;font-size:11px;font-weight:900;cursor:pointer;padding:5px}
+.ew-rchange{color:#f2aab1}.ew-dchange{color:#89c6ff}
+.ew-final-swing{border:1px solid #37617e;padding:12px;border-radius:8px;margin:10px 0;background:#142e40}
+.ew-final-swing>b{color:#e5faff;font-size:13px}.ew-final-swing p{color:#a9cad6;font-size:11px;line-height:1.7}
+.ew-final-swing a{color:#75e6ed}.ew-studio-empty{padding:15px;border:1px dashed #53738a;border-radius:9px;font-size:12px;line-height:1.6;color:#b3c8d6}
+.ew-pred-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:17px;margin:17px 0}
+.ew-pred-grid h3{font-size:26px}.ew-pred-option{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#0d2c44;border:1px solid #385c73;border-radius:10px;padding:13px;margin:10px 0;cursor:pointer;font-size:12px}
+.ew-pred-option:has(input:checked){border-color:#68eeed;background:#124764}
+.ew-pred-option input{width:18px;height:18px;accent-color:#7feeed;flex-shrink:0}
+.ew-studio-primary{margin:12px 0;border-radius:9px;background:linear-gradient(100deg,#0b7d93,#1a98af);border:1px solid #53cfe5;color:#fff;font-weight:900;font-size:12px;letter-spacing:.35px;padding:12px 17px;cursor:pointer}
+.ew-studio-primary:hover{filter:brightness(1.13)}
+.ew-pred-locked{padding:16px;border:1px solid #54817a;border-radius:11px;background:#13413855;font-size:12px;line-height:1.7;color:#d0f4e7}
+.ew-pred-locked b{font-size:14px}.ew-pred-vote-summary{border-top:1px solid #39586d;padding-top:14px;margin-top:19px}
+.ew-pred-vote-summary>b{font-size:11px;color:#9edbeb}
+.ew-pred-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin:12px 0;align-items:center;font-size:12px}
+.ew-pred-row>span{color:#dceffb;overflow-wrap:anywhere}.ew-pred-row>strong{font-size:12px}
+.ew-pred-track{height:9px;border-radius:99px;background:#355066;grid-column:1/3;overflow:hidden}
+.ew-pred-track i{display:block;background:#448ce0;height:100%;border-radius:99px}
+.ew-pred-track i.r{background:#d84f67}
+.ew-leaderboard{overflow:auto;max-height:480px}
+.ew-admin-final-access,.ew-admin-finals{margin:18px 0}
+.ew-admin-finals form,.ew-admin-final-access form{display:grid;gap:15px;margin:15px 0}
+.ew-admin-finals label,.ew-admin-final-access label{display:grid;gap:7px;color:#a9d9e8;font-size:11px;font-weight:900}
+.ew-admin-finals select,.ew-admin-finals textarea,.ew-admin-finals input,.ew-admin-final-access input{width:100%;padding:12px;border:1px solid #3e7891;border-radius:8px;background:#071c2c;color:#ebf8ff;font-size:13px;box-sizing:border-box}
+.ew-admin-finals textarea{min-height:75px;resize:vertical}
+.ew-admin-finals .ew-studio-check{display:flex;align-items:flex-start;gap:9px;line-height:1.6}
+.ew-admin-finals .ew-studio-check input{width:auto;margin:3px}
+.ew-final-votes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.ew-studio-loading{padding:50px 25px;text-align:center;color:#ace9f6;font-size:14px;font-weight:900;background:#102f43;border-radius:14px;border:1px solid #3a718e;letter-spacing:.8px}
+@media(max-width:1100px){.ew-map-grid{grid-template-columns:minmax(0,1fr) 280px}.ew-studio-stats,.ew-challenge-bar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:780px){.ew-map-grid,.ew-swing-layout,.ew-pred-grid{grid-template-columns:1fr}.ew-map-aside{max-height:none}.ew-map-main,.ew-map-aside,.ew-studio-panel{padding:13px}.ew-studio-toolbar label{min-width:115px}.ew-swing-row{grid-template-columns:110px 1fr 100px}.ew-swing-row b{font-size:10px}.ew-swing-row small{grid-column:1/4}.ew-swing-metrics{grid-template-columns:1fr}.ew-final-votes{grid-template-columns:1fr}}
+@media(max-width:440px){.ew-studio-stats,.ew-challenge-bar{grid-template-columns:repeat(2,minmax(0,1fr))}.ew-studio-stat,.ew-challenge-bar>div{padding:12px}.ew-studio-hero{padding:18px}.ew-studio-switch button{flex:1 1 110px;padding:10px 6px;font-size:10px}}
+@media(prefers-reduced-motion:reduce){.ew-studio-switch button{transition:none}}
