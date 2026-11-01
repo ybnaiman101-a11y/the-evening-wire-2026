@@ -13,6 +13,7 @@ let calls=[],audit=[],store=db?'unavailable':'temporary',pool=null,queue=Promise
 function send(res,code,data,headers={}){res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(JSON.stringify(data))}
 function meta(){return {configured:/^[a-f0-9]{64}$/.test(passwordHash),storage:store,persistent:store==='postgresql',warning:store==='temporary'?'Temporary server storage: calls may disappear after a restart or redeployment. Export backups until PostgreSQL is connected.':null}}
 const snapshot=()=>({version:1,calls,audit});
+export function isEditorAdmin(req){return current(req)}
 function current(req){const key=(String(req.headers.cookie||'').match(/(?:^|;\s*)ew_editor_session=([a-f0-9]{64})(?:;|$)/)||[])[1];const expiry=sessions.get(key);return !!expiry&&expiry>Date.now()}
 function secureOrigin(req){return !req.headers.origin||req.headers.origin==='https://'+req.headers.host||req.headers.origin==='http://'+req.headers.host}
 function validPassword(value){return typeof value==='string'&&value.length<=256&&/^[a-f0-9]{64}$/.test(passwordHash)&&timingSafeEqual(createHash('sha256').update(value).digest(),Buffer.from(passwordHash,'hex'))}
