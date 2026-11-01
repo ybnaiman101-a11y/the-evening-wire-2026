@@ -3,6 +3,7 @@ import {randomUUID,createHash,timingSafeEqual} from 'node:crypto';
 const connection=process.env.DATABASE_URL||'';
 const adminSecret=process.env.REACTION_ADMIN_TOKEN||'';
 let pool=null,ready=false;
+console.log('REACTION_HUB_CONFIG database_url_present='+Boolean(connection));
 const limits=new Map();
 const topics=new Set(['general','senate','house','governors','election-night','news']);
 const respond=(r,n,x)=>{r.writeHead(n,{'Content-Type':'application/json','Cache-Control':'no-store'});r.end(JSON.stringify(x))};
@@ -22,6 +23,7 @@ async function input(req){let data='';for await(const chunk of req){data+=chunk;
 function authorized(req){const s=req.headers['x-reaction-admin-token'];return !!adminSecret&&adminSecret.length>=24&&typeof s==='string'&&s.length===adminSecret.length&&timingSafeEqual(Buffer.from(s),Buffer.from(adminSecret))}
 export async function communityRoute(req,res,path){
  if(!path.startsWith('/api/community/'))return false;
+ if(route==='health'&&req.method==='GET'){respond(res,200,{ready,configured:Boolean(connection)});return true}
  if(!ready){respond(res,503,{ready:false,error:'Reaction Hub database connection not yet configured'});return true}
  const route=path.slice(15);
  try{
