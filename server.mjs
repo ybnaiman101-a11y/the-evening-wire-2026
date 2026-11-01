@@ -5,6 +5,7 @@ import {communityRoute} from './community.mjs';
 import {memberRoute,authenticatedMember} from './members.mjs';
 import {trafficRoute} from './traffic.mjs';
 import {updateRoute} from './election-updates.mjs';
+import {challengeRoute} from './challenge.mjs';
 import {URL} from 'node:url';
 
 const PORT = Number(process.env.PORT || 3000);
@@ -305,6 +306,9 @@ const server=http.createServer(async (req,res)=>{
  if(u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')){
   updateRoute(req,res,u.pathname).catch(err=>{console.error('Election Update API error',String(err.message||err));if(!res.headersSent)json({error:'Election Update service temporarily unavailable'},503);else res.end()});return;
  }
+ if(u.pathname.startsWith('/api/challenge')){
+  challengeRoute(req,res,u.pathname).catch(err=>{console.error('Prediction challenge API:',String(err.message||err));if(!res.headersSent)json({error:'Prediction service temporarily unavailable'},503);else res.end()});return;
+ }
  if(u.pathname.startsWith('/api/traffic/')){trafficRoute(req,res,u.pathname).catch(err=>{console.error('Traffic API error',err);if(!res.headersSent)json({error:'Traffic temporarily unavailable'},503);else res.end()});return;}
 
  if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname).catch(err=>{console.error('Community API request error:',String(err?.message||err));if(!res.headersSent)json({error:'Community service temporarily unavailable'},503);else res.end()});return;}
@@ -324,6 +328,18 @@ const server=http.createServer(async (req,res)=>{
   });
  }
 
+ if(u.pathname==='/api/historical'){
+  try{
+   const buf=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/historical-state-baselines.json',import.meta.url)));
+   res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, max-age=86400','X-Content-Type-Options':'nosniff'});return res.end(buf);
+  }catch(e){return json({error:'Verified historical election baseline temporarily unavailable'},503)}
+ }
+ if(u.pathname==='/studio.js'){
+  try{
+   const buf=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/studio.js',import.meta.url)));
+   res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});return res.end(buf)
+  }catch(e){return json({error:'Interactive election studio unavailable'},404)}
+ }
  if(u.pathname==='/api/race-catalog'){
   try{const buf=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/race-candidates.json',import.meta.url)));
    res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, max-age=300','X-Content-Type-Options':'nosniff'});return res.end(buf);
