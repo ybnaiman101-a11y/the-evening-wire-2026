@@ -417,6 +417,9 @@ function mountElectionMaps(container=app){
     mode:type,mini,results,senateStates:SENATE.map(x=>x.state),governorStates:GOVERNOR.map(x=>x.state),
     onSelect:info=>{
       if(info.office==='house'&&info.key){showRace(info.key);return}
+      const key=info.office+'-'+info.state;
+      const entries=info.office==='senate'?SENATE.filter(x=>x.state===info.state):GOVERNOR.filter(x=>x.state===info.state);
+      if(entries.length===1){showRace(key);return}
       selectedState=info.state;go('states');
     }
   });
@@ -436,6 +439,40 @@ function showTv(){
  layer.addEventListener('click',e=>{const b=e.target.closest('[data-open-map]');if(b){closeTv();mapOffice=b.dataset.openMap;go('map')}});
 }
 function closeTv(){const layer=document.getElementById('ewTvMode');if(!layer)return;if(document.fullscreenElement)document.exitFullscreen?.();layer.remove();document.body.style.overflow=''}
+
+/* EW MAP RACE FOLLOW & COMPARISON V1 */
+let followedRaces=[];
+try{const v=JSON.parse(localStorage.getItem('ew-followed-races-v1')||'[]');if(Array.isArray(v))followedRaces=v.filter(x=>typeof x==='string').slice(0,150)}catch{}
+let comparedRaces=[];
+function saveFollowedRace(){
+ try{localStorage.setItem('ew-followed-races-v1',JSON.stringify(followedRaces))}catch{}
+}
+function raceCompareCard(key){
+ const race=[...SENATE,...GOVERNOR,...HOUSE].find(r=>r.key===key)||(results.races||[]).find(x=>keyFor(x)===key);
+ if(!race)return '';
+ const report=reported(key),call=called(key);
+ return '<div class="cmd-card"><div class="cmd-eyebrow">'+esc(race.office.toUpperCase())+'</div><h3>'+esc(raceTitle(race))+'</h3>'
+ +'<p>'+(call?'<span class="cmd-pill good">PROJECTION · '+esc(call.sourceName)+'</span>':'<span class="cmd-pill warn">UNCALLED / DATA UNAVAILABLE</span>')+'</p>'
+ +(report&&report.candidates?.length?report.candidates.slice(0,4).map(c=>'<div class="cmd-row"><span class="txt"><strong>'+esc(c.name)+'</strong><small>'+esc(c.party)+'</small></span><span class="end">'+(Number.isFinite(c.votes)?c.votes.toLocaleString('en-US')+' votes':'—')+' '+(Number.isFinite(c.percent)?c.percent.toFixed(1)+'%':'')+'</span></div>').join(''):'<p>Verified candidate totals have not been supplied.</p>')
+ +'<p class="cmd-muted">Source: '+esc(report?.sourceName||'Not connected')+' · Updated '+formatTime(report?.updatedAt)+'</p>'
+ +'<div class="cmd-toolbar"><button data-race="'+esc(key)+'">OPEN RACE</button></div></div>';
+}
+function openComparison(){
+ const selected=comparedRaces.slice(-2);if(selected.length!==2)return;
+ let body='<div class="cmd-dialog-head"><div><span class="cmd-kicker">LIVE RACE MONITOR</span><h2 style="font:800 39px Barlow Condensed;margin:9px 0">SPLIT-SCREEN COMPARISON</h2></div><button class="cmd-minibtn" data-close-modal="1">CLOSE ×</button></div>';
+ body+='<p class="cmd-muted">These are separately sourced race summaries, not predictions. Updates depend on your licensed results provider.</p><div class="ew-map-compare">'+selected.map(raceCompareCard).join('')+'</div>';
+ body+='<div class="cmd-toolbar"><button class="cmd-minibtn" data-clear-compare="1">CLEAR COMPARISON</button></div>';
+ dialog.innerHTML=body;modal.hidden=false;document.body.style.overflow='hidden';
+}
+function recentTimeline(){
+ const events=[
+  ...(results.calls||[]).filter(x=>x&&x.calledAt).map(x=>({at:x.calledAt,label:'Publisher race call · '+stateName(x.state)+' '+x.office,source:x.sourceName,url:x.sourceUrl,tag:'CALL'})),
+  ...news.filter(x=>x&&x.published).slice(0,30).map(x=>({at:x.published,label:x.title,source:x.source,url:x.url,tag:'NEWS'}))
+ ].sort((a,b)=>Date.parse(b.at)-Date.parse(a.at)).slice(0,8);
+ return wrap(title('ELECTION NIGHT TIMELINE','News articles and sourced race calls, ordered by their original timestamps.')
+  +'<div class="cmd-card">'+(events.length?events.map(x=>'<div class="cmd-activity"><span class="cmd-pill">'+esc(x.tag)+'</span><div><a href="'+siteURL(x.url)+'" target="_blank" rel="noopener noreferrer">'+esc(x.label)+'</a><small>'+esc(x.source)+' · '+formatTime(x.at)+'</small></div></div>').join(''):unavail('No verified events have reached the live news desk yet.'))+'</div>');
+}
+
 function hq(){
  const lead=news[0];const calledList=(results.calls||[]).slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt));
  const countTo=new Date('2026-11-03T00:00:00-05:00').getTime()-Date.now();
@@ -444,6 +481,7 @@ function hq(){
  +mapsHubMarkup()
  +'<div class="cmd-grid">'+infoCard('senate',SENATE)+infoCard('governor',GOVERNOR)+infoCard('house',HOUSE)+'</div>'+notice()
  +wrap('<div class="cmd-split"><div class="cmd-card"><div class="cmd-eyebrow">LATEST VERIFIED PUBLISHER COVERAGE</div><h3>THE LEAD STORY</h3>'+(lead?'<h2 style="font:700 clamp(23px,3vw,36px)/1.25 Georgia,serif;margin:17px 0"><a href="'+siteURL(lead.url)+'" target="_blank" rel="noopener noreferrer">'+esc(lead.title)+'</a></h2><p>'+esc(lead.source)+' · '+formatTime(lead.published)+'</p>':unavail('Waiting for the first published election headline.'))+'<div class="cmd-toolbar"><button data-tab="news">OPEN LIVE NEWS →</button></div></div><div class="cmd-card"><div class="cmd-eyebrow">RACE CALL DESK</div><h3>RECENT PROJECTIONS</h3>'+(calledList.length?callCards(calledList.slice(0,2)):unavail('No attributable race calls received from a configured results provider.'))+'<div class="cmd-toolbar"><button data-tab="calls">VIEW ALL CALLS →</button></div></div></div>')
+ +recentTimeline()
  +wrap(title('The National Newswire','Recent election coverage from the configured publisher feeds.')+'<div class="cmd-card">'+latestStories(6)+'</div>')+'<div class="cmd-footer-info">'+liveSummary()+'</div>'
 }
 function raceTitle(x){return stateName(x.state)+' '+(x.office==='senate'?'Senate':x.office==='governor'?'Governor':'House District '+x.district)}
@@ -533,7 +571,13 @@ function showRace(key){
  if(report){body+='<div class="cmd-card"><h3>REPORTED VOTES</h3>'+(report.candidates.length?report.candidates.map(c=>'<div class="cmd-row"><span class="txt"><strong>'+esc(c.name)+'</strong><small>'+esc(c.party)+' · '+(Number.isFinite(c.votes)?Number(c.votes).toLocaleString('en-US')+' votes':'Vote count unavailable')+'</small></span><span class="end">'+(Number.isFinite(c.percent)?c.percent.toFixed(1)+'%':'—')+'</span></div>').join(''):unavail('No candidate totals included with this update.'))+'<p class="cmd-muted">Reporting: '+(Number.isFinite(report.reportingPct)?report.reportingPct+'%':'Unspecified')+' · Updated '+formatTime(report.updatedAt)+' · <a href="'+siteURL(report.sourceUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(report.sourceName)+'</a></p></div>'}
  else body+=unavail('No valid vote totals have been received for this race.');
  if(call)body+='<div class="cmd-notice">Publisher projection: '+esc(call.candidate)+' ('+partyLabel(call.party)+') · '+esc(call.sourceName)+' · '+formatTime(call.calledAt)+'. This is not official certification. <a href="'+siteURL(call.sourceUrl)+'" target="_blank" rel="noopener noreferrer">Read original call.</a></div>';
- body+='<section class="cmd-section"><h3>RELATED NEWS</h3><div class="cmd-card">'+latestStories(6,stateName(race.state))+'</div></section>';
+
+ body+='<div class="cmd-toolbar">'
+  +'<button class="cmd-primary" data-follow-race="'+esc(key)+'">'+(followedRaces.includes(key)?'◆ FOLLOWING RACE':'◇ FOLLOW RACE')+'</button>'
+  +'<button class="cmd-minibtn" data-compare-race="'+esc(key)+'">⊞ ADD TO SPLIT-SCREEN COMPARISON ('+comparedRaces.length+'/2)</button>'
+  +'<button class="cmd-minibtn" data-share-race="'+esc(key)+'">↗ COPY RACE LINK</button></div>';
+
+  body+='<section class="cmd-section"><h3>RELATED NEWS</h3><div class="cmd-card">'+latestStories(6,stateName(race.state))+'</div></section>';
  dialog.innerHTML=body;modal.hidden=false;document.body.style.overflow='hidden';
 }
 function closeModal(){modal.hidden=true;document.body.style.overflow=''}
@@ -593,7 +637,28 @@ app.addEventListener('change',e=>{
  if(e.target.id==='cmdStateFilter'){raceState=e.target.value;render()}
  if(e.target.dataset.follow){const code=e.target.dataset.follow;if(e.target.checked){if(!followed.includes(code))followed.push(code)}else followed=followed.filter(x=>x!==code);savedStore();const total=app.querySelector('.cmd-card h3');if(total&&active==='mydesk')total.textContent=followed.length+' STATES SELECTED'}
 });
-modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('[data-close-modal]'))closeModal()});
+modal.addEventListener('click',e=>{
+ const btn=e.target.closest('button');
+ if(btn?.dataset.followRace){
+  const key=btn.dataset.followRace;
+  if(followedRaces.includes(key))followedRaces=followedRaces.filter(x=>x!==key);else followedRaces.unshift(key);
+  saveFollowedRace();btn.textContent=followedRaces.includes(key)?'◆ FOLLOWING RACE':'◇ FOLLOW RACE';return;
+ }
+ if(btn?.dataset.compareRace){
+  const key=btn.dataset.compareRace;
+  if(!comparedRaces.includes(key))comparedRaces.push(key);
+  comparedRaces=comparedRaces.slice(-2);
+  if(comparedRaces.length===2)openComparison();else btn.textContent='✓ ADDED — SELECT A SECOND RACE';return;
+ }
+ if(btn?.dataset.shareRace){
+  const url=location.origin+'/#'+active+'?race='+encodeURIComponent(btn.dataset.shareRace);
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(url).then(()=>btn.textContent='LINK COPIED').catch(()=>{btn.textContent=url});
+  else btn.textContent=url;return;
+ }
+ if(btn?.dataset.clearCompare){comparedRaces=[];closeModal();return}
+ if(btn?.dataset.race){showRace(btn.dataset.race);return}
+ if(e.target===modal||btn?.dataset.closeModal!==undefined)closeModal();
+});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTv()});
 try{const tab=location.hash.slice(1);if(tab)active=tab}catch{}
