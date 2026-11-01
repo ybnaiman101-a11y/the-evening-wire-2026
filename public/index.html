@@ -73,14 +73,79 @@ body{background:#070d16;color:#e7f2ff}
 .cmd-2cols{display:grid;grid-template-columns:1fr 1fr;gap:15px}.cmd-activity{display:flex;align-items:start;gap:10px;padding:13px 0;border-bottom:1px solid #2d445e;font-size:12px}.cmd-activity a{color:#deebf7;font-weight:700}.cmd-activity small{display:block;color:#97acc2;margin-top:7px;font-size:10px}
 @media(max-width:1060px){.cmd-banner,.cmd-split{grid-template-columns:1fr}.cmd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cmd-mini{min-height:110px}.cmd-mapbox{min-height:300px}}
 @media(max-width:700px){#commandDesk{padding:16px 12px 46px}.cmd-hero{padding:24px 19px;min-height:180px}.cmd-hero h1{font-size:48px}.cmd-hero p{font-size:11px}.cmd-grid{grid-template-columns:1fr}.cmd-section-head h2{font-size:30px}.cmd-2cols{grid-template-columns:1fr}.cmd-row{gap:8px;padding:13px 0}.cmd-row .end{white-space:normal;text-align:right;font-size:9px}.cmd-nav button{padding:10px}.cmd-mapbox{min-height:240px}.cmd-void{padding:27px 15px}}
-.cmd-brand-watermark{position:absolute;right:24px;top:23px;width:205px;height:auto;opacity:.93;z-index:2;pointer-events:none;filter:drop-shadow(0 0 12px #00aaff44)}@media(max-width:900px){.cmd-brand-watermark{width:125px;opacity:.65}}@media(max-width:650px){.cmd-brand-watermark{display:none}}</style></head>
+.cmd-brand-watermark{position:absolute;right:24px;top:23px;width:205px;height:auto;opacity:.93;z-index:2;pointer-events:none;filter:drop-shadow(0 0 12px #00aaff44)}@media(max-width:900px){.cmd-brand-watermark{width:125px;opacity:.65}}@media(max-width:650px){.cmd-brand-watermark{display:none}}
+/* EVENING WIRE INTEGRATED MASTHEAD V2 — pure brand composition, not a pasted image */
+.ew-masthead{isolation:isolate;position:relative;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:160px;padding:23px clamp(20px,3.3vw,60px);border-bottom:1px solid #276281;background:linear-gradient(101deg,#030b13 0%,#05101c 44%,#081c30 75%,#04101e 100%);overflow:hidden;box-shadow:inset 0 -1px #46cef41c,0 10px 40px #0005}
+.ew-masthead:after{content:"";position:absolute;z-index:0;bottom:0;left:3%;right:3%;height:1px;background:linear-gradient(90deg,transparent,#1ddcf9 16%,#0f66d6 38%,#2792d877 68%,transparent 100%);box-shadow:0 0 12px #1baafc65}
+.ew-masthead-atmosphere{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.ew-masthead-atmosphere:before{content:"";position:absolute;right:12%;top:-70px;width:45vw;height:260px;background:radial-gradient(ellipse,#0b6ca233,transparent 70%);filter:blur(20px)}
+.ew-globe-art{position:absolute;right:13%;height:260px;width:550px;top:-50px;opacity:.85;filter:drop-shadow(0 0 10px #059be824)}
+.ew-masthead .ew-integrated-brand{position:relative;z-index:2;display:inline-flex;align-items:center;gap:15px;flex:0 1 auto;min-width:0;padding:0;margin:0;line-height:1;color:#fff;text-decoration:none}
+.ew-masthead .ew-mark{display:block;flex:none;width:77px;height:75px;filter:drop-shadow(0 0 12px #18b9f455)}
+.ew-masthead .ew-mark svg{width:100%;height:100%;display:block;filter:none}
+.ew-masthead .ew-wordmark{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.ew-the{font:800 14px/1 'DM Sans',sans-serif;letter-spacing:9px;color:#d9ecf8;opacity:.98;margin-bottom:4px}
+.ew-word-line{display:block;white-space:nowrap;font:900 clamp(36px,4.5vw,71px)/.92 'Barlow Condensed',Impact,sans-serif;letter-spacing:-.6px;text-shadow:0 1px 7px #0007}
+.ew-electric{color:#39dffa;background:linear-gradient(180deg,#46f7ff,#00bff7 55%,#106add);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 7px #009fff2e)}
+.ew-white{color:#fafdff}
+.ew-tagline{display:block;align-self:center;margin-top:10px;font:800 clamp(9px,1vw,13px)/1.4 'DM Sans',sans-serif;letter-spacing:clamp(2.5px,.45vw,6px);white-space:nowrap;color:#edf8ff;text-shadow:0 2px 8px #000a}
+.ew-brand-orbit{position:absolute;pointer-events:none;top:-15px;right:4%;width:32%;height:29px;border-top:3px solid #16e5ef;border-radius:80% 80% 0 0;transform:rotate(-6deg);opacity:.9;filter:drop-shadow(0 0 7px #05d8fa7a)}
+.ew-orbit-dot{position:absolute;right:0;top:-6px;width:12px;height:12px;border-radius:50%;background:#20f6ec;box-shadow:0 0 14px #19def7}
+.ew-masthead-right{position:relative;z-index:2;display:flex;flex-direction:column;align-items:flex-end;gap:9px;flex:none;border-left:1px solid #34627d6b;padding-left:25px;text-shadow:0 1px 5px #000c}
+.ew-masthead-caption{font:800 10px/1.5 'DM Sans',sans-serif;letter-spacing:1.7px;color:#87a9c3;white-space:nowrap}
+.ew-masthead-right .status{color:#8cf3d2;letter-spacing:.85px;font-size:11px}
+.ew-masthead-right .clock{margin:0;color:#c6e2f2;letter-spacing:.7px}
+.cmd-hero{overflow:hidden}
+.cmd-hero:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 55%,#03c7eb05 75%,transparent),radial-gradient(circle at 92% 30%,#0775a91e,transparent 56%);z-index:0}
+.cmd-hero .cmd-kicker,.cmd-hero h1,.cmd-hero p,.cmd-hero .cmd-toolbar{position:relative;z-index:1}
+.cmd-brand-watermark{display:none!important}
+@media(max-width:1100px){.ew-masthead{min-height:140px;padding:18px 25px}.ew-masthead-right{padding-left:16px}.ew-masthead-caption{font-size:8px;letter-spacing:1px}.ew-masthead .ew-word-line{font-size:clamp(35px,4.3vw,60px)}.ew-globe-art{right:0}}
+@media(max-width:760px){.ew-masthead{min-height:116px;padding:16px;gap:8px}.ew-masthead .ew-mark{width:46px;height:52px}.ew-masthead .ew-integrated-brand{gap:5px}.ew-the{font-size:9px;letter-spacing:4px;margin-bottom:2px}.ew-masthead .ew-word-line{font-size:clamp(27px,6vw,40px);letter-spacing:0}.ew-tagline{font-size:8px;letter-spacing:1.4px;margin-top:6px}.ew-brand-orbit{display:none}.ew-masthead-caption{display:none}.ew-masthead-right{padding-left:6px;gap:7px}.ew-masthead-right .status{font-size:8px;padding:7px}.ew-masthead-right .clock{font-size:9px}.ew-globe-art{right:-170px;width:430px;opacity:.55}}
+@media(max-width:470px){.ew-masthead{min-height:98px;padding:12px 10px}.ew-masthead .ew-mark{width:35px;height:44px}.ew-masthead .ew-integrated-brand{gap:3px}.ew-masthead .ew-word-line{font-size:clamp(24px,6.1vw,29px)}.ew-the{font-size:8px;letter-spacing:3px}.ew-tagline{font-size:7px;letter-spacing:1px}.ew-masthead-right .status{font-size:0;min-width:20px;max-width:21px;min-height:23px;padding:8px}.ew-masthead-right .dot{width:7px;height:7px}.ew-masthead-right .clock{font-size:8px}}
+</style></head>
 <body>
-<header>
- <a class="brand" href="/" aria-label="THE EVENING WIRE home">
-  <svg viewBox="0 0 90 74" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Evening Wire E logo"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2=".4"><stop stop-color="#dffbff"/><stop offset=".52" stop-color="#15cbff"/><stop offset="1" stop-color="#1269dd"/></linearGradient></defs><path d="M7 12H77L68 23H24V29H66L57 41H24V49H72L63 62H7Z" fill="url(#g)"/><path d="M74 7Q92 30 73 68" stroke="#34dfff" fill="none" stroke-width="3" opacity=".8"/><circle cx="76" cy="6" r="5" fill="#63eeff"/></svg>
-  <div class="brand-text"><div class="the">THE</div><div class="main">EVENING <span>WIRE</span></div><div class="tag">TODAY'S TOP STORIES</div></div>
- </a>
- <div><div class="status"><span class="dot" id="dot"></span><span id="conn">CONNECTING</span></div><div class="clock" id="clock">EASTERN TIME</div></div>
+<header class="ew-masthead">
+  <div class="ew-masthead-atmosphere" aria-hidden="true">
+    <svg class="ew-globe-art" viewBox="0 0 640 300" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="earthGlow"><stop stop-color="#0080bb" stop-opacity=".45"/><stop offset=".7" stop-color="#00436d" stop-opacity=".2"/><stop offset="1" stop-color="#02101c" stop-opacity="0"/></radialGradient>
+        <linearGradient id="rimGradient" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#1874c8" stop-opacity="0"/><stop offset=".33" stop-color="#155bda" stop-opacity=".5"/><stop offset=".76" stop-color="#00dcf3"/><stop offset="1" stop-color="#22bfff" stop-opacity="0"/></linearGradient>
+        <pattern id="earthDots" x="0" y="0" width="13" height="13" patternUnits="userSpaceOnUse"><circle cx="6" cy="6" r="1.1" fill="#2abaff" opacity=".45"/></pattern>
+        <clipPath id="earthClip"><ellipse cx="404" cy="228" rx="280" ry="208"/></clipPath>
+      </defs>
+      <ellipse cx="401" cy="205" rx="310" ry="235" fill="url(#earthGlow)"/>
+      <g clip-path="url(#earthClip)" opacity=".8">
+        <ellipse cx="404" cy="228" rx="275" ry="205" fill="#0c3655" opacity=".34"/>
+        <path d="M145 113Q320 5 598 113M139 177Q322 76 607 177M137 245Q323 161 613 245M139 318Q338 235 608 318" fill="none" stroke="#158aca" stroke-width="1.5" opacity=".38"/>
+        <path d="M404 24C239 79 223 312 404 440M404 24C545 87 555 303 404 440M404 24V443" fill="none" stroke="#17a6dc" stroke-width="1.5" opacity=".27"/>
+        <path d="M188 92l35-19 33 5 14-16 51 10 19 25-13 21 18 19-20 31-39-8-17 27-23-11-24-43-32-3Zm245-5 23-23 43 5 19 24 35 1 17 25-20 21-40-7-21 28-24-3-16-33-29-8Zm-20 106 43-21 39 17 15 34-21 28-1 32-33 36-21-4-14-38-24-19Z" fill="url(#earthDots)" stroke="#1684cb" stroke-width="1" opacity=".7"/>
+        <g fill="#3eeaff"><circle cx="210" cy="136" r="3"/><circle cx="288" cy="104" r="2.5"/><circle cx="343" cy="207" r="2"/><circle cx="480" cy="116" r="3"/><circle cx="548" cy="183" r="2.5"/><circle cx="427" cy="249" r="2.5"/></g>
+        <g stroke="#3eeaff" stroke-width=".7" opacity=".42"><path d="M210 136L288 104L343 207L427 249L548 183L480 116L288 104" fill="none"/></g>
+      </g>
+      <path d="M118 211A290 204 0 0 1 624 116" fill="none" stroke="url(#rimGradient)" stroke-width="4" opacity=".95"/>
+      <path d="M171 193A245 165 0 0 1 590 118" fill="none" stroke="#26deff" stroke-width=".8" opacity=".4"/>
+    </svg>
+  </div>
+  <a class="brand ew-integrated-brand" href="/" aria-label="THE EVENING WIRE — TODAY'S TOP STORIES home">
+    <span class="ew-mark" aria-hidden="true">
+      <svg viewBox="0 0 90 83" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="emblemGrad" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#fff"/><stop offset=".39" stop-color="#d7f7ff"/><stop offset=".74" stop-color="#42e6fb"/><stop offset="1" stop-color="#0075cf"/></linearGradient></defs>
+        <path d="M8 10H79L72 22H26V29H71L64 41H26V49H78L70 63H8Z" fill="url(#emblemGrad)"/>
+        <path d="M5 68H70" stroke="#2be5ff" opacity=".5" stroke-width="2"/>
+      </svg>
+    </span>
+    <span class="brand-text ew-wordmark">
+      <span class="ew-the">THE</span>
+      <span class="ew-word-line"><span class="ew-white">EVENING</span> <span class="ew-electric">WIRE</span></span>
+      <span class="ew-tagline">TODAY’S TOP STORIES</span>
+    </span>
+    <span class="ew-brand-orbit" aria-hidden="true"><span class="ew-orbit-dot"></span></span>
+  </a>
+  <div class="ew-masthead-right">
+    <span class="ew-masthead-caption">2026 U.S. ELECTION COMMAND CENTER</span>
+    <div class="status"><span class="dot" id="dot"></span><span id="conn">CONNECTING</span></div>
+    <div class="clock" id="clock">EASTERN TIME</div>
+  </div>
 </header>
 <nav class="command-nav" aria-label="Election command center sections"><button type="button" data-ew-tab="hq" aria-current="page"><span class="num">01</span> HEADQUARTERS</button><button type="button" data-ew-tab="news" aria-current="false"><span class="num">02</span> LIVE NEWS</button><button type="button" data-ew-tab="senate" aria-current="false"><span class="num">03</span> SENATE</button><button type="button" data-ew-tab="governor" aria-current="false"><span class="num">04</span> GOVERNORS</button><button type="button" data-ew-tab="house" aria-current="false"><span class="num">05</span> HOUSE · 435</button><button type="button" data-ew-tab="calls" aria-current="false"><span class="num">06</span> RACES CALLED</button><button type="button" data-ew-tab="battleground" aria-current="false"><span class="num">07</span> WATCHLIST</button><button type="button" data-ew-tab="map" aria-current="false"><span class="num">08</span> U.S. MAP</button><button type="button" data-ew-tab="states" aria-current="false"><span class="num">09</span> 50 STATES</button><button type="button" data-ew-tab="turnout" aria-current="false"><span class="num">10</span> TURNOUT</button><button type="button" data-ew-tab="sources" aria-current="false"><span class="num">11</span> SOURCES</button><button type="button" data-ew-tab="mydesk" aria-current="false"><span class="num">12</span> MY DESK</button></nav>
 <div class="ticker"><strong>✦ NEWS ALERTS</strong><div id="ticker">Connecting to 27 newsrooms. Only verified feed headlines appear here.</div></div>
@@ -327,7 +392,7 @@ function hq(){
  const lead=news[0];const calledList=(results.calls||[]).slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt));
  const countTo=new Date('2026-11-03T00:00:00-05:00').getTime()-Date.now();
  const days=Math.max(0,Math.ceil(countTo/86400000)),onElection=Date.now()>=new Date('2026-11-03T00:00:00-05:00').getTime();
- return '<div class="cmd-banner"><div class="cmd-hero"><img class="cmd-brand-watermark" src="data:image/webp;base64,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" alt="THE EVENING WIRE — TODAY’S TOP STORIES logo"><span class="cmd-kicker">2026 U.S. MIDTERM ELECTIONS</span><h1>AMERICA <em>DECIDES.</em></h1><p>Your real-time election newsroom for all 435 House contests, regularly scheduled Senate and gubernatorial races, original publisher headlines, and attributed race calls.</p><div class="cmd-toolbar"><button class="cmd-primary" data-tab="news">LIVE NEWSROOM ↗</button><button class="cmd-minibtn" data-tab="calls">RACE CALL DESK</button><button class="cmd-minibtn" data-tab="map">EXPLORE U.S. MAP</button></div></div><div class="cmd-mini"><strong>'+esc(onElection?'ELECTION DESK':'COUNTDOWN TO ELECTION DAY')+'</strong><span class="main-number">'+(onElection?'ON AIR':days+' DAYS')+'</span><small>TUESDAY · NOVEMBER 3, 2026<br>Reporting and race calls require a verified provider.</small></div></div>'
+ return '<div class="cmd-banner"><div class="cmd-hero"><span class="cmd-kicker">2026 U.S. MIDTERM ELECTIONS</span><h1>AMERICA <em>DECIDES.</em></h1><p>Your real-time election newsroom for all 435 House contests, regularly scheduled Senate and gubernatorial races, original publisher headlines, and attributed race calls.</p><div class="cmd-toolbar"><button class="cmd-primary" data-tab="news">LIVE NEWSROOM ↗</button><button class="cmd-minibtn" data-tab="calls">RACE CALL DESK</button><button class="cmd-minibtn" data-tab="map">EXPLORE U.S. MAP</button></div></div><div class="cmd-mini"><strong>'+esc(onElection?'ELECTION DESK':'COUNTDOWN TO ELECTION DAY')+'</strong><span class="main-number">'+(onElection?'ON AIR':days+' DAYS')+'</span><small>TUESDAY · NOVEMBER 3, 2026<br>Reporting and race calls require a verified provider.</small></div></div>'
  +'<div class="cmd-grid">'+infoCard('senate',SENATE)+infoCard('governor',GOVERNOR)+infoCard('house',HOUSE)+'</div>'+notice()
  +wrap('<div class="cmd-split"><div class="cmd-card"><div class="cmd-eyebrow">LATEST VERIFIED PUBLISHER COVERAGE</div><h3>THE LEAD STORY</h3>'+(lead?'<h2 style="font:700 clamp(23px,3vw,36px)/1.25 Georgia,serif;margin:17px 0"><a href="'+siteURL(lead.url)+'" target="_blank" rel="noopener noreferrer">'+esc(lead.title)+'</a></h2><p>'+esc(lead.source)+' · '+formatTime(lead.published)+'</p>':unavail('Waiting for the first published election headline.'))+'<div class="cmd-toolbar"><button data-tab="news">OPEN LIVE NEWS →</button></div></div><div class="cmd-card"><div class="cmd-eyebrow">RACE CALL DESK</div><h3>RECENT PROJECTIONS</h3>'+(calledList.length?callCards(calledList.slice(0,2)):unavail('No attributable race calls received from a configured results provider.'))+'<div class="cmd-toolbar"><button data-tab="calls">VIEW ALL CALLS →</button></div></div></div>')
  +wrap(title('The National Newswire','Recent election coverage from the configured publisher feeds.')+'<div class="cmd-card">'+latestStories(6)+'</div>')+'<div class="cmd-footer-info">'+liveSummary()+'</div>'
