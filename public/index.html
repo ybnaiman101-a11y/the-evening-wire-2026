@@ -927,4 +927,37 @@ try{const tab=location.hash.slice(1);if(tab)active=tab}catch{}
 window.addEventListener('ew-race-catalog-ready',()=>{if(['senate','house','governor','calls'].includes(active))render()});
 go(active);sync();setInterval(sync,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 })();
-</script></body></html>
+</script>
+<!-- Guest browsing: account required only after an interaction. -->
+<style>
+.ew-guest-note{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:990;background:#0b2836f2;color:#e9fbff;border:1px solid #4d9eb2;border-radius:12px;padding:11px 18px;box-shadow:0 10px 35px #0008;font:700 12px system-ui,sans-serif;text-align:center;max-width:calc(100vw - 24px)}
+.ew-guest-note a{color:#77e9ff;text-decoration:underline}
+</style>
+<script>
+(function(){
+ 'use strict';
+ let signedIn=false,checked=false;
+ const note=document.createElement('div');
+ note.className='ew-guest-note';
+ note.hidden=true;
+ note.innerHTML='You are browsing as a guest. <a href="/login">Sign in or join</a> to use the newsroom tools.';
+ document.body.append(note);
+ const refresh=async()=>{
+  try{const r=await fetch('/api/members/session',{credentials:'same-origin',cache:'no-store'});const data=await r.json();signedIn=!!data.user}
+  catch{signedIn=false}
+  finally{checked=true;note.hidden=signedIn}
+ };
+ refresh();
+ window.addEventListener('focus',refresh);
+ document.addEventListener('click',function(e){
+  const target=e.target.closest('button,a,[role="button"]');
+  if(!target||signedIn||!checked)return;
+  if(target.closest('.ew-guest-note')||target.closest('a[href="/login"]'))return;
+  // Let visitors scroll, view stories and see the public dashboard.
+  // Any click that operates a tool instead takes them to account creation/sign-in.
+  e.preventDefault();e.stopImmediatePropagation();
+  window.location.assign('/login');
+ },true);
+})();
+</script>
+</body></html>
