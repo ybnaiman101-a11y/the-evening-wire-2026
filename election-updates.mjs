@@ -28,8 +28,8 @@ export async function updateRoute(req,res,path){
  await init;
  if(!ready){send(res,503,{error:'Election Update storage is unavailable. Notices cannot be published without PostgreSQL.'});return true}
  if(path==='/api/updates'&&req.method==='GET'){
-  const rows=await pool.query("SELECT id,category,message,source_url,created_at,expires_at,retracted_at FROM ew_election_updates WHERE retracted_at IS NULL AND expires_at>now() ORDER BY created_at DESC LIMIT 15");
-  send(res,200,{updates:rows.rows.map(record),pollEveryMs:4000,source:'The Evening Wire owner'});
+  const rows=await pool.query("SELECT id,category,message,source_url,created_at,expires_at,retracted_at FROM ew_election_updates WHERE retracted_at IS NULL AND expires_at>now() AND created_at > now()-interval '10 seconds' ORDER BY created_at DESC LIMIT 12");
+  send(res,200,{updates:rows.rows.map(record),pollEveryMs:1000,source:'The Evening Wire owner'});
   return true
  }
  if(path==='/api/updates/admin'&&req.method==='GET'){
@@ -42,9 +42,8 @@ export async function updateRoute(req,res,path){
   if(!isEditorAdmin(req)){send(res,403,{error:'Only The Evening Wire owner can publish Election Updates.'});return true}
   let x;try{x=await body(req)}catch(e){send(res,400,{error:e.message});return true}
   const message=String(x.message||'').trim(),category=String(x.category||'important');
-  const duration=Number(x.durationHours??6);
-  if(message.length<8||message.length>700||!types.has(category)||![1,3,6,12,24].includes(duration)){
-   send(res,400,{error:'Provide a message (8–700 characters), a valid type and an expiry time.'});return true
+  if(message.length<8||message.length>700||!types.has(category)){
+   send(res,400,{error:'Provide a message between 8 and 700 characters and a valid update type.'});return true
   }
   let sourceUrl=null;
   if(String(x.sourceUrl||'').trim()){
@@ -53,8 +52,8 @@ export async function updateRoute(req,res,path){
   }
   const recent=await pool.query("SELECT count(*)::int AS count FROM ew_election_updates WHERE created_at>now()-interval '10 minutes'");
   if(recent.rows[0].count>=12){send(res,429,{error:'Limit of 12 urgent notices per ten minutes.'});return true}
-  const row=await pool.query("INSERT INTO ew_election_updates(id,category,message,source_url,expires_at) VALUES($1,$2,$3,$4,now()+($5::int*interval '1 hour')) RETURNING id,category,message,source_url,created_at,expires_at,retracted_at",
-   [randomUUID(),category,message,sourceUrl,duration]);
+  const row=await pool.query("INSERT INTO ew_election_updates(id,category,message,source_url,expires_at) VALUES($1,$2,$3,$4,now()+interval '10 seconds') RETURNING id,category,message,source_url,created_at,expires_at,retracted_at",
+   [randomUUID(),category,message,sourceUrl]);
   send(res,201,{ok:true,update:record(row.rows[0])});return true
  }
  const remove=path.match(/^\/api\/updates\/([0-9a-f-]{36})\/retract$/);
