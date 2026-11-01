@@ -1,9 +1,12 @@
 import http from 'node:http';
+import {editorRoute,publicCalls,publicMeta} from './editor-calls.mjs';
 import {communityRoute} from './community.mjs';
 import {URL} from 'node:url';
 
 const PORT = Number(process.env.PORT || 3000);
-const POLL = Math.max(30000, Number(process.env.POLL_INTERVAL_MS || 60000));
+const POLL = Math.max(30000, Number(process.env.POLL_INTERVAL_MS || 30000));
+const NEWS_WINDOW_MS = 6*60*60*1000;
+const currentNews = () => stories.filter(item=>Date.parse(item.published)>=Date.now()-NEWS_WINDOW_MS);
 const SOURCES = [
   ['fox','Fox News','foxnews.com','https://moxie.foxnews.com/google-publisher/politics.xml'],
   ['cnn','CNN','cnn.com'],
@@ -81,7 +84,7 @@ async function fetchFeed(url){
 }
 function normalize(e,s,via){
  if(!ELECTION.test(e.title+' '+e.desc))return null;
- const ts=Date.parse(e.date);if(!Number.isFinite(ts)||ts>Date.now()+3600000||ts<Date.now()-4*86400000)return null;
+ const ts=Date.parse(e.date);if(!Number.isFinite(ts)||ts>Date.now()+3600000||ts<Date.now()-NEWS_WINDOW_MS)return null;
  let url;try{url=new URL(e.link);if(!['https:','http:'].includes(url.protocol))return null}catch{return null}
  const hay=e.title+' '+e.desc;
  const topics=Object.keys(TOPICS).filter(k=>TOPICS[k].test(hay));if(!topics.length)topics.push('national');
@@ -89,7 +92,7 @@ function normalize(e,s,via){
  return {id,title:e.title,excerpt:e.desc.slice(0,230),url:url.href,published:new Date(ts).toISOString(),source:s.name,sourceId:s.id,domain:s.domain,via,topics};
 }
 function snapshot(){
- return {stories:stories.slice(0,500),sources:SOURCES.map(s=>({...s,...status[s.id]})),initialized,lastScan,pollIntervalMs:POLL};
+ return {stories:currentNews().slice(0,500),sources:SOURCES.map(s=>({...s,...status[s.id]})),initialized,lastScan,pollIntervalMs:POLL,newsWindowHours:6};
 }
 function send(client,event,body){try{client.write('event: '+event+'\ndata: '+JSON.stringify(body)+'\n\n')}catch{clients.delete(client)}}
 function broadcast(event,body){for(const c of clients)send(c,event,body)}
@@ -120,6 +123,7 @@ async function runScan(){
    stories=[...fresh,...stories].sort((a,b)=>Date.parse(b.published)-Date.parse(a.published)).slice(0,750);
    if(initialized)broadcast('new',fresh.slice(0,80));
   }
+  stories=stories.filter(item=>Date.parse(item.published)>=Date.now()-NEWS_WINDOW_MS);
   initialized=true;lastScan=new Date().toISOString();
   broadcast('status',{sources:snapshot().sources,lastScan,initialized});
  }catch(e){console.error('Feed scan error',e)}
@@ -249,8 +253,13 @@ const server=http.createServer((req,res)=>{
  const u=new URL(req.url,'http://localhost');
  const json=(obj,code=200)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
  if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname).catch(err=>{console.error('Community API request error:',String(err?.message||err));if(!res.headersSent)json({error:'Community service temporarily unavailable'},503);else res.end()});return;}
- if(u.pathname==='/api/election')return json(electionData);
+ if(u.pathname==='/api/editor/calls'||u.pathname.startsWith('/api/admin/')){editorRoute(req,res,u.pathname).catch(err=>{console.error('Editor route error',err);if(!res.headersSent)json({error:'Editorial desk unavailable'},503);else res.end()});return;}
+ if(u.pathname==='/api/election'){
+  const editor=publicCalls(),existing=(electionData.calls||[]).filter(x=>!editor.some(e=>e.id===x.id));
+  return json({...electionData,configured:electionData.configured||publicMeta().configured,calls:[...editor,...existing],editor:publicMeta(),source:editor.length?'Evening Wire editorial desk':electionData.source});
+ }
 
+ if(u.pathname==='/editor-calls.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/editor-calls.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/reactions.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/reactions.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'public, max-age=180'});res.end(b)}).catch(()=>json({error:'Resource unavailable'},404));return;}
  if(u.pathname==='/election-maps.js'||u.pathname==='/election-maps.css'){
    const filename=u.pathname.slice(1),ctype=filename.endsWith(".css")?"text/css; charset=utf-8":"text/javascript; charset=utf-8";
@@ -266,7 +275,7 @@ const server=http.createServer((req,res)=>{
    if(kind==='counties'&&!state)return json({error:'State required'},400);
    censusMap(kind,state||null).then(data=>json(data)).catch(err=>json({error:'Geography temporarily unavailable',detail:String(err.message)},503));return;
  }
- if(u.pathname==='/api/stories')return json({stories:stories.slice(0,500),initialized,lastScan});
+ if(u.pathname==='/api/stories')return json({stories:currentNews().slice(0,500),initialized,lastScan,newsWindowHours:6});
  if(u.pathname==='/api/status')return json({sources:snapshot().sources,initialized,lastScan,pollIntervalMs:POLL});
  if(u.pathname==='/health')return json({ready:true,initialized,responding:Object.values(status).filter(x=>x.ok).length,lastScan});
  if(u.pathname==='/api/stream'){
