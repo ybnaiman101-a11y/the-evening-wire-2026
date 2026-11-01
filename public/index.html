@@ -250,6 +250,44 @@ html,body{max-width:100%;overflow-x:clip}
  .spotlight,.layout,.cmd-grid,.cmd-split{min-width:0;max-width:100%}
  .story,.spot-main,.spot-aside,.cmd-card{overflow-wrap:anywhere}
 }
+
+/* THE EVENING WIRE • LIVE ELECTION UPDATE BROADCASTS */
+#ew-global-updates{position:fixed;z-index:19000;bottom:20px;right:22px;width:min(430px,calc(100vw - 32px));display:flex;flex-direction:column-reverse;align-items:flex-end;gap:10px;pointer-events:none;color:#f1faff;font-family:'DM Sans',system-ui,sans-serif}
+#ew-global-updates[hidden]{display:none}
+#ew-global-updates>*{pointer-events:auto}
+.ew-alert-bell{display:flex;align-items:center;gap:9px;padding:12px 17px;border:1px solid #35a3c4;border-radius:999px;background:linear-gradient(110deg,#10364e,#09617c);color:#e6faff;font-size:11px;font-weight:900;letter-spacing:.7px;box-shadow:0 5px 25px #0008;cursor:pointer}
+.ew-alert-bell b{background:#f06d63;color:#fff;min-width:23px;height:23px;display:inline-flex;align-items:center;justify-content:center;border-radius:99px;padding:0 5px;font-size:12px}
+.ew-alert-card{width:100%;padding:0;overflow:hidden;background:linear-gradient(150deg,#162f49,#091726);border:1px solid #64b7d7;border-top:4px solid #f45f76;border-radius:15px;box-shadow:0 14px 60px #000d,0 0 0 1px #1c5b70;animation:ewAlertArrival .3s ease-out}
+.ew-alert-race-called{border-top-color:#f6b75c}.ew-alert-results{border-top-color:#77e1b2}.ew-alert-important{border-top-color:#8ed1f7}
+.ew-alert-top{display:flex;align-items:center;justify-content:space-between;padding:15px 17px 6px}
+.ew-alert-brand{font:900 15px 'DM Sans',sans-serif;letter-spacing:1.4px;color:#f9fcff}
+.ew-alert-pulse{width:9px;height:9px;background:#ff667a;display:inline-block;border-radius:99px;margin-right:9px;box-shadow:0 0 0 5px #e63e4e35}
+.ew-alert-top button,.ew-alert-history-head button{background:#274157;color:#f5fbff;border:1px solid #47647b;border-radius:8px;padding:5px 10px;font-size:14px;cursor:pointer}
+.ew-alert-type{color:#7de7f6;font-size:10px;letter-spacing:1.1px;font-weight:900;padding:3px 18px 0}
+.ew-alert-card p{font-size:16px;line-height:1.6;overflow-wrap:anywhere;white-space:pre-wrap;margin:12px 18px 14px;color:#f3f8ff;font-weight:700}
+.ew-alert-card a{display:inline-flex;color:#7bdce8;font-weight:900;font-size:11px;margin:0 18px 14px;text-decoration:underline}
+.ew-alert-card footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;color:#a9c1d7;font-size:10px;border-top:1px solid #304b61;padding:12px 17px}
+.ew-alert-history{width:100%;max-height:55vh;overflow-y:auto;border:1px solid #40677e;border-radius:13px;padding:13px 16px;background:#10283c;box-shadow:0 10px 45px #000c}
+.ew-alert-history-head{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;letter-spacing:.5px;padding-bottom:9px;border-bottom:1px solid #45677c}
+.ew-alert-history-item{padding:13px 0;border-bottom:1px solid #2c4659}.ew-alert-history-item:last-child{border:0}
+.ew-alert-history-item>span{font-weight:900;font-size:9px;letter-spacing:1px;color:#70d4e3}
+.ew-alert-history-item p{font-size:12px;color:#e7f4ff;overflow-wrap:anywhere;line-height:1.6;margin:7px 0 10px;white-space:pre-wrap}
+.ew-alert-history-item button{font-size:10px;border-radius:6px;padding:6px 10px;background:#1c5068;border:1px solid #3b839e;color:#fff}
+.ew-alert-history-empty{font-size:12px;color:#a2c5d9;line-height:1.6}
+.ew-profile-edit{background:#0d293b;border:1px solid #2f6f8a;border-radius:12px;padding:16px;margin:17px 0}
+.ew-profile-edit h3{color:#93e4ef;font-size:16px;font-weight:900;margin:4px 0 10px}
+.ew-profile-edit p,.ew-alert-owner>p,.ew-owner-alert-explain{font-size:11px;line-height:1.75;color:#bad4e6}
+.ew-alert-owner{margin-top:24px;padding:17px;background:#0b2438;border:1px solid #39708e;border-radius:13px}
+.ew-alert-owner h2{font-size:26px;margin:7px 0 12px;letter-spacing:.3px}
+.ew-alert-owner textarea,.ew-alert-owner input,.ew-alert-owner select{width:100%;box-sizing:border-box;border:1px solid #487d98;border-radius:8px;padding:12px;background:#071b2b;color:#f2fbff;font-size:13px}
+.ew-alert-owner textarea{min-height:120px;resize:vertical}
+.ew-owner-alert-list-head{display:flex;justify-content:space-between;gap:10px;margin:24px 0 9px;font-size:11px;color:#7de5f2;font-weight:900;letter-spacing:.5px}
+.ew-owner-alert-item{border-top:1px solid #34506b;padding:13px 0}
+.ew-owner-alert-meta{display:flex;justify-content:space-between;gap:7px;flex-wrap:wrap;font-size:10px;color:#adc5d6}
+.ew-owner-alert-meta b{color:#77ddea}.ew-owner-alert-item p{line-height:1.6;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;color:#e4f3ff}
+@keyframes ewAlertArrival{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+@media(max-width:550px){#ew-global-updates{bottom:10px;right:12px;width:calc(100vw - 24px)}.ew-alert-card{max-height:57vh;overflow:auto}.ew-alert-card p{font-size:14px}.ew-alert-bell{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.ew-alert-card{animation:none}}
 </style></head>
 <body>
 <header class="ew-masthead">
@@ -480,6 +518,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()}
 <script src="/reactions.js"></script>
 <script src="/editor-calls.js"></script>
 <script src="/members.js"></script>
+<script src="/election-updates.js"></script>
 <script src="/traffic.js"></script>
 <script>
 /* EVENING WIRE COMMAND ENGINE — no synthetic votes, calls or publication times */
