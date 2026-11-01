@@ -344,6 +344,28 @@ html,body{max-width:100%;overflow-x:clip}
 .ew-hq-covers .cmd-card:nth-child(2){border-top-color:#efba7d;background:linear-gradient(130deg,#39384a,#1a2941)}
 @media(max-width:920px){.ew-hq .cmd-banner{grid-template-columns:1fr}.ew-hq .cmd-mini{min-height:165px}.ew-hq-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.ew-hq .cmd-hero{padding:24px}.ew-hq .cmd-hero h1{font-size:clamp(47px,10vw,65px)}.ew-hq-metrics>div{padding:14px}}
+
+/* HEADQUARTERS: two real, independently credited American photographs. */
+.ew-hq .cmd-hero{isolation:isolate;position:relative;background:#091725!important;
+  background-image:linear-gradient(90deg,#031021fa 0%,#041324ed 43%,#08172bbb 72%,#07132688 100%),url("https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/United_States_Capitol_Building_at_night.jpg/1280px-United_States_Capitol_Building_at_night.jpg")!important;
+  background-size:cover!important;background-position:center 44%!important;
+  min-height:360px;border:1px solid #587e9d;border-top:5px solid #e96a7c;box-shadow:0 20px 55px #0007}
+.ew-hq .cmd-hero:after{opacity:.08!important}.ew-hq .cmd-hero h1{max-width:93%;text-shadow:0 3px 18px #000b}
+.ew-hq .cmd-hero p{max-width:580px;text-shadow:0 2px 7px #000;position:relative;z-index:2}
+.ew-hq-image-label{display:inline-flex;background:#071b2abd;border:1px solid #a0c1d07a;border-radius:4px;color:#bfe8fa;padding:8px 12px;margin:4px 0 13px;font-weight:900;font-size:9px;letter-spacing:1px;position:relative;z-index:2}
+.ew-hq .cmd-mini{isolation:isolate;position:relative;overflow:hidden;background:#102339!important;min-height:360px;border-top:5px solid #f6c28c;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:32px;box-shadow:0 18px 60px #0008}
+.ew-hq .ew-hq-flag-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:-2;filter:saturate(1.07) brightness(.9)}
+.ew-hq .cmd-mini::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,transparent 10%,#040d204d 35%,#030c1fe0 76%,#020919fc 100%)}
+.ew-hq .cmd-mini strong,.ew-hq .cmd-mini .main-number,.ew-hq .cmd-mini small{position:relative;z-index:1;color:white!important;text-shadow:0 3px 17px #01040b}
+.ew-hq .cmd-mini .main-number{color:#fff0cd!important}
+.ew-hq-photo-credits{display:block;text-align:right;font-size:10px;line-height:1.7;color:#92aabd;margin:7px 5px 13px}
+.ew-hq-photo-credits a{color:#9fdcf0;text-decoration:underline}
+@media(max-width:920px){.ew-hq .cmd-mini{min-height:240px}}
+@media(max-width:620px){.ew-hq .cmd-hero{min-height:325px;background-position:56% center!important}.ew-hq .cmd-mini{min-height:220px}}
+.ew-owner-broadcast-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.ew-owner-broadcast-actions button{flex:1 1 200px}
+.ew-alert-progress{height:5px;width:100%;background:linear-gradient(90deg,#16c5d8,#a9eaf2);transform-origin:left;animation:ewAlertCountdown 10s linear forwards}
+@keyframes ewAlertCountdown{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 </style>
 <link rel="stylesheet" href="/election-maps.css"><link rel="stylesheet" href="/studio.css"></head>
 <body>
@@ -712,7 +734,8 @@ function hq(){
  const lead=news[0];const calledList=(results.calls||[]).slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt));
  const countTo=new Date('2026-11-03T00:00:00-05:00').getTime()-Date.now();
  const days=Math.max(0,Math.ceil(countTo/86400000)),onElection=Date.now()>=new Date('2026-11-03T00:00:00-05:00').getTime();
- return '<div class="ew-hq"><div class="ew-hq-live-label"><i></i> THE EVENING WIRE · ELECTION HEADQUARTERS <b>2026</b></div><div class="cmd-banner"><div class="cmd-hero"><span class="cmd-kicker">NATIONAL MIDTERM COMMAND CENTER</span><h1>ELECTION <em>HEADQUARTERS.</em></h1><p>The national election newsroom: 35 Senate seats, 435 House contests, 36 governor elections, trusted publisher headlines and your attributed race calls.</p><div class="cmd-toolbar"><button class="cmd-primary" data-tab="news">LIVE NEWSROOM ↗</button><button class="cmd-minibtn" data-tab="calls">RACE CALL DESK</button><button class="cmd-minibtn" data-tab="senate">SENATE RACES ↗</button></div></div><div class="cmd-mini"><strong>'+esc(onElection?'ELECTION DESK':'COUNTDOWN TO ELECTION DAY')+'</strong><span class="main-number">'+(onElection?'ON AIR':days+' DAYS')+'</span><small>TUESDAY · NOVEMBER 3, 2026<br>Reporting and race calls require a verified provider.</small></div></div>'
+ return '<div class="ew-hq"><div class="ew-hq-live-label"><i></i> THE EVENING WIRE · ELECTION HEADQUARTERS <b>2026</b></div><div class="cmd-banner"><div class="cmd-hero"><span class="cmd-kicker">NATIONAL MIDTERM COMMAND CENTER</span><h1>ELECTION <em>HEADQUARTERS.</em></h1><p>The national election newsroom: 35 Senate seats, 435 House contests, 36 governor elections, trusted publisher headlines and your attributed race calls.</p><div class="ew-hq-image-label">WASHINGTON, D.C. · ACTUAL CAPITOL PHOTOGRAPH</div><div class="cmd-toolbar"><button class="cmd-primary" data-tab="news">LIVE NEWSROOM ↗</button><button class="cmd-minibtn" data-tab="calls">RACE CALL DESK</button><button class="cmd-minibtn" data-tab="senate">SENATE RACES ↗</button></div></div><div class="cmd-mini"><img class="ew-hq-flag-photo" src="https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Waving_Flag_American.jpg/960px-Waving_Flag_American.jpg" alt="Photograph of a waving American flag" loading="lazy"><strong>'+esc(onElection?'ELECTION DESK':'COUNTDOWN TO ELECTION DAY')+'</strong><span class="main-number">'+(onElection?'ON AIR':days+' DAYS')+'</span><small>TUESDAY · NOVEMBER 3, 2026<br>Reporting and race calls require a verified provider.</small></div></div>'
+ +'<p class="ew-hq-photo-credits">Real photographs: <a href="https://commons.wikimedia.org/wiki/File:United_States_Capitol_Building_at_night.jpg" target="_blank" rel="noopener noreferrer">Capitol © AnthonyTPope, CC BY-SA 4.0</a> · <a href="https://commons.wikimedia.org/wiki/File:Waving_Flag_American.jpg" target="_blank" rel="noopener noreferrer">American flag, Scrumshus, public domain</a>. Archival imagery, not live pictures.</p>'
  +'<section class="ew-hq-metrics"><div class="cyan"><span>LIVE NEWS STORIES</span><strong>'+news.length+'</strong><small>Publisher feed</small></div><div class="gold"><span>RACES CALLED</span><strong>'+calledList.length+'</strong><small>Owner projections</small></div><div class="red"><span>GOP CALLS</span><strong>'+calledList.filter(x=>x.party==='R').length+'</strong><small>Source-linked</small></div><div class="blue"><span>DEMOCRATIC CALLS</span><strong>'+calledList.filter(x=>x.party==='D').length+'</strong><small>Source-linked</small></div></section>'+
  '<div class="ew-hq-section-heading"><small>01 / YOUR ELECTION RACE CENTER</small><h2>THE BATTLEGROUND BOARD</h2></div><div class="cmd-grid ew-hq-race-grid">'+infoCard('senate',SENATE)+infoCard('governor',GOVERNOR)+infoCard('house',HOUSE)+'</div>'
  +'<div class="cmd-toolbar" style="margin:16px 0 10px;gap:10px"><button class="cmd-primary" data-tab="senate">VIEW ALL SENATE RACES →</button><button class="cmd-primary" data-tab="house">VIEW ALL 435 HOUSE RACES →</button><button class="cmd-primary" data-tab="governor">VIEW ALL GOVERNOR RACES →</button></div>'+notice()
