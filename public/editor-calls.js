@@ -17,13 +17,13 @@ async function api(path,method,body){
 async function check(){try{const d=await api('/api/admin/session');logged=d.authenticated;meta=d}catch(e){logged=false;status='Admin connection unavailable: '+e.message}}
 function updateOptions(){
  const form=q('ewCallForm');if(!form)return;
- const office=form.office.value,state=form.state.value,special=form.special.checked;
+ const office=form.elements.namedItem('office').value,state=form.elements.namedItem('state').value,special=form.elements.namedItem('special').checked;
  const legal=office==='governor'?governors:office==='senate'&&!special?senate:null;
- for(const option of form.state.options){option.disabled=!!legal&&!legal.has(option.value)}
- if(legal&&!legal.has(state)){form.state.value=[...legal][0]||'TX'}
+ for(const option of form.elements.namedItem('state').options){option.disabled=!!legal&&!legal.has(option.value)}
+ if(legal&&!legal.has(state)){form.elements.namedItem('state').value=[...legal][0]||'TX'}
  const house=form.querySelector('[data-house-district]'),sen=form.querySelector('[data-senate-special]');
  house.hidden=office!=='house';sen.hidden=office!=='senate';
- const district=form.district;district.innerHTML=Array.from({length:dist[form.state.value]||1},(_,i)=>'<option value="'+(i+1)+'">District '+(i+1)+'</option>').join('');
+ const district=form.elements.namedItem('district');district.innerHTML=Array.from({length:dist[form.elements.namedItem('state').value]||1},(_,i)=>'<option value="'+(i+1)+'">District '+(i+1)+'</option>').join('');
 }
 function view(){
  const panel=q('ewEditorMount');if(!panel)return;
@@ -54,14 +54,14 @@ function view(){
  q('ewCloseEditor').onclick=()=>{open=false;view()};
  if(!logged){
   const login=q('ewEditorLogin');
-  if(login)login.onsubmit=async e=>{e.preventDefault();try{const data=await api('/api/admin/login','POST',{password:login.password.value});login.password.value='';logged=data.authenticated;meta=data;status='Access granted to the private editorial desk.';await load();view()}catch(err){status=err.message;q('ewEditorStatus').textContent=status}};
+  if(login)login.onsubmit=async e=>{e.preventDefault();try{const data=await api('/api/admin/login','POST',{password:login.elements.namedItem('password').value});login.elements.namedItem('password').value='';logged=data.authenticated;meta=data;status='Access granted to the private editorial desk.';await load();view()}catch(err){status=err.message;q('ewEditorStatus').textContent=status}};
   return;
  }
  const form=q('ewCallForm');updateOptions();
- form.office.onchange=updateOptions;form.state.onchange=updateOptions;form.special.onchange=updateOptions;
+ form.elements.namedItem('office').onchange=updateOptions;form.elements.namedItem('state').onchange=updateOptions;form.elements.namedItem('special').onchange=updateOptions;
  form.onsubmit=async event=>{
   event.preventDefault();if(busy)return;busy=true;
-  const d=new FormData(form),body={office:d.get('office'),state:d.get('state'),district:Number(d.get('district')||0),special:form.special.checked,candidate:d.get('candidate'),party:d.get('party'),sourceName:d.get('sourceName'),sourceUrl:d.get('sourceUrl'),note:d.get('note'),confirm:form.confirm.checked};
+  const d=new FormData(form),body={office:d.get('office'),state:d.get('state'),district:Number(d.get('district')||0),special:form.elements.namedItem('special').checked,candidate:d.get('candidate'),party:d.get('party'),sourceName:d.get('sourceName'),sourceUrl:d.get('sourceUrl'),note:d.get('note'),confirm:form.elements.namedItem('confirm').checked};
   try{await api('/api/admin/calls','POST',body);status='PUBLISHED. The race call is now available to visitors. Download a backup if storage is temporary.';await load();view();window.dispatchEvent(new CustomEvent('ew-calls-updated'))}catch(err){status=err.message;q('ewEditorStatus').textContent=status}finally{busy=false}
  };
  q('ewExportCalls').onclick=async()=>{
@@ -74,10 +74,10 @@ function view(){
  q('ewLogOut').onclick=async()=>{try{await api('/api/admin/logout','POST')}catch{}logged=false;status='Logged out.';view()};
  panel.querySelectorAll('[data-edit-call]').forEach(b=>b.onclick=()=>{
   const c=calls.find(x=>x.id===b.dataset.editCall);if(!c)return;
-  form.office.value=c.office;form.special.checked=c.special===true;form.state.value=c.state;updateOptions();
-  if(c.office==='house')form.district.value=String(c.district);
-  for(const key of ['candidate','party','sourceName','sourceUrl','note'])form[key].value=c[key]||'';
-  form.confirm.checked=false;form.scrollIntoView({behavior:'smooth',block:'center'});
+  form.elements.namedItem('office').value=c.office;form.elements.namedItem('special').checked=c.special===true;form.elements.namedItem('state').value=c.state;updateOptions();
+  if(c.office==='house')form.elements.namedItem('district').value=String(c.district);
+  for(const key of ['candidate','party','sourceName','sourceUrl','note'])form.elements.namedItem(key).value=c[key]||'';
+  form.elements.namedItem('confirm').checked=false;form.scrollIntoView({behavior:'smooth',block:'center'});
   q('ewEditorStatus').textContent='Editing '+callTitle(c)+'. Verify the winner and source before republishing.';
  });
  panel.querySelectorAll('[data-retract-call]').forEach(b=>b.onclick=async()=>{
