@@ -9,6 +9,7 @@ const nums=[7,1,9,4,52,8,5,1,28,14,2,2,17,9,4,4,6,6,2,8,9,13,8,4,8,2,3,4,2,12,3,
 const districts=Object.fromEntries(codes.map((c,i)=>[c,nums[i]]));
 const senate=new Set('AL AK AR CO DE GA ID IL IA KS KY LA ME MA MI MN MS MT NE NH NJ NM NC OK OR RI SC SD TN TX VA WV WY'.split(' '));
 const governors=new Set('AL AK AZ AR CA CO CT FL GA HI ID IL IA KS ME MD MA MI MN NE NV NH NM NY OH OK OR PA RI SC SD TN TX VT WI WY'.split(' '));
+const specialSenate=new Set(['OH','FL']);
 let calls=[],audit=[],store=db?'unavailable':'temporary',pool=null,queue=Promise.resolve();
 function send(res,code,data,headers={}){res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(JSON.stringify(data))}
 function meta(){return {configured:/^[a-f0-9]{64}$/.test(passwordHash),storage:store,persistent:store==='postgresql',warning:store==='temporary'?'Temporary server storage: calls may disappear after a restart or redeployment. Export backups until PostgreSQL is connected.':null}}
@@ -22,7 +23,8 @@ function valid(x){
  const office=String(x.office||''),state=String(x.state||'').toUpperCase(),special=office==='senate'&&x.special===true;
  if(!['senate','governor','house'].includes(office)||!districts[state])throw Error('Choose a valid race and state');
  if(office==='governor'&&!governors.has(state))throw Error('No scheduled regular 2026 governor race for this state');
- if(office==='senate'&&!special&&!senate.has(state))throw Error('No scheduled regular 2026 Senate race; select special election when applicable');
+ if(office==='senate'&&special&&!specialSenate.has(state))throw Error('Only Ohio and Florida have November 2026 U.S. Senate special elections');
+ if(office==='senate'&&!special&&!senate.has(state))throw Error('This state has no regular 2026 Senate election. Ohio and Florida are SPECIAL elections; select special election.');
  const district=office==='house'?Number(x.district):null;
  if(office==='house'&&(!Number.isInteger(district)||district<1||district>districts[state]))throw Error('Invalid House district');
  const candidate=String(x.candidate||'').trim().slice(0,130),sourceName=String(x.sourceName||'').trim().slice(0,100),sourceUrl=String(x.sourceUrl||'').trim();
@@ -70,9 +72,11 @@ export async function editorRoute(req,res,path){
  if(store==='unavailable'){send(res,503,{error:'Database unavailable. Publishing disabled to prevent data loss.'});return true}
  if(route==='calls'&&req.method==='POST'){
   let x,row;try{x=await input(req,5000);row=valid(x);if(x.confirm!==true)throw Error('Confirm you verified the source calls this race')}catch(e){send(res,400,{error:e.message});return true}
-  const previous=snapshot(),pos=calls.findIndex(c=>c.id===row.id);
-  if(pos>=0)calls[pos]=row;else calls.push(row);
-  audit.push({event:pos>=0?'corrected':'published',id:row.id,candidate:row.candidate,at:row.calledAt});audit=audit.slice(-1000);
+  // A race can receive only its FIRST editorial call. Changing or retracting a call
+  // never unlocks another first-call action for that race.
+  if(calls.some(c=>c.id===row.id)||audit.some(e=>e.id===row.id&&['published','corrected','retracted'].includes(e.event))){send(res,409,{error:'THIS RACE HAS ALREADY BEEN CALLED. Duplicate calls are blocked. Use retraction if a published call was wrong.'});return true}
+  const previous=snapshot();calls.push(row);
+  audit.push({event:'published',id:row.id,candidate:row.candidate,at:row.calledAt});audit=audit.slice(-1000);
   try{await save()}catch(e){calls=previous.calls;audit=previous.audit;send(res,503,{error:'Could not save. No call was published.'});return true}
   send(res,200,{ok:true,call:row,...meta()});return true
  }
@@ -85,8 +89,11 @@ export async function editorRoute(req,res,path){
  }
  if(route==='restore'&&req.method==='POST'){
   let b;try{b=await input(req,300000);if(b.version!==1||!Array.isArray(b.calls)||b.calls.length>700)throw Error('Invalid backup')}catch(e){send(res,400,{error:e.message});return true}
-  const restored=[];try{for(const item of b.calls){const x=valid(item);x.calledAt=Number.isFinite(Date.parse(item.calledAt))?item.calledAt:x.calledAt;restored.push(x)}}catch(e){send(res,400,{error:'Invalid backup call: '+e.message});return true}
+  const restored=[],used=new Set();try{for(const item of b.calls){const x=valid(item);if(used.has(x.id))throw Error('Duplicate race call in backup: '+x.id);used.add(x.id);x.calledAt=Number.isFinite(Date.parse(item.calledAt))?item.calledAt:x.calledAt;restored.push(x)}}catch(e){send(res,400,{error:'Invalid backup call: '+e.message});return true}
   const old=snapshot();calls=restored;audit=Array.isArray(b.audit)?b.audit.slice(-1000):[];
+  // Restore the lock history as well as the calls. Don't silently erase prior call locks.
+  for(const event of old.audit)if(['published','corrected','retracted'].includes(event.event)&&!audit.some(x=>x.id===event.id&&x.event===event.event))audit.push(event);
+  audit=audit.slice(-1000);
   try{await save()}catch(e){calls=old.calls;audit=old.audit;send(res,503,{error:'Could not restore backup'});return true}
   send(res,200,{ok:true,total:calls.length,...meta()});return true
  }
