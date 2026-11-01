@@ -1,5 +1,6 @@
 import http from 'node:http';
 import {editorRoute,publicCalls,publicMeta} from './editor-calls.mjs';
+import {apSnapshot} from './ap-election-results.mjs';
 import {communityRoute} from './community.mjs';
 import {URL} from 'node:url';
 
@@ -255,8 +256,18 @@ const server=http.createServer((req,res)=>{
  if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname).catch(err=>{console.error('Community API request error:',String(err?.message||err));if(!res.headersSent)json({error:'Community service temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname==='/api/editor/calls'||u.pathname.startsWith('/api/admin/')){editorRoute(req,res,u.pathname).catch(err=>{console.error('Editor route error',err);if(!res.headersSent)json({error:'Editorial desk unavailable'},503);else res.end()});return;}
  if(u.pathname==='/api/election'){
-  const editor=publicCalls(),existing=(electionData.calls||[]).filter(x=>!editor.some(e=>e.id===x.id));
-  return json({...electionData,configured:electionData.configured||publicMeta().configured,calls:[...editor,...existing],editor:publicMeta(),source:editor.length?'Evening Wire editorial desk':electionData.source});
+  const ap=apSnapshot(),ownerCalls=publicCalls(),editor=publicMeta();
+  return json({
+   configured:ap.configured||editor.configured,
+   updatedAt:ap.updatedAt,checkedAt:ap.checkedAt,
+   error:ap.error,races:ap.races,
+   // AP's published winner signals never enter this payload. Only owner calls.
+   calls:ownerCalls,
+   turnout:[],source:ap.connected?'Associated Press (AP)':null,
+   ap:{configured:ap.configured,connected:ap.connected,checkedAt:ap.checkedAt,updatedAt:ap.updatedAt,error:ap.error,pollIntervalMs:ap.pollIntervalMs},
+   editor,
+   raceCallsControlledBy:'Evening Wire administrator'
+  });
  }
 
  if(u.pathname==='/editor-calls.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/editor-calls.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
@@ -290,7 +301,7 @@ const server=http.createServer((req,res)=>{
  }
  return json({error:'Not found'},404);
 });
-server.listen(PORT,'0.0.0.0',()=>{console.log('THE EVENING WIRE listening on '+PORT);runScan();setInterval(runScan,POLL).unref();updateElectionData();setInterval(updateElectionData,resultsPollingMS).unref()});
+server.listen(PORT,'0.0.0.0',()=>{console.log('THE EVENING WIRE listening on '+PORT);runScan();setInterval(runScan,POLL).unref()});
 
 setTimeout(async()=>{
   for(const kind of ["states","districts"]){
