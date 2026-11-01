@@ -57,6 +57,7 @@ export async function authenticatedMember(req){return ready?getMember(req):null}
 export async function memberRoute(req,res,path){
  if(path==='/api/members/status'){send(res,200,{ready,requiresDatabase:true,adminAvailable:Boolean(process.env.EW_ADMIN_PASSWORD_SHA256),message:ready?'Member sign-in is available':'Account registration and login require the permanent PostgreSQL database connection.'});return true}
  if(path==='/api/admin/members'){
+  if(!await authenticatedMember(req)){send(res,401,{error:'Member login required'});return true}
   if(!isEditorAdmin(req)){send(res,403,{error:'Administrator authentication required'});return true}
   if(!ready){send(res,503,{error:'Member database not connected. No persistent member accounts available.',members:[]});return true}
   const totals=await db.query('SELECT count(*)::integer AS total FROM ew_members');
