@@ -23,9 +23,9 @@ async function input(req){let data='';for await(const chunk of req){data+=chunk;
 function authorized(req){const s=req.headers['x-reaction-admin-token'];return !!adminSecret&&adminSecret.length>=24&&typeof s==='string'&&s.length===adminSecret.length&&timingSafeEqual(Buffer.from(s),Buffer.from(adminSecret))}
 export async function communityRoute(req,res,path){
  if(!path.startsWith('/api/community/'))return false;
+ const route=path.slice('/api/community/'.length);
  if(route==='health'&&req.method==='GET'){respond(res,200,{ready,configured:Boolean(connection)});return true}
  if(!ready){respond(res,503,{ready:false,error:'Reaction Hub database connection not yet configured'});return true}
- const route=path.slice(15);
  try{
   if(route==='posts'&&req.method==='GET'){
    const topic=new URL(req.url,'http://localhost').searchParams.get('topic');const q=await pool.query("SELECT id,name,topic,message,created_at,likes FROM community_posts WHERE status='visible' AND ($1::text IS NULL OR topic=$1) ORDER BY created_at DESC LIMIT 100",[topics.has(topic)?topic:null]);
