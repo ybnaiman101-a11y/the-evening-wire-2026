@@ -1,7 +1,7 @@
 // THE EVENING WIRE: public member accounts backed ONLY by PostgreSQL.
 // No ephemeral authentication, no plaintext passwords, no public member directory.
 import {Pool} from 'pg';
-import {randomBytes,createHash,scrypt as scryptCb,timingSafeEqual} from 'node:crypto';
+import {randomBytes,randomUUID,createHash,scrypt as scryptCb,timingSafeEqual} from 'node:crypto';
 import {promisify} from 'node:util';
 import {isEditorAdmin} from './editor-calls.mjs';
 const scrypt=promisify(scryptCb);
@@ -81,7 +81,7 @@ export async function memberRoute(req,res,path){
    const displayName=name(obj.displayName);
    if(displayName.length<2){send(res,400,{error:'Display name must be at least two characters.'});return true}
    if(obj.agreed!==true){send(res,400,{error:'Please accept the account information notice.'});return true}
-   const passwordHash=await hashPassword(secret),id=randomBytes(16).toString('hex').replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/,'$1-$2-4$3-a$4-$5');
+   const passwordHash=await hashPassword(secret),id=randomUUID();
    try{
     await db.query("INSERT INTO ew_members(id,display_name,email,password_hash,last_login_at) VALUES($1,$2,$3,$4,now())",[id,displayName,mail,passwordHash]);
    }catch(e){if(e.code==='23505'){send(res,409,{error:'This email already has an account. Sign in instead.'});return true}throw e}
