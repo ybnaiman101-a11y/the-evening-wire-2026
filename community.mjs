@@ -1,4 +1,5 @@
 import {Pool} from 'pg';
+import {temporaryCommunityRoute} from './community-temp.mjs';
 import {randomUUID,createHash,timingSafeEqual} from 'node:crypto';
 const connection=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
 const adminSecret=process.env.REACTION_ADMIN_TOKEN||'';
@@ -24,8 +25,9 @@ function authorized(req){const s=req.headers['x-reaction-admin-token'];return !!
 export async function communityRoute(req,res,path){
  if(!path.startsWith('/api/community/'))return false;
  const route=path.slice('/api/community/'.length);
- if(route==='health'&&req.method==='GET'){respond(res,200,{ready,configured:Boolean(connection)});return true}
- if(!ready){respond(res,503,{ready:false,error:'Reaction Hub database connection not yet configured'});return true}
+ if(route==='health'&&req.method==='GET'&&connection){respond(res,200,{ready,configured:true,postingEnabled:ready,storage:'postgresql'});return true}
+ if(!connection){await temporaryCommunityRoute(req,res,route);return true}
+ if(!ready){respond(res,503,{ready:false,error:'Permanent database is configured but not yet available'});return true}
  try{
   if(route==='posts'&&req.method==='GET'){
    const topic=new URL(req.url,'http://localhost').searchParams.get('topic');const q=await pool.query("SELECT id,name,topic,message,created_at,likes FROM community_posts WHERE status='visible' AND ($1::text IS NULL OR topic=$1) ORDER BY created_at DESC LIMIT 100",[topics.has(topic)?topic:null]);
