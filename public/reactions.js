@@ -3,9 +3,10 @@
 const host=document.getElementById('commandDesk');if(!host)return;
 const safe=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const categories=[['general','All Reactions'],['senate','Senate'],['house','House'],['governors','Governors'],['election-night','Election Night'],['news','News']];
-let filter='all',posts=[],ready=false,formStatus='';
+let filter='all',posts=[],ready=false,formStatus='',storage='unavailable',storageWarning='';
 function render(){
  host.innerHTML='<div class="reaction-header"><div><div class="cmd-eyebrow">THE EVENING WIRE · COMMUNITY</div><h1>THE REACTION <span>HUB</span></h1><p>What do you think about the 2026 midterms? Share your views with the Evening Wire community. Opinions are public comments, not official results or race calls.</p></div><span class="reaction-live">COMMUNITY DISCUSSION</span></div>'+
+ (storage==='temporary'?'<div class="reaction-status" style="margin:0 0 15px;padding:12px 16px;border-radius:9px;border:1px solid #9c813d;background:#62471c44;color:#f5d99c">⚠ '+safe(storageWarning)+'</div>':'')+
  '<div class="reaction-layout"><section class="reaction-panel"><h2>SHARE YOUR TAKE</h2><p class="reaction-hint">Your post will be visible to visitors once submitted. Do not share private information. Keep discussion civil.</p>'+
  '<form id="reactionForm"><label>Your display name (optional)<input name="name" maxlength="30" placeholder="Anonymous"></label><label>Topic<select name="topic">'+categories.slice(1).map(([id,n])=>'<option value="'+id+'">'+safe(n)+'</option>').join('')+'</select></label><label>Your reaction<textarea name="message" required minlength="8" maxlength="700" placeholder="What is your opinion on the election?" rows="5"></textarea></label>'+
  '<div class="reaction-footer"><span id="reactionCount">0 / 700</span><button type="submit" '+(!ready?'disabled':'')+'>POST REACTION →</button></div><p id="reactionFormStatus" class="reaction-status">'+safe(formStatus)+'</p></form></section>'+
@@ -24,7 +25,7 @@ function render(){
  host.querySelectorAll('[data-report]').forEach(b=>b.addEventListener('click',async()=>{if(!confirm('Report this comment for review?'))return;b.disabled=true;await fetch('/api/community/'+b.dataset.report+'/report',{method:'POST'}).catch(()=>{});refresh()}));
 }
 async function refresh(){
- try{const r=await fetch('/api/community/posts'+(filter!=='all'?'?topic='+encodeURIComponent(filter):''),{cache:'no-store'});const v=await r.json();if(!r.ok)throw Error(v.error||'Comments unavailable');posts=v.posts||[];ready=true;formStatus='';}catch(e){posts=[];ready=false;formStatus='Posting is offline until the community database is connected.'}
+ try{const r=await fetch('/api/community/posts'+(filter!=='all'?'?topic='+encodeURIComponent(filter):''),{cache:'no-store'});const v=await r.json();if(!r.ok)throw Error(v.error||'Comments unavailable');posts=v.posts||[];ready=true;storage=v.storage||'postgresql';storageWarning=v.warning||'';formStatus='';}catch(e){posts=[];ready=false;storage='unavailable';formStatus='Posting is currently unavailable.'}
  if(document.body.dataset.ewView==='reactions')render();
 }
 window.EWReactions={open:()=>{document.body.dataset.ewView='reactions';render();refresh()},refresh};
