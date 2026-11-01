@@ -1,126 +1,114 @@
-/* EVENING WIRE — Shared Reaction Hub. Messages are fetched from the server,
-   never localStorage. Polling does not replace the form or erase a draft. */
+/* THE EVENING WIRE — Registered member discussions, replies, and live colors */
 (function(){
- const host=document.getElementById('commandDesk');
- if(!host)return;
- const safe=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
- const categories=[['general','General'],['senate','Senate'],['house','House'],['governors','Governors'],['election-night','Election Night'],['news','News']];
- let filter='all',posts=[],ready=false,storage='unavailable',warning='',loading=false,active=false,lastRendered='',lastError='';
- const nameFor=id=>categories.find(([code])=>code===id)?.[1]||'Election';
- const current=()=>document.body.dataset.ewView==='reactions';
- function since(date){const n=Date.parse(date);return Number.isFinite(n)?new Date(n).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Recently'}
- function listMarkup(){
-  if(!ready)return '<p class="reaction-empty">Unable to load public comments right now. Press Refresh to try again.</p>';
-  if(!posts.length)return '<p class="reaction-empty">No reactions in this category yet. Be the first to share your thoughts.</p>';
-  return posts.map(p=>'<article class="reaction-post" data-post-id="'+safe(p.id)+'">'+
-   '<div class="reaction-posthead"><b>'+safe(p.name||'Anonymous')+'</b><span>'+safe(nameFor(p.topic))+' · '+safe(since(p.created_at))+'</span></div>'+
-   '<p>'+safe(p.message)+'</p>'+
-   '<div class="reaction-controls"><button type="button" data-like="'+safe(p.id)+'">♡ '+Number(p.likes||0)+' Appreciate</button>'+
-   '<button type="button" data-report="'+safe(p.id)+'">⚑ Report</button></div></article>').join('');
+'use strict';
+const host=document.getElementById('commandDesk');if(!host)return;
+const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const topics=[['all','All'],['general','General'],['senate','Senate'],['house','House'],['governors','Governors'],['election-night','Election Night'],['news','News']];
+const topicLabel=id=>topics.find(t=>t[0]===id)?.[1]||'General';
+const when=x=>{const t=Date.parse(x);return Number.isFinite(t)?new Date(t).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Recently'};
+let list=[],filter='all',activeReply=null,loading=false,ready=false,member=null,lastListSignature='',lastError='';
+const q=id=>document.getElementById(id),shown=()=>document.body.dataset.ewView==='reactions';
+const shade=(m)=>{const key=String(m.member_id||m.name||m.id||'');let v=0;for(let i=0;i<key.length;i++)v=(v*33+key.charCodeAt(i))>>>0;return v%8};
+function card(p,child=false,replies=[]){
+ const color=shade(p);
+ return '<article class="reaction-post '+(child?'ew-reply':'ew-root')+' ew-author-'+color+'" data-post-id="'+safe(p.id)+'">'+
+ '<div class="reaction-posthead"><div class="ew-avatar ew-avatar-'+color+'">'+safe((p.name||'?').slice(0,1).toUpperCase())+'</div>'+
+ '<div class="ew-author-info"><b>'+safe(p.name||'Legacy guest')+'</b><span>'+safe(topicLabel(p.topic))+' · '+safe(when(p.created_at))+'</span></div></div>'+
+ '<p class="reaction-message">'+safe(p.message)+'</p>'+
+ '<div class="reaction-controls">'+
+ '<button type="button" data-like="'+safe(p.id)+'">♥ '+Number(p.likes||0)+' Likes</button>'+
+ (child?'':'<button type="button" data-reply="'+safe(p.id)+'">↪ Reply'+(replies.length?' ('+replies.length+')':'')+'</button>')+
+ '<button type="button" data-report="'+safe(p.id)+'">⚑ Report</button></div>'+
+ (child?'':'<div class="ew-replies">'+replies.map(r=>card(r,true,[])).join('')+'</div>')+
+ '</article>'
+}
+function listHTML(){
+ if(!ready)return '<div class="reaction-empty">The discussion feed is temporarily unavailable.</div>';
+ const parents=list.filter(p=>!p.parent_id),children=new Map();
+ for(const p of list)if(p.parent_id){const a=children.get(p.parent_id)||[];a.push(p);children.set(p.parent_id,a)}
+ return parents.length?parents.map(p=>card(p,false,(children.get(p.id)||[]).sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at)))).join(''):
+ '<div class="reaction-empty">Nobody has posted in this section yet. Start the conversation.</div>'
+}
+function updateFeed(){
+ if(!shown())return;
+ const feed=q('reactionList'),count=q('reactionLiveCount'),send=q('reactionSubmit');
+ const sig=JSON.stringify(list.map(p=>[p.id,p.likes,p.message,p.parent_id]))+'|'+ready;
+ if(feed&&lastListSignature!==sig){feed.innerHTML=listHTML();lastListSignature=sig}
+ if(count)count.textContent=(ready?list.filter(p=>!p.parent_id).length+' discussions · updates every 7 seconds':'Connection unavailable');
+ if(send)send.disabled=!ready;
+}
+async function refresh(){
+ if(loading)return;loading=true;
+ try{
+  const url='/api/community/posts'+(filter==='all'?'':'?topic='+encodeURIComponent(filter));
+  const response=await fetch(url,{credentials:'same-origin',cache:'no-store'}),data=await response.json();
+  if(!response.ok)throw Error(data.error||'Comments temporarily unavailable');
+  list=Array.isArray(data.posts)?data.posts:[];ready=true;lastError='';
+ }catch(e){ready=false;lastError=e.message}
+ finally{loading=false;updateFeed()}
+}
+function replyInfo(){
+ const line=q('ewReplyInfo'),form=q('reactionForm');if(!line||!form)return;
+ const parent=list.find(x=>x.id===activeReply);
+ if(parent){
+  line.hidden=false;line.innerHTML='↪ Replying to <b>'+safe(parent.name)+'</b> · '+safe(parent.message.slice(0,80))+' <button type="button" id="ewCancelReply">CANCEL</button>';
+  q('ewCancelReply').onclick=()=>{activeReply=null;replyInfo()};
+  form.elements.namedItem('topic').value=parent.topic;
+  form.elements.namedItem('topic').disabled=true;
+ }else{
+  line.hidden=true;line.textContent='';
+  form.elements.namedItem('topic').disabled=false;
  }
- function updatePosts(){
-  if(!current())return;
-  const list=document.getElementById('reactionList');
-  const count=document.getElementById('reactionLiveCount');
-  const signature=JSON.stringify(posts.map(p=>[p.id,p.likes,p.message,p.name,p.topic,p.created_at]))+'|'+ready;
-  if(list&&signature!==lastRendered){list.innerHTML=listMarkup();lastRendered=signature}
-  if(count)count.textContent=ready?posts.length+' recent reactions · updates every 7 seconds':'Connection unavailable';
-  const submit=document.querySelector('#reactionForm button[type=submit]');
-  if(submit)submit.disabled=!ready;
-  const warningNode=document.getElementById('reactionStorageWarning');
-  if(warningNode){
-   if(storage==='temporary'){warningNode.hidden=false;warningNode.textContent='⚠ '+(warning||'Temporary storage: messages may disappear after a server restart.')}
-   else warningNode.hidden=true;
-  }
-  const status=document.getElementById('reactionFormStatus');
-  if(status&&lastError)status.textContent=lastError;
- }
- async function refresh(){
-  if(loading)return;
-  loading=true;
+}
+async function open(){
+ const session=await fetch('/api/members/session',{credentials:'same-origin',cache:'no-store'}).then(x=>x.json()).catch(()=>null);
+ member=session?.user||null;
+ if(!shown())return;
+ if(!member){host.innerHTML='<div class="reaction-panel"><h2>MEMBER SIGN-IN REQUIRED</h2><p>Sign in to join the discussion.</p><a href="/">Return to sign-in</a></div>';return}
+ host.innerHTML='<div class="reaction-header"><div><div class="cmd-eyebrow">THE EVENING WIRE · MEMBERS-ONLY COMMUNITY</div>'+
+ '<h1>REACTION <span>HUB</span></h1>'+
+ '<p>Share your election take, reply to other members, and follow live discussion from every device. Display names are locked to accounts.</p></div><span class="reaction-live">● LIVE DISCUSSION</span></div>'+
+ '<div class="reaction-layout"><section class="reaction-panel"><div class="ew-reaction-author"><span class="ew-avatar ew-avatar-'+shade({member_id:member.id})+'">'+safe(member.displayName.charAt(0).toUpperCase())+'</span><div><b>Posting as '+safe(member.displayName)+'</b><small>Your registered name is permanent across posts and replies</small></div></div>'+
+ '<form id="reactionForm"><div id="ewReplyInfo" class="ew-reply-target" hidden></div>'+
+ '<label>CHOOSE A TOPIC<select name="topic">'+topics.filter(t=>t[0]!=='all').map(t=>'<option value="'+t[0]+'">'+safe(t[1])+'</option>').join('')+'</select></label>'+
+ '<label>YOUR MESSAGE<textarea name="message" required minlength="8" maxlength="700" rows="5" placeholder="What is your take?"></textarea></label>'+
+ '<div class="reaction-footer"><span id="reactionCount">0 / 700</span><button type="submit" id="reactionSubmit" disabled>POST MESSAGE ↗</button></div>'+
+ '<p id="reactionFormStatus" class="reaction-status" role="status" aria-live="polite"></p></form></section>'+
+ '<section class="reaction-panel"><div class="reaction-top"><div><span class="cmd-eyebrow">DISCUSSION</span><h2>MEMBER MESSAGES</h2><p id="reactionLiveCount" class="reaction-hint">Connecting…</p></div><button type="button" id="reactionRefresh">↻ REFRESH</button></div>'+
+ '<div class="reaction-filters">'+topics.map(t=>'<button type="button" data-reaction-topic="'+t[0]+'" class="'+(filter===t[0]?'chosen':'')+'">'+safe(t[1])+'</button>').join('')+'</div>'+
+ '<div id="reactionList"></div></section></div>';
+ const form=q('reactionForm'),text=form.elements.namedItem('message');
+ text.addEventListener('input',()=>{q('reactionCount').textContent=text.value.length+' / 700'});
+ form.onsubmit=async e=>{
+  e.preventDefault();const button=q('reactionSubmit');button.disabled=true;
   try{
-   const response=await fetch('/api/community/posts'+(filter==='all'?'':'?topic='+encodeURIComponent(filter)),{cache:'no-store'});
-   const data=await response.json();
-   if(!response.ok)throw Error(data.error||'Unable to fetch reactions');
-   posts=Array.isArray(data.posts)?data.posts:[];ready=true;
-   storage=data.storage||'postgresql';warning=data.warning||'';lastError='';
-  }catch(e){
-   ready=false;lastError='The comments feed is temporarily unavailable. Try Refresh.';
-  }finally{loading=false;updatePosts()}
- }
- function draw(){
-  lastRendered='';
-  host.innerHTML=
-  '<div class="reaction-header"><div><div class="cmd-eyebrow">THE EVENING WIRE · COMMUNITY</div>'+
-  '<h1>THE REACTION <span>HUB</span></h1>'+
-  '<p>Join the election discussion with visitors on other devices. These are reader opinions—not official race calls or election results.</p></div>'+
-  '<span class="reaction-live">COMMUNITY DISCUSSION</span></div>'+
-  '<div id="reactionStorageWarning" class="reaction-status" style="margin:0 0 15px;padding:12px 16px;border-radius:9px;border:1px solid #9c813d;background:#62471c44;color:#f5d99c" hidden></div>'+
-  '<div class="reaction-layout"><section class="reaction-panel"><h2>SHARE YOUR TAKE</h2>'+
-  '<p class="reaction-hint">Your message will appear to everyone who visits this hub. Please keep it civil and do not include private information.</p>'+
-  '<form id="reactionForm">'+
-  '<label>Your display name (optional)<input name="name" maxlength="30" placeholder="Anonymous" autocomplete="nickname"></label>'+
-  '<label>Topic<select name="topic">'+categories.map(([code,label])=>'<option value="'+code+'">'+safe(label)+'</option>').join('')+'</select></label>'+
-  '<label>Your reaction<textarea name="message" required minlength="8" maxlength="700" placeholder="What do you think about the election?" rows="5"></textarea></label>'+
-  '<div class="reaction-footer"><span id="reactionCount">0 / 700</span><button type="submit" disabled>POST REACTION →</button></div>'+
-  '<p id="reactionFormStatus" class="reaction-status" role="status" aria-live="polite"></p></form></section>'+
-  '<section class="reaction-panel"><div class="reaction-top"><div><div class="cmd-eyebrow">LIVE PUBLIC DISCUSSION</div>'+
-  '<h2>LATEST REACTIONS</h2><p id="reactionLiveCount" class="reaction-hint">Connecting to the community…</p></div>'+
-  '<button type="button" id="reactionRefresh">↻ Refresh</button></div>'+
-  '<div class="reaction-filters">'+[['all','All Reactions'],...categories].map(([code,label])=>
-  '<button type="button" data-reaction-topic="'+code+'" class="'+(filter===code?'chosen':'')+'">'+safe(label)+'</button>').join('')+'</div>'+
-  '<div id="reactionList"></div></section></div>';
-  const form=host.querySelector('#reactionForm');
-  form.addEventListener('submit',async event=>{
-   event.preventDefault();
-   const button=form.querySelector('button[type=submit]');
-   button.disabled=true;
-   const data=new FormData(form);
-   const body={name:data.get('name'),topic:data.get('topic'),message:data.get('message')};
-   const status=host.querySelector('#reactionFormStatus');
-   try{
-    const response=await fetch('/api/community/posts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    const result=await response.json();
-    if(!response.ok)throw Error(result.error||'Posting failed');
-    status.textContent='Your comment was posted. Other visitors will see it when their feed updates.';
-    form.querySelector('textarea').value='';
-    document.getElementById('reactionCount').textContent='0 / 700';
-    filter='all';
-    for(const button of host.querySelectorAll('[data-reaction-topic]'))button.classList.toggle('chosen',button.dataset.reactionTopic==='all');
-    await refresh();
-   }catch(e){status.textContent='Unable to publish: '+String(e.message||e)}
-   finally{button.disabled=!ready}
-  });
-  form.querySelector('textarea').addEventListener('input',event=>{
-   const count=document.getElementById('reactionCount');
-   if(count)count.textContent=event.target.value.length+' / 700';
-  });
-  host.querySelector('#reactionRefresh').addEventListener('click',()=>refresh());
-  host.querySelectorAll('[data-reaction-topic]').forEach(button=>button.addEventListener('click',()=>{
-   filter=button.dataset.reactionTopic;
-   host.querySelectorAll('[data-reaction-topic]').forEach(b=>b.classList.toggle('chosen',b===button));
-   posts=[];lastRendered='';updatePosts();refresh();
-  }));
-  host.querySelector('#reactionList').addEventListener('click',async event=>{
-   const like=event.target.closest('[data-like]'),report=event.target.closest('[data-report]');
-   if(!like&&!report)return;
-   const button=like||report;
-   const path=like?'like':'report';
-   if(report&&!confirm('Report this reaction for moderation?'))return;
-   button.disabled=true;
-   try{
-    const response=await fetch('/api/community/'+encodeURIComponent(like?like.dataset.like:report.dataset.report)+'/'+path,{method:'POST'});
-    if(!response.ok)throw Error('Action could not be completed');
-    await refresh();
-   }catch(e){button.disabled=false;const status=document.getElementById('reactionFormStatus');if(status)status.textContent=String(e.message||e)}
-  });
-  updatePosts();
- }
- function open(){
-  active=true;draw();refresh();
- }
- // Check for comments posted on other phones, computers and browsers.
- setInterval(()=>{if(current()&&!document.hidden)refresh()},7000);
- document.addEventListener('visibilitychange',()=>{if(current()&&!document.hidden)refresh()});
- window.EWReactions={open,refresh};
+   const body={topic:form.elements.namedItem('topic').value,message:text.value,parentId:activeReply};
+   const r=await fetch('/api/community/posts',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+   const data=await r.json();if(!r.ok)throw Error(data.error||'Posting failed');
+   text.value='';q('reactionCount').textContent='0 / 700';activeReply=null;replyInfo();
+   q('reactionFormStatus').textContent='Published! Other members can now see your message.';await refresh();
+  }catch(err){q('reactionFormStatus').textContent=err.message}
+  finally{button.disabled=!ready}
+ };
+ q('reactionRefresh').onclick=refresh;
+ host.querySelectorAll('[data-reaction-topic]').forEach(b=>b.onclick=()=>{
+  filter=b.dataset.reactionTopic;host.querySelectorAll('[data-reaction-topic]').forEach(x=>x.classList.toggle('chosen',x===b));
+  list=[];lastListSignature='';activeReply=null;replyInfo();refresh()
+ });
+ q('reactionList').onclick=async e=>{
+  const reply=e.target.closest('[data-reply]'),like=e.target.closest('[data-like]'),report=e.target.closest('[data-report]');
+  if(reply){const original=list.find(p=>p.id===reply.dataset.reply);if(!original)return;activeReply=original.id;replyInfo();form.scrollIntoView({behavior:'smooth',block:'start'});text.focus();return}
+  const b=like||report;if(!b)return;
+  if(report&&!confirm('Report this comment to moderators?'))return;
+  b.disabled=true;
+  try{const id=like?like.dataset.like:report.dataset.report,action=like?'like':'report';
+   const r=await fetch('/api/community/'+encodeURIComponent(id)+'/'+action,{method:'POST',credentials:'same-origin'});
+   if(!r.ok)throw Error('Unable to '+action+' this message');await refresh();
+  }catch(err){q('reactionFormStatus').textContent=err.message;b.disabled=false}
+ };
+ await refresh();
+}
+setInterval(()=>{if(shown()&&!document.hidden)refresh()},7000);
+document.addEventListener('visibilitychange',()=>{if(shown()&&!document.hidden)refresh()});
+window.EWReactions={open,refresh};
 })();
