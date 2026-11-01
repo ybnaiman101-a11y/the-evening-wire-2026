@@ -37,8 +37,8 @@
    '<label>YOUR ELECTION UPDATE MESSAGE<textarea name="message" placeholder="Example: The Evening Wire has called the Ohio Senate race for ..." minlength="8" maxlength="700" rows="4" required></textarea></label>'+
    '<label>ORIGINAL SOURCE LINK (OPTIONAL)<input name="sourceUrl" type="url" placeholder="https://..."></label>'+
    '<p class="ew-owner-alert-explain">10-SECOND POPUP · This notice appears briefly on every active reader screen and then automatically disappears. There is no lasting banner.</p>'+
-   '<button type="submit" class="cmd-primary">📣 SEND ELECTION UPDATE TO EVERYONE</button></form>'+
-   '<p class="ew-owner-alert-explain">This sends an editorial notice only. It does not automatically publish or change official race calls.</p>'+
+   '<div class="ew-owner-broadcast-actions"><button type="submit" class="cmd-primary">📣 SEND TO EVERYONE NOW</button><button type="button" class="cmd-minibtn" id="ewPreviewBroadcast">TEST POPUP — ONLY MY SCREEN</button></div></form>'+
+   '<p class="ew-owner-alert-explain"><b>Send to everyone</b> pushes instantly to connected members with a backup check. <b>Test popup</b> shows the same ten-second alert to you alone without publishing. This message never changes an official race result or calls a winner automatically.</p>'+
    '<div class="ew-owner-alert-list-head"><strong>RECENT ANNOUNCEMENTS</strong><span>'+active.length+' ACTIVE</span></div>'+
    (adminUpdates.length?adminUpdates.slice(0,12).map(u=>{
      const state=u.retractedAt?'WITHDRAWN':Date.parse(u.expiresAt)<=Date.now()?'EXPIRED':'ACTIVE';
@@ -135,14 +135,22 @@
    member=result.user;status=result.message||'Name saved';render();
    window.dispatchEvent(new CustomEvent('ew-member-name-updated',{detail:{displayName:member.displayName}}));
   })};
+  const preview=host.querySelector('#ewPreviewBroadcast');
+  if(preview)preview.onclick=()=>{
+   const form=host.querySelector('#ewBroadcastForm'),data=new FormData(form);
+   const message=String(data.get('message')||'').trim()||'TEST MESSAGE: This is what your ten-second Election Update looks like.';
+   const ok=window.EWElectionUpdates?.preview({category:String(data.get('category')||'important'),message,sourceUrl:String(data.get('sourceUrl')||'')});
+   const el=host.querySelector('#ewMemberFeedback');
+   if(el)el.textContent=ok?'✓ LOCAL TEST WORKED — This message appeared only on your screen. No visitor was notified.':'Unable to show the test popup. Reload the page and try again.';
+  };
   const broadcast=host.querySelector('#ewBroadcastForm');
   if(broadcast)broadcast.onsubmit=e=>{e.preventDefault();perform(async()=>{
    const data=new FormData(broadcast),message=String(data.get('message')||'').trim();
    if(!window.confirm('Broadcast this ELECTION UPDATE to every signed-in visitor right now?'))return;
-   await request('/api/updates','POST',{category:data.get('category'),message,sourceUrl:data.get('sourceUrl')});
-   status='Election Update sent. It disappears automatically ten seconds after publishing.';
+   const result=await request('/api/updates','POST',{category:data.get('category'),message,sourceUrl:data.get('sourceUrl')});
+   status='✓ ELECTION UPDATE SENT. The server confirmed publication to '+Number(result.connectedReceivers||0)+' currently connected live streams. Other visitors receive it through the backup feed. Each screen shows the popup for ten seconds.';
+   window.dispatchEvent(new CustomEvent('ew-owner-update-posted',{detail:{update:result.update}}));
    await fetchUpdates();render();
-   window.dispatchEvent(new Event('ew-owner-update-posted'));
   })};
   host.querySelectorAll('[data-ew-retract-update]').forEach(btn=>btn.onclick=()=>perform(async()=>{
    if(!window.confirm('Withdraw this Election Update for all visitors?'))return;
