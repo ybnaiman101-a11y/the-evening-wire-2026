@@ -421,7 +421,7 @@ const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;
 const siteURL=s=>{try{const u=new URL(s);return u.protocol==='https:'?u.href:'#'}catch{return '#'}};
 const formatTime=t=>{try{if(!t||!Number.isFinite(Date.parse(t)))return 'Not available';return new Date(t).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET'}catch{return 'Not available'}};
 const stateName=c=>BY_CODE[c]?.name||c;
-const keyFor=x=>String(x.office||'').toLowerCase()+'-'+x.state+(x.office==='house'?'-'+x.district:'');
+const keyFor=x=>String(x.office||'').toLowerCase()+'-'+x.state+(x.office==='house'?'-'+x.district:x.office==='senate'&&x.special?'-special':'');
 const reported=k=>(results.races||[]).find(x=>keyFor(x)===k);
 const called=k=>(results.calls||[]).find(x=>keyFor(x)===k);
 const partyColor=p=>p==='R'?'#e65d69':p==='D'?'#418de3':p==='OTHER'||p==='I'?'#ccad77':'#62758a';
@@ -430,7 +430,12 @@ function savedStore(){try{localStorage.setItem('ew-followed-states',JSON.stringi
 function title(txt,subtitle){return '<div class="cmd-section-head"><div><span class="cmd-kicker">THE EVENING WIRE / ELECTION 2026</span><h2>'+esc(txt)+'</h2></div><p>'+esc(subtitle||'')+'</p></div>'}
 function wrap(text){return '<section class="cmd-section">'+text+'</section>'}
 const unavail=msg=>'<div class="cmd-void"><strong>AWAITING VERIFIED DATA</strong>'+esc(msg||'No sourced results have been provided for this category.')+'</div>';
-function notice(){return results.editor?.configured?'<div class="cmd-notice">RACE CALLS: sourced editorial calls are published by The Evening Wire administrator. A projection is not an official certified result. '+(results.editor.persistent?'Calls stored in the connected database.':'Calls currently use temporary storage and require downloadable backups until PostgreSQL is connected.')+' Live vote totals still require a separate verified data source.</div>':!results.configured?'<div class="cmd-notice">Live news headlines are connected separately. No election-results provider has been configured. Calls will appear once the administrator publishes an attributable race call.</div>':results.error?'<div class="cmd-notice">Election data provider error: '+esc(results.error)+'. Existing results may be stale.</div>':'<p class="cmd-footer-info">Election data source: '+esc(results.source||'Configured data provider')+' · Last validated update: '+formatTime(results.updatedAt)+'</p>'}
+function notice(){
+ const state=results.ap||{};
+ const apLine=!state.configured?'AP vote totals: awaiting an authorized Associated Press API key.':!state.connected?'AP vote totals: connection pending or temporarily unavailable'+(state.error?' ('+esc(state.error)+')':'')+'.':'AP vote totals: connected to Associated Press. Last checked '+formatTime(state.updatedAt)+'.';
+ const adminLine='Winner announcements: ONLY The Evening Wire administrator can call or retract a race. AP winner flags are not used.';
+ return '<div class="cmd-notice">'+apLine+' '+adminLine+(results.editor?.configured&&!results.editor.persistent?' Administrator calls currently use temporary storage; export backups until the database is connected.':'')+'</div>';
+}
 function infoCard(office,list){
  const calls=(results.calls||[]).filter(x=>x.office===office),r=calls.filter(x=>x.party==='R').length,d=calls.filter(x=>x.party==='D').length,o=calls.length-r-d;
  const total=list.length,known=results.configured;const pct=total?calls.length/total*100:0;
@@ -490,11 +495,11 @@ function hq(){
  +recentTimeline()
  +wrap(title('The National Newswire','Recent election coverage from the configured publisher feeds.')+'<div class="cmd-card">'+latestStories(6)+'</div>')+'<div class="cmd-footer-info">'+liveSummary()+'</div>'
 }
-function raceTitle(x){return stateName(x.state)+' '+(x.office==='senate'?'Senate':x.office==='governor'?'Governor':'House District '+x.district)}
+function raceTitle(x){return stateName(x.state)+' '+(x.office==='senate'?(x.special?'Special Senate':'Senate'):x.office==='governor'?'Governor':'House District '+x.district)}
 function cardRace(x){
  const report=reported(x.key),call=called(x.key);
- const status=call?'<span class="cmd-pill good">CALLED · '+esc(partyLabel(call.party))+'</span>':report?'<span class="cmd-pill">REPORTING</span>':'<span class="cmd-pill warn">AWAITING DATA</span>';
- const line=report?(report.candidates.slice(0,2).map(c=>esc(c.name)+' '+(Number.isFinite(c.percent)?Number(c.percent).toFixed(1)+'%':'')).join(' vs ')+' · '+formatTime(report.updatedAt)):'Vote totals & candidate data not yet supplied by a verified provider';
+ const status=call?'<span class="cmd-pill good">EVENING WIRE CALLED · '+esc(partyLabel(call.party))+'</span>':report&&report.status==='reporting'?'<span class="cmd-pill">AP VOTES REPORTING</span>':report?'<span class="cmd-pill warn">AWAITING FIRST VOTES</span>':'<span class="cmd-pill warn">AWAITING AP DATA</span>';
+ const line=report?(report.candidates.slice(0,2).map(c=>esc(c.name)+' '+(Number.isFinite(c.percent)?Number(c.percent).toFixed(1)+'%':'')).join(' vs ')+' · '+formatTime(report.updatedAt)):'Vote totals not yet supplied by Associated Press';
  return '<button type="button" class="cmd-row" data-race="'+esc(x.key)+'"><span class="abbr">'+esc(x.state)+'</span><span class="txt"><strong>'+esc(raceTitle(x))+'</strong><small>'+line+'</small></span><span class="end">'+status+'</span></button>'
 }
 function raceList(type){
@@ -568,10 +573,10 @@ function showRace(key){
  if(!race)return;
  const report=reported(key),call=called(key);
  let body='<div class="cmd-dialog-head"><div><span class="cmd-kicker">2026 ELECTION RACE</span><h2 style="font:800 39px Barlow Condensed;margin:9px 0">'+esc(raceTitle(race))+'</h2></div><button class="cmd-minibtn" data-close-modal="1">CLOSE ×</button></div>';
- body+='<p class="cmd-muted">Status: '+(call?'SOURCE-PROJECTED · '+esc(call.sourceName):report?'REPORTING / NOT CALLED':'AWAITING VERIFIED DATA')+'</p>';
- if(report){body+='<div class="cmd-card"><h3>REPORTED VOTES</h3>'+(report.candidates.length?report.candidates.map(c=>'<div class="cmd-row"><span class="txt"><strong>'+esc(c.name)+'</strong><small>'+esc(c.party)+' · '+(Number.isFinite(c.votes)?Number(c.votes).toLocaleString('en-US')+' votes':'Vote count unavailable')+'</small></span><span class="end">'+(Number.isFinite(c.percent)?c.percent.toFixed(1)+'%':'—')+'</span></div>').join(''):unavail('No candidate totals included with this update.'))+'<p class="cmd-muted">Reporting: '+(Number.isFinite(report.reportingPct)?report.reportingPct+'%':'Unspecified')+' · Updated '+formatTime(report.updatedAt)+' · <a href="'+siteURL(report.sourceUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(report.sourceName)+'</a></p></div>'}
- else body+=unavail('No valid vote totals have been received for this race.');
- if(call)body+='<div class="cmd-notice">Publisher projection: '+esc(call.candidate)+' ('+partyLabel(call.party)+') · '+esc(call.sourceName)+' · '+formatTime(call.calledAt)+'. This is not official certification. <a href="'+siteURL(call.sourceUrl)+'" target="_blank" rel="noopener noreferrer">Read original call.</a></div>';
+ body+='<p class="cmd-muted">Status: '+(call?'CALLED BY THE EVENING WIRE ADMIN · '+esc(call.sourceName):report&&report.status==='reporting'?'AP VOTES REPORTING · NOT CALLED':report?'AWAITING FIRST AP VOTES · NOT CALLED':'AWAITING AP VOTE DATA · NOT CALLED')+'</p>';
+ if(report){body+='<div class="cmd-card"><h3>AP REPORTED VOTES · NO AUTOMATIC RACE CALL</h3>'+(report.candidates.length?report.candidates.map(c=>'<div class="cmd-row"><span class="txt"><strong>'+esc(c.name)+'</strong><small>'+esc(c.party)+' · '+(Number.isFinite(c.votes)?Number(c.votes).toLocaleString('en-US')+' votes':'Vote count unavailable')+'</small></span><span class="end">'+(Number.isFinite(c.percent)?c.percent.toFixed(1)+'%':'—')+'</span></div>').join(''):unavail('No candidate totals included with this update.'))+'<p class="cmd-muted">Precincts reporting: '+(Number.isFinite(report.reportingPct)?report.reportingPct+'%':'Unspecified')+(Number.isFinite(report.estimatedVotePct)?' · AP estimated vote counted: '+report.estimatedVotePct+'%':'')+' · Updated '+formatTime(report.updatedAt)+' · <a href="'+siteURL(report.sourceUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(report.sourceName)+'</a></p></div>'}
+ else body+=unavail('Awaiting Associated Press election results. The AP Elections API requires authorized access.');
+ if(call)body+='<div class="cmd-notice">Evening Wire administrator call: '+esc(call.candidate)+' ('+partyLabel(call.party)+') · '+esc(call.sourceName)+' · '+formatTime(call.calledAt)+'. This is not official certification. <a href="'+siteURL(call.sourceUrl)+'" target="_blank" rel="noopener noreferrer">Read original call.</a></div>';
 
  body+='<div class="cmd-toolbar">'
   +'<button class="cmd-primary" data-follow-race="'+esc(key)+'">'+(followedRaces.includes(key)?'◆ FOLLOWING RACE':'◇ FOLLOW RACE')+'</button>'
