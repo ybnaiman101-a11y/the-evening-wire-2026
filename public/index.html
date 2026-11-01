@@ -102,6 +102,25 @@ body{background:#070d16;color:#e7f2ff}
 @media(max-width:1100px){.ew-masthead{min-height:140px;padding:18px 25px}.ew-masthead-right{padding-left:16px}.ew-masthead-caption{font-size:8px;letter-spacing:1px}.ew-masthead .ew-word-line{font-size:clamp(35px,4.3vw,60px)}.ew-globe-art{right:0}}
 @media(max-width:760px){.ew-masthead{min-height:116px;padding:16px;gap:8px}.ew-masthead .ew-mark{width:46px;height:52px}.ew-masthead .ew-integrated-brand{gap:5px}.ew-the{font-size:9px;letter-spacing:4px;margin-bottom:2px}.ew-masthead .ew-word-line{font-size:clamp(27px,6vw,40px);letter-spacing:0}.ew-tagline{font-size:8px;letter-spacing:1.4px;margin-top:6px}.ew-brand-orbit{display:none}.ew-masthead-caption{display:none}.ew-masthead-right{padding-left:6px;gap:7px}.ew-masthead-right .status{font-size:8px;padding:7px}.ew-masthead-right .clock{font-size:9px}.ew-globe-art{right:-170px;width:430px;opacity:.55}}
 @media(max-width:470px){.ew-masthead{min-height:98px;padding:12px 10px}.ew-masthead .ew-mark{width:35px;height:44px}.ew-masthead .ew-integrated-brand{gap:3px}.ew-masthead .ew-word-line{font-size:clamp(24px,6.1vw,29px)}.ew-the{font-size:8px;letter-spacing:3px}.ew-tagline{font-size:7px;letter-spacing:1px}.ew-masthead-right .status{font-size:0;min-width:20px;max-width:21px;min-height:23px;padding:8px}.ew-masthead-right .dot{width:7px;height:7px}.ew-masthead-right .clock{font-size:8px}}
+
+.reaction-header{display:flex;justify-content:space-between;gap:24px;align-items:center;padding:29px 32px;border:1px solid #335774;border-radius:16px;background:radial-gradient(circle at 90% 0%,#11527255,transparent 49%),linear-gradient(120deg,#172d44,#081723);margin-bottom:20px}
+.reaction-header h1{font:900 clamp(45px,5vw,77px)/1 'Barlow Condensed',sans-serif;margin:11px 0}.reaction-header h1 span{color:#5cdaf1}.reaction-header p{font-size:12px;line-height:1.7;max-width:660px;color:#b6c7da}
+.reaction-live{border:1px solid #277f73;border-radius:99px;color:#7ae9d2;font-size:10px;letter-spacing:1px;font-weight:800;padding:11px 15px;white-space:nowrap}
+.reaction-layout{display:grid;grid-template-columns:minmax(270px,.8fr) minmax(340px,1.3fr);gap:19px;align-items:start}
+.reaction-panel{background:linear-gradient(160deg,#12263b,#0e1b2e);border:1px solid #304b67;border-radius:15px;padding:24px;min-width:0}
+.reaction-panel h2{font:800 30px 'Barlow Condensed',sans-serif;margin:0 0 13px}.reaction-hint{color:#97aec6;font-size:12px;line-height:1.7}
+#reactionForm{display:grid;gap:17px;margin-top:23px}#reactionForm label{display:grid;gap:8px;font-size:10px;letter-spacing:1px;font-weight:900;color:#afd0e2;text-transform:uppercase}
+#reactionForm input,#reactionForm select,#reactionForm textarea{border:1px solid #375775;border-radius:9px;background:#071b2d;color:#f3f9ff;font:500 13px/1.6 'DM Sans',sans-serif;padding:13px;resize:vertical;width:100%;box-sizing:border-box}
+#reactionForm input:focus,#reactionForm textarea:focus,#reactionForm select:focus{outline:1px solid #43cde8}
+.reaction-footer,.reaction-top,.reaction-posthead,.reaction-controls{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.reaction-footer span{color:#8da7bf;font-size:11px}.reaction-footer button{background:#167693;border:1px solid #1fa5c1;color:white;border-radius:8px;padding:13px 15px;font:800 11px 'DM Sans',sans-serif;cursor:pointer}
+.reaction-footer button:disabled{opacity:.45;cursor:default}.reaction-status{font-size:11px;color:#dfc392;line-height:1.55}
+.reaction-top>button,.reaction-filters button,.reaction-controls button{background:#17334b;border:1px solid #37516c;color:#c7e5f6;border-radius:8px;padding:9px 11px;font:700 10px 'DM Sans',sans-serif;cursor:pointer}
+.reaction-filters{display:flex;gap:7px;overflow-x:auto;padding:9px 0 19px}.reaction-filters button{white-space:nowrap}.reaction-filters .chosen{background:#176b85;color:#fff;border-color:#38afcc}
+.reaction-post{border-top:1px solid #324b62;padding:19px 3px}.reaction-posthead b{font-size:13px;color:#eff8ff}.reaction-posthead span{color:#8da8c1;font-size:10px}
+.reaction-post p{font-size:13px;line-height:1.75;color:#c8d9eb;white-space:pre-wrap;overflow-wrap:anywhere}.reaction-controls{justify-content:flex-start}.reaction-controls button:hover,.reaction-top button:hover{background:#255476}
+.reaction-empty{padding:44px 20px;text-align:center;color:#96aec4;font-size:12px;line-height:1.7;border:1px dashed #36536d;border-radius:10px}
+@media(max-width:850px){.reaction-layout{grid-template-columns:1fr}.reaction-header{padding:22px;flex-wrap:wrap}}@media(max-width:480px){.reaction-panel{padding:18px}.reaction-header{padding:18px}.reaction-live{font-size:9px}}
 </style></head>
 <body>
 <header class="ew-masthead">
@@ -147,7 +166,7 @@ body{background:#070d16;color:#e7f2ff}
     <div class="clock" id="clock">EASTERN TIME</div>
   </div>
 </header>
-<nav class="command-nav" aria-label="Election command center sections"><button type="button" data-ew-tab="hq" aria-current="page"><span class="num">01</span> HEADQUARTERS</button><button type="button" data-ew-tab="news" aria-current="false"><span class="num">02</span> LIVE NEWS</button><button type="button" data-ew-tab="senate" aria-current="false"><span class="num">03</span> SENATE</button><button type="button" data-ew-tab="governor" aria-current="false"><span class="num">04</span> GOVERNORS</button><button type="button" data-ew-tab="house" aria-current="false"><span class="num">05</span> HOUSE · 435</button><button type="button" data-ew-tab="calls" aria-current="false"><span class="num">06</span> RACES CALLED</button><button type="button" data-ew-tab="battleground" aria-current="false"><span class="num">07</span> WATCHLIST</button><button type="button" data-ew-tab="states" aria-current="false"><span class="num">08</span> 50 STATES</button><button type="button" data-ew-tab="turnout" aria-current="false"><span class="num">09</span> TURNOUT</button><button type="button" data-ew-tab="sources" aria-current="false"><span class="num">10</span> SOURCES</button><button type="button" data-ew-tab="mydesk" aria-current="false"><span class="num">11</span> MY DESK</button></nav>
+<nav class="command-nav" aria-label="Election command center sections"><button type="button" data-ew-tab="hq" aria-current="page"><span class="num">01</span> HEADQUARTERS</button><button type="button" data-ew-tab="news" aria-current="false"><span class="num">02</span> LIVE NEWS</button><button type="button" data-ew-tab="senate" aria-current="false"><span class="num">03</span> SENATE</button><button type="button" data-ew-tab="governor" aria-current="false"><span class="num">04</span> GOVERNORS</button><button type="button" data-ew-tab="house" aria-current="false"><span class="num">05</span> HOUSE · 435</button><button type="button" data-ew-tab="calls" aria-current="false"><span class="num">06</span> RACES CALLED</button><button type="button" data-ew-tab="battleground" aria-current="false"><span class="num">07</span> WATCHLIST</button><button type="button" data-ew-tab="states" aria-current="false"><span class="num">08</span> 50 STATES</button><button type="button" data-ew-tab="turnout" aria-current="false"><span class="num">09</span> TURNOUT</button><button type="button" data-ew-tab="sources" aria-current="false"><span class="num">10</span> SOURCES</button><button type="button" data-ew-tab="mydesk" aria-current="false"><span class="num">11</span> MY DESK</button><button type="button" data-ew-tab="reactions" aria-current="false"><span class="num">12</span> REACTION HUB</button></nav>
 <div class="ticker"><strong>✦ NEWS ALERTS</strong><div id="ticker">Connecting to 27 newsrooms. Only verified feed headlines appear here.</div></div>
 <main id="commandDesk" role="main" aria-live="polite"><div class="cmd-void"><strong>Initializing Election Command Center</strong>Connecting to live news and checking election-data availability.</div></main><div class="cmd-modal" id="cmdModal" hidden><div class="cmd-dialog" role="dialog" aria-modal="true" aria-label="Election race details" id="cmdDialog"></div></div><main class="wrap news-legacy" id="legacyNews"><div class="desk-nav"><div><span class="on-air">● ON AIR</span><span>AMERICA VOTES · 2026</span></div><div><button id="savedOpen" type="button">◇ SAVED <span class="counter-bubble" id="savedCount">0</span></button><button id="focusToggle" type="button" aria-pressed="false">▣ FOCUS MODE</button></div></div>
 <section class="hero"><div class="eyebrow">THE MIDTERM ELECTIONS &nbsp; 2026</div><h1>ELECTION NIGHT <span>LIVE</span></h1><p>One screen. Every major outlet. Election headlines appear as they are discovered.</p>
@@ -340,6 +359,7 @@ refresh();setInterval(refresh,45000);setInterval(rotateHeadline,8500);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 })();
 </script>
+<script src="/reactions.js"></script>
 <script>
 /* EVENING WIRE COMMAND ENGINE — no synthetic votes, calls or publication times */
 (function(){
@@ -493,12 +513,13 @@ function render(){
  document.body.dataset.ewView=active;
  for(const b of document.querySelectorAll('.command-nav button')){const is=b.dataset.ewTab===active;b.classList.toggle('sel',is);b.setAttribute('aria-current',is?'page':'false')}
  if(active==='news')return;
+ if(active==='reactions'){window.EWReactions?.open();return;}
  const pages={hq:hq,senate:()=>raceList('senate'),governor:()=>raceList('governor'),house:()=>raceList('house'),calls:callsView,battleground:watched,states:statesView,turnout:turnoutView,sources:sourceView,mydesk:myDesk};
  const fn=pages[active]||hq;
  app.innerHTML=fn();
 }
 function go(tab){
- active=['hq','news','senate','governor','house','calls','battleground','states','turnout','sources','mydesk'].includes(tab)?tab:'hq';
+ active=['hq','news','senate','governor','house','calls','battleground','states','turnout','sources','mydesk','reactions'].includes(tab)?tab:'hq';
  if(active!=='house')houseLimit=55;
  history.replaceState(null,'','#'+active);
  render();
