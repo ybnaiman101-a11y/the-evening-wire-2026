@@ -7,7 +7,39 @@ import {URL} from 'node:url';
 const PORT = Number(process.env.PORT || 3000);
 const POLL = Math.max(30000, Number(process.env.POLL_INTERVAL_MS || 30000));
 const NEWS_WINDOW_MS = 6*60*60*1000;
+const FEATURED_INTERVAL_MS = 30*60*1000;
 const currentNews = () => stories.filter(item=>Date.parse(item.published)>=Date.now()-NEWS_WINDOW_MS);
+let featuredSlot=-1, featuredArticle=null, featuredChosenAt=null;
+const featuredHistory=[];
+function featuredHeadline(){
+ const now=Date.now(),slot=Math.floor(now/FEATURED_INTERVAL_MS);
+ const eligible=currentNews().filter(s=>s&&s.id&&s.title&&s.url&&Number.isFinite(Date.parse(s.published)))
+   .sort((a,b)=>Date.parse(b.published)-Date.parse(a.published));
+ if(!eligible.length){featuredSlot=slot;featuredArticle=null;featuredChosenAt=null;return null}
+ // Keep the same featured article through the entire half-hour across every visitor.
+ if(slot===featuredSlot&&featuredArticle&&eligible.some(s=>s.id===featuredArticle.id))return featuredArticle;
+ // Rotate away from earlier half-hour features while preferring recent publisher reports.
+ const historyIds=new Set(featuredHistory.slice(-12).map(s=>s.id));
+ let choices=eligible.slice(0,48).filter(s=>!historyIds.has(s.id));
+ if(!choices.length)choices=eligible.slice(0,48).filter(s=>s.id!==featuredArticle?.id);
+ if(!choices.length)choices=eligible.slice(0,48);
+ const recent=choices.filter(s=>Date.parse(s.published)>=now-2*60*60*1000);
+ if(recent.length)choices=recent;
+ const differentPublisher=choices.filter(s=>s.sourceId!==featuredArticle?.sourceId);
+ // Prefer a different newsroom when a comparably recent headline exists.
+ if(differentPublisher.length&&Date.parse(choices[0].published)-Date.parse(differentPublisher[0].published)<=45*60*1000)choices=differentPublisher;
+ const next=choices[0];
+ featuredSlot=slot;featuredArticle=next;featuredChosenAt=new Date(now).toISOString();
+ featuredHistory.push({slot,id:next.id,sourceId:next.sourceId});
+ if(featuredHistory.length>48)featuredHistory.shift();
+ console.log('FEATURED_HEADLINE_UPDATED slot='+slot+' source='+next.sourceId);
+ return next;
+}
+function featuredPayload(){
+ const article=featuredHeadline();
+ const slot=Math.floor(Date.now()/FEATURED_INTERVAL_MS);
+ return {featuredHeadline:article,featuredChosenAt,featuredNextChangeAt:new Date((slot+1)*FEATURED_INTERVAL_MS).toISOString(),featuredIntervalMinutes:30};
+}
 const SOURCES = [
   ['fox','Fox News','foxnews.com','https://moxie.foxnews.com/google-publisher/politics.xml'],
   ['cnn','CNN','cnn.com'],
@@ -93,7 +125,7 @@ function normalize(e,s,via){
  return {id,title:e.title,excerpt:e.desc.slice(0,230),url:url.href,published:new Date(ts).toISOString(),source:s.name,sourceId:s.id,domain:s.domain,via,topics};
 }
 function snapshot(){
- return {stories:currentNews().slice(0,500),sources:SOURCES.map(s=>({...s,...status[s.id]})),initialized,lastScan,pollIntervalMs:POLL,newsWindowHours:6};
+ return {stories:currentNews().slice(0,500),sources:SOURCES.map(s=>({...s,...status[s.id]})),initialized,lastScan,pollIntervalMs:POLL,newsWindowHours:6,...featuredPayload()};
 }
 function send(client,event,body){try{client.write('event: '+event+'\ndata: '+JSON.stringify(body)+'\n\n')}catch{clients.delete(client)}}
 function broadcast(event,body){for(const c of clients)send(c,event,body)}
@@ -286,7 +318,7 @@ const server=http.createServer((req,res)=>{
    if(kind==='counties'&&!state)return json({error:'State required'},400);
    censusMap(kind,state||null).then(data=>json(data)).catch(err=>json({error:'Geography temporarily unavailable',detail:String(err.message)},503));return;
  }
- if(u.pathname==='/api/stories')return json({stories:currentNews().slice(0,500),initialized,lastScan,newsWindowHours:6});
+ if(u.pathname==='/api/stories')return json({stories:currentNews().slice(0,500),initialized,lastScan,newsWindowHours:6,...featuredPayload()});
  if(u.pathname==='/api/status')return json({sources:snapshot().sources,initialized,lastScan,pollIntervalMs:POLL});
  if(u.pathname==='/health')return json({ready:true,initialized,responding:Object.values(status).filter(x=>x.ok).length,lastScan});
  if(u.pathname==='/api/stream'){
