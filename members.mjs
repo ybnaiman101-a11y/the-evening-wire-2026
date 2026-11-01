@@ -75,6 +75,24 @@ export async function memberRoute(req,res,path){
   if(ready&&cookie(req))await db.query('DELETE FROM ew_member_sessions WHERE token_hash=$1',[tokenHash(cookie(req))]);
   send(res,200,{ok:true},{'Set-Cookie':sessionCookie('',0)});return true
  }
+ if(route==='profile'&&req.method==='POST'){
+  // Display names are identity data: derive the account exclusively from the secure
+  // member session, never a client-supplied user ID or email.
+  const account=await authenticatedMember(req);
+  if(!account){send(res,401,{error:'Sign in to edit your profile'});return true}
+  if(!ready){send(res,503,{error:'Database not connected'});return true}
+  if(!rate(req,'profile-'+account.id,8,3600000)){send(res,429,{error:'Too many profile changes. Try again in an hour.'});return true}
+  let obj;try{obj=await input(req)}catch(e){send(res,400,{error:e.message});return true}
+  const displayName=name(obj.displayName);
+  if(displayName.length<2||displayName.length>40||/[<>]/.test(displayName)){
+   send(res,400,{error:'Choose a display name between 2 and 40 characters, without < or >.'});return true
+  }
+  const result=await db.query('UPDATE ew_members SET display_name=$1 WHERE id=$2 RETURNING id,display_name,email,joined_at,last_login_at',[displayName,account.id]);
+  if(!result.rowCount){send(res,404,{error:'Member account not found'});return true}
+  // The Reaction Hub JOINs posts to member IDs, so existing linked posts/replies
+  // immediately display the updated name. Archived anonymous posts stay anonymous.
+  send(res,200,{ok:true,user:publicUser(result.rows[0]),message:'Display name updated across your account-linked messages and replies.'});return true
+ }
  if(!ready){send(res,503,{error:'Member registration is disabled until the permanent PostgreSQL database is connected.'});return true}
  // One-time activation for accounts that were registered BEFORE PINs existed.
  // Requires the account's original scrypt-protected password, not the admin password.
