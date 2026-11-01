@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: the-evening-wire-2026
+    runtime: node
+    plan: free
+    region: virginia
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: POLL_INTERVAL_MS
+        value: '60000'
