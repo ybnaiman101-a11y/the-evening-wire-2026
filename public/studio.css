@@ -103,3 +103,6 @@
 .ew-county-swing .ew-swing-table-wrap table{min-width:540px}
 .ew-county-swing .ew-swing-table-wrap td{white-space:normal}
 .ew-county-swing .ew-swing-table-wrap td:first-child{font-weight:900;color:#e7f6ff}
+
+.ew-studio-control-note{background:#0d2b43;border:1px solid #426c84;border-left:4px solid #60c5dc;border-radius:9px;margin:0 0 15px;padding:14px;font-size:11px;line-height:1.75;color:#c7ddea}
+.ew-studio-control-note b{color:#9bebf5}
