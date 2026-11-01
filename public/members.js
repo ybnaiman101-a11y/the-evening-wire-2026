@@ -25,10 +25,10 @@
  const tab=(id,label)=>'<button type="button" data-member-panel="'+id+'" class="'+(panel===id?'cmd-primary':'cmd-minibtn')+'">'+label+'</button>';
  const input=(type,name,autocomplete,placeholder,more='')=>'<input name="'+name+'" type="'+type+'" autocomplete="'+autocomplete+'" placeholder="'+placeholder+'" '+more+'>';
  function guestLogin(){
-  return '<h2>MEMBER SIGN IN</h2><p>Access your Evening Wire reader account.</p>'+
+  return '<h2>MEMBER SIGN IN</h2><p>Sign in with your email and private four-digit code. Five incorrect attempts lock sign-in for 30 minutes.</p>'+
    '<form id="ewMemberLogin" class="ew-member-form">'+
    '<label>Email address'+input('email','email','email','you@example.com','required maxlength="254"')+'</label>'+
-   '<label>Password'+input('password','password','current-password','Your password','required minlength="12"')+'</label>'+
+   '<label>Four-digit sign-in PIN'+input('password','pin','one-time-code','Four numbers','required inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4"')+'</label>'+
    '<button class="cmd-primary" type="submit" '+(!dbReady?'disabled':'')+'>SIGN IN</button></form>';
  }
  function signedIn(){
@@ -38,11 +38,11 @@
  }
  function signup(){
   if(member)return signedIn();
-  return '<h2>REGISTER A MEMBER ACCOUNT</h2><p>Create a reader account when permanent database storage is available.</p>'+
+  return '<h2>REGISTER A MEMBER ACCOUNT</h2><p>Choose a permanent display name, a recovery password, and a four-digit PIN for future sign-ins.</p>'+
    '<form id="ewMemberSignup" class="ew-member-form">'+
    '<label>Display name'+input('text','displayName','nickname','Your public display name','required minlength="2" maxlength="40"')+'</label>'+
    '<label>Email address'+input('email','email','email','you@example.com','required maxlength="254"')+'</label>'+
-   '<label>Password — at least 12 characters'+input('password','password','new-password','Choose a strong password','required minlength="12" maxlength="128"')+'</label>'+
+   '<label>Account recovery password — at least 12 characters'+input('password','password','new-password','Choose a strong password','required minlength="12" maxlength="128"')+'</label>'+ '<label>Four-digit sign-in PIN'+input('password','pin','new-password','Four numbers','required inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4"')+'</label>'+
    '<label class="ew-member-check"><input type="checkbox" name="agreed" required>'+
    '<span>I understand the owner can see my account name, email, registration date and last login. Emails are not verified.</span></label>'+
    '<button class="cmd-primary" type="submit" '+(!dbReady?'disabled':'')+'>CREATE ACCOUNT</button></form>';
@@ -82,13 +82,13 @@
   };
   const login=host.querySelector('#ewMemberLogin');
   if(login)login.onsubmit=e=>{e.preventDefault();perform(async()=>{
-   const d=new FormData(login);const data=await request('/api/members/login','POST',{email:d.get('email'),password:d.get('password')});
+   const d=new FormData(login);const data=await request('/api/members/login','POST',{email:d.get('email'),pin:d.get('pin')});
    member=data.user;status='Welcome back!';render()
   })};
   const registration=host.querySelector('#ewMemberSignup');
   if(registration)registration.onsubmit=e=>{e.preventDefault();perform(async()=>{
    const d=new FormData(registration),data=await request('/api/members/signup','POST',{
-    displayName:d.get('displayName'),email:d.get('email'),password:d.get('password'),agreed:d.get('agreed')==='on'
+    displayName:d.get('displayName'),email:d.get('email'),password:d.get('password'),pin:d.get('pin'),agreed:d.get('agreed')==='on'
    });
    member=data.user;panel='login';status='Your account has been created.';render()
   })};
@@ -103,5 +103,5 @@
   if(reload)reload.onclick=()=>perform(async()=>{await fetchMembers();status='Member list refreshed.';render()});
  }
  async function open(){status='';render();await sync();render()}
- window.EWMembers={open,sync};
+ window.EWMembers={open,sync,render,member:()=>member,loggedIn:()=>!!member};
 })();
