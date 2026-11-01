@@ -69,7 +69,11 @@ function mapView(){
  '<div class="ew-studio-toolbar">'+[['senate','U.S. SENATE · 35'],['house','U.S. HOUSE · 435'],['governor','GOVERNORS · 36']].map(([v,l])=>
  '<button type="button" data-ew-map-mode="'+v+'" class="'+(v===mode?'sel':'')+'">'+l+'</button>').join('')+
  '<button type="button" id="ewMapRefresh">↻ REFRESH CALLS</button></div>'+
- '<div id="ewLiveMapStats">'+mapStats()+'</div><div class="ew-map-grid"><section class="ew-map-main"><div id="ewStudioMap" class="ew-studio-map" aria-label="Accurate United States election map"></div>'+
+ '<div id="ewLiveMapStats">'+mapStats()+'</div><div class="ew-studio-control-note">'+
+ (mode==='house'?'<b>HOUSE MAJORITY:</b> At least 218 voting seats are needed to control the full 435-seat House. Uncalled races remain unassigned.':
+ mode==='senate'?'<b>SENATE CONTROL:</b> These are the 35 races on the 2026 ballot. The 65 non-election seats and vacancies must be counted separately before claiming control.':
+ '<b>GOVERNORSHIPS:</b> These 36 election contests do not constitute a legislative chamber. Uncalled means no published projection.')+
+ '</div><div class="ew-map-grid"><section class="ew-map-main"><div id="ewStudioMap" class="ew-studio-map" aria-label="Accurate United States election map"></div>'+
  '<div class="ew-map-legend"><span><i class="red"></i> GOP CALLED</span><span><i class="blue"></i> DEMOCRAT CALLED</span><span><i class="gray"></i> NOT CALLED</span><span><i class="dark"></i> NO 2026 CONTEST</span></div>'+
  '<p class="ew-studio-note">Geographic boundaries: U.S. Census TIGERweb. Map colors represent only the site owner’s sourced editorial calls, not official results. Ohio and Florida are special Senate elections.</p></section>'+
  '<aside class="ew-map-aside"><h3>RACE INSPECTOR</h3><div id="ewMapInspector">'+mapSelection()+'</div>'+
@@ -160,11 +164,11 @@ function swingDetail(){
  if(!p20||!p24)return '<p>Historic source unavailable for selected state.</p>';
  const margin20=p20.margin,margin24=p24.margin,change=margin24-margin20;
  const turnout=(p24.totalVotes-p20.totalVotes)/p20.totalVotes*100;
- const finals=swingFinals(swingState);
+ const finals=swingFinals(swingState),winner20=margin20>=0?'R':'D',winner24=margin24>=0?'R':'D';
  return '<div class="ew-swing-state-head"><h2>'+esc((window.EWMaps?.NAMES||{})[swingState]||swingState)+'</h2><p>Actual statewide presidential baseline — Republican margin minus Democratic margin</p></div>'+
  bar('2020 · PRESIDENT',margin20,'TOTAL VOTES '+fmt(p20.totalVotes))+
  bar('2024 · PRESIDENT',margin24,'TOTAL VOTES '+fmt(p24.totalVotes))+
- '<div class="ew-swing-metrics"><div><small>2020 → 2024 PRESIDENTIAL MARGIN CHANGE</small><strong>'+delta(change)+'</strong><p>'+(change>=0?'Republican':'Democratic')+' relative shift</p></div>'+
+ '<div class="ew-swing-metrics"><div><small>2020 → 2024 PRESIDENTIAL MARGIN CHANGE</small><strong>'+delta(change)+'</strong><p>'+(change>=0?'Republican':'Democratic')+' relative shift · '+(winner20!==winner24?'STATE FLIPPED '+winner20+' → '+winner24:'Same party carried the state')+'</p></div>'+
  '<div><small>2020 → 2024 PRESIDENTIAL VOLUME CHANGE</small><strong>'+(turnout>=0?'+':'')+turnout.toFixed(2)+'%</strong><p>Ballots counted, not turnout rate</p></div></div>'+
  '<h3>2026 OFFICIAL FINALS (IF AVAILABLE)</h3>'+
  (finals.length?finals.map(f=>{
@@ -187,11 +191,11 @@ function swingView(){
  '<span class="ew-studio-note">Red = Republican margin · Blue = Democratic margin</span></div>'+
  '<div class="ew-swing-layout"><section class="ew-studio-panel" id="ewSwingDetail">'+swingDetail()+'</section>'+
  '<aside class="ew-studio-panel"><h3>STATEWIDE HISTORICAL CHANGE · 2020 → 2024</h3><p>Positive movement means the Republican margin grew between presidential elections; negative movement means it shrank.</p>'+
- '<div class="ew-swing-table-wrap"><table><thead><tr><th>STATE</th><th>2020</th><th>2024</th><th>Δ R MARGIN</th></tr></thead><tbody>'+
+ '<div class="ew-swing-table-wrap"><table><thead><tr><th>STATE</th><th>2020</th><th>2024</th><th>Δ R MARGIN</th><th>FLIPPED?</th></tr></thead><tbody>'+
  Object.keys(historical?.states||{}).sort().map(code=>{
   const v20=historicLine(code,'2020'),v24=historicLine(code,'2024');
   return '<tr data-ew-swing-pick="'+esc(code)+'"><td><button type="button" data-ew-swing-state="'+esc(code)+'">'+esc(code)+'</button></td>'+
-   '<td>'+fmtMargin(v20.margin)+'</td><td>'+fmtMargin(v24.margin)+'</td><td class="'+(v24.margin-v20.margin>=0?'ew-rchange':'ew-dchange')+'">'+delta(v24.margin-v20.margin)+'</td></tr>'
+   '<td>'+fmtMargin(v20.margin)+'</td><td>'+fmtMargin(v24.margin)+'</td><td class="'+(v24.margin-v20.margin>=0?'ew-rchange':'ew-dchange')+'">'+delta(v24.margin-v20.margin)+'</td><td>'+(Math.sign(v20.margin)!==Math.sign(v24.margin)?'YES':'—')+'</td></tr>'
  }).join('')+'</tbody></table></div></aside></div>';
  setupLinks();
  app.querySelector('#ewSwingState').onchange=e=>{swingState=e.target.value;countyState='';app.querySelector('#ewSwingDetail').innerHTML=swingDetail();loadCounty(swingState)};
