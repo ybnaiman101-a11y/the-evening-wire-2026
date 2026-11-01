@@ -19,6 +19,7 @@ async function setup(){
   await pool.query("CREATE TABLE IF NOT EXISTS community_likes(post_id uuid NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,visitor varchar(24) NOT NULL,PRIMARY KEY(post_id,visitor))");
   await pool.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS member_id uuid REFERENCES ew_members(id)");
   await pool.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS parent_id uuid REFERENCES community_posts(id) ON DELETE CASCADE");
+  await pool.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS edited_at timestamptz");
   await pool.query("CREATE INDEX IF NOT EXISTS ew_community_parent_idx ON community_posts(parent_id)");
   await pool.query("CREATE TABLE IF NOT EXISTS community_reports(post_id uuid NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,member_id uuid NOT NULL REFERENCES ew_members(id),PRIMARY KEY(post_id,member_id))");
   ready=true;console.log('REACTION_HUB_DATABASE_CONNECTED');
@@ -38,7 +39,7 @@ export async function communityRoute(req,res,path){
  try{
   if(route==='posts'&&req.method==='GET'){
    const topic=new URL(req.url,'http://localhost').searchParams.get('topic');
-   const q=await pool.query("SELECT p.id,COALESCE(m.display_name,p.name) AS name,p.topic,p.message,p.created_at,p.likes,p.parent_id,p.member_id,COALESCE((SELECT count(*)::int FROM community_posts replies WHERE replies.parent_id=p.id AND replies.status='visible'),0) AS reply_count FROM community_posts p LEFT JOIN ew_members m ON p.member_id=m.id WHERE p.status='visible' AND ($1::text IS NULL OR p.topic=$1) ORDER BY p.created_at DESC LIMIT 350",[topics.has(topic)?topic:null]);
+   const q=await pool.query("SELECT p.id,COALESCE(m.display_name,p.name) AS name,p.topic,p.message,p.created_at,p.edited_at,p.likes,p.parent_id,p.member_id,COALESCE((SELECT count(*)::int FROM community_posts replies WHERE replies.parent_id=p.id AND replies.status='visible'),0) AS reply_count FROM community_posts p LEFT JOIN ew_members m ON p.member_id=m.id WHERE p.status='visible' AND ($1::text IS NULL OR p.topic=$1) ORDER BY p.created_at DESC LIMIT 350",[topics.has(topic)?topic:null]);
    respond(res,200,{ready:true,posts:q.rows});return true
   }
   if(route==='posts'&&req.method==='POST'){
@@ -50,6 +51,18 @@ export async function communityRoute(req,res,path){
     if(!q.rowCount||q.rows[0].topic!==topic||q.rows[0].parent_id){respond(res,400,{error:'Replies must be to an existing top-level message in the same category.'});return true}
    }
    const id=randomUUID();await pool.query('INSERT INTO community_posts(id,name,topic,message,member_id,parent_id) VALUES($1,$2,$3,$4,$5,$6)',[id,name,topic,message,member.id,parent]);respond(res,201,{ok:true,id});return true
+  }
+  const edit=route.match(/^([a-f0-9-]{36})\/edit$/);
+  if(edit&&req.method==='POST'){
+   // Member ID is taken from the signed-in session, never supplied by the client.
+   if(!rate(req,12,600000)){respond(res,429,{error:'Too many message edits. Try again shortly.'});return true}
+   const x=await input(req),message=String(x.message||'').trim();
+   if(message.length<8||message.length>700||/https?:\/\/|www\./i.test(message)){
+    respond(res,400,{error:'Write 8–700 characters without links.'});return true
+   }
+   const updated=await pool.query("UPDATE community_posts SET message=$1,edited_at=now() WHERE id=$2 AND member_id=$3 AND status='visible' RETURNING id",[message,edit[1],member.id]);
+   if(!updated.rowCount){respond(res,403,{error:'You can only edit your own visible messages.'});return true}
+   respond(res,200,{ok:true,id:updated.rows[0].id});return true
   }
   const like=route.match(/^([a-f0-9-]{36})\/like$/);
   if(like&&req.method==='POST'){
