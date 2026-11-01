@@ -560,7 +560,7 @@ async function sync(){
   if(values[0]){news=(values[0].stories||[]).sort((a,b)=>Date.parse(b.published)-Date.parse(a.published));newsScan=values[0].lastScan}
   if(values[1]){sources=values[1].sources||sources;newsScan=values[1].lastScan||newsScan;feedConnected=true}
   if(values[2])results=values[2];
-  if(active!=='news'&&!document.activeElement?.matches('#cmdRaceSearch'))render();
+  if(active!=='news'&&active!=='reactions'&&!document.activeElement?.matches('#cmdRaceSearch'))render();
  }catch(e){console.warn('Election Desk sync',e)}
 }
 document.querySelector('.command-nav').addEventListener('click',e=>{const b=e.target.closest('[data-ew-tab]');if(b)go(b.dataset.ewTab)});
