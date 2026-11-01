@@ -4,6 +4,7 @@ import {apSnapshot} from './ap-election-results.mjs';
 import {communityRoute} from './community.mjs';
 import {memberRoute,authenticatedMember} from './members.mjs';
 import {trafficRoute} from './traffic.mjs';
+import {updateRoute} from './election-updates.mjs';
 import {URL} from 'node:url';
 
 const PORT = Number(process.env.PORT || 3000);
@@ -301,6 +302,9 @@ const server=http.createServer(async (req,res)=>{
   if(u.pathname.startsWith('/api/'))return json({error:'Member registration or sign-in required',login:'/'} ,401);
   return json({error:'Member registration or sign-in required'},401);
  }
+ if(u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')){
+  updateRoute(req,res,u.pathname).catch(err=>{console.error('Election Update API error',String(err.message||err));if(!res.headersSent)json({error:'Election Update service temporarily unavailable'},503);else res.end()});return;
+ }
  if(u.pathname.startsWith('/api/traffic/')){trafficRoute(req,res,u.pathname).catch(err=>{console.error('Traffic API error',err);if(!res.headersSent)json({error:'Traffic temporarily unavailable'},503);else res.end()});return;}
 
  if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname).catch(err=>{console.error('Community API request error:',String(err?.message||err));if(!res.headersSent)json({error:'Community service temporarily unavailable'},503);else res.end()});return;}
@@ -320,6 +324,7 @@ const server=http.createServer(async (req,res)=>{
   });
  }
 
+ if(u.pathname==='/election-updates.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/election-updates.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Election updates script unavailable'},404));return;}
  if(u.pathname==='/traffic.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/traffic.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store'});res.end(b)}).catch(()=>json({error:'Traffic script unavailable'},404));return;}
  if(u.pathname==='/members.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/members.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/editor-calls.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/editor-calls.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
