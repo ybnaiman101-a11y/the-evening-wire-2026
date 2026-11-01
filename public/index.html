@@ -220,6 +220,36 @@ body{background:#070d16;color:#e7f2ff}
 .ew-traffic-login input{padding:12px;border-radius:8px;background:#081c30;color:#fff;border:1px solid #4a758e}
 .ew-traffic-disclosure,.ew-traffic-empty{font-size:12px;color:#abcadd;line-height:1.7}
 @media(max-width:760px){.ew-traffic-grid,.ew-traffic-two{grid-template-columns:1fr}.ew-replies .ew-reply{margin-left:10px!important}}
+
+/* NEWS TEXT OVERFLOW FIX — all viewport sizes and external publisher headlines.
+   Unbroken words, long URLs and feed metadata must never expand cards or overlap. */
+html,body{max-width:100%;overflow-x:clip}
+.layout,.spotlight,.metrics,.cmd-grid,.cmd-split,#commandDesk,.wrap,
+.main,.sidebar,.spot-main,.spot-aside,.story,.stories,.story-header,
+.story h3,.spot-main h2,.spot-mini,.cmd-card,.cmd-call,.cmd-activity,
+.cmd-row,.cmd-row .txt,.cmd-banner,.cmd-hero,.sidebox{min-width:0}
+.story,.spot-main,.spot-aside,.sidebox,.cmd-card,.cmd-call,.cmd-activity,.cmd-hero{
+  max-width:100%;
+}
+.story h3,.story h3 a,.story p,.story-header span,.spot-main h2,
+.spot-main h2 a,.spot-mini b,.spot-mini span,.spot-source,
+.cmd-card h3,.cmd-card p,.cmd-activity a,.cmd-activity small,
+.cmd-row .txt strong,.cmd-row .txt small,.cmd-call h3,.cmd-call small,
+.cmd-call a,.cmd-void,.saved-description,.ticker,.ticker div{
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.story-header{min-width:0;flex-wrap:wrap;row-gap:5px}
+.story-header span{min-width:0;flex:1 1 110px}
+.story-header time{flex:0 1 auto;max-width:100%;white-space:normal}
+.story h3 a,.spot-main h2 a{display:inline;max-width:100%}
+.spot-mini,.cmd-activity a,.cmd-call a{white-space:normal}
+.cmd-activity>div{min-width:0;flex:1}
+.cmd-row .end{flex-shrink:0}
+@media(max-width:680px){
+ .spotlight,.layout,.cmd-grid,.cmd-split{min-width:0;max-width:100%}
+ .story,.spot-main,.spot-aside,.cmd-card{overflow-wrap:anywhere}
+}
 </style></head>
 <body>
 <header class="ew-masthead">
