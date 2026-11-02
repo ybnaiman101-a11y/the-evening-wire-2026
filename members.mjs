@@ -6,6 +6,7 @@ import {promisify} from 'node:util';
 import {isEditorAdmin} from './editor-calls.mjs';
 const scrypt=promisify(scryptCb);
 const url=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
+const databaseSource=['DATABASE_URL','REACTION_DATABASE_URL','POSTGRES_URL','POSTGRESQL_URL','DB_URL'].find(key=>Boolean(process.env[key]))||'none';
 let db=null,ready=false,connecting=false,diagnostic=null;
 const rateLimit=new Map();
 const send=(res,status,data,headers={})=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(JSON.stringify(data))};
@@ -61,7 +62,7 @@ export async function memberRoute(req,res,path){
   if(!ready){send(res,503,{error:'Member database not connected. No persistent member accounts available.',members:[]});return true}
   const totals=await db.query('SELECT count(*)::integer AS total FROM ew_members');
   const users=await db.query('SELECT id,display_name,email,joined_at,last_login_at FROM ew_members ORDER BY joined_at DESC LIMIT 200');
-  send(res,200,{total:totals.rows[0].total,returned:users.rows.length,members:users.rows.map(publicUser),notice:'Emails are user-entered and are not verified. Passwords are never displayed.'});return true
+  send(res,200,{total:totals.rows[0].total,returned:users.rows.length,members:users.rows.map(publicUser),storageSource:databaseSource,notice:'Emails are user-entered and are not verified. Passwords are never displayed.'});return true
  }
  if(!path.startsWith('/api/members/'))return false;
  const route=path.slice('/api/members/'.length);
