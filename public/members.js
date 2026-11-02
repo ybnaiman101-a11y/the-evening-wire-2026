@@ -32,8 +32,12 @@
    alternateDatabases=Array.isArray(data.alternateDatabases)?data.alternateDatabases:[];
   }catch(err){
    memberFetchError=String(err.message||err);
-   status='Unable to load member records: '+memberFetchError;
-   // An API error must NEVER be presented as a verified count of zero.
+   // A rejected owner session should return the visitor to the owner sign-in form,
+   // rather than displaying a stale directory and an unexplained permission error.
+   if(/administrator authentication required|admin login required|owner authentication required/i.test(memberFetchError)){
+    admin=false;panel='admin';
+    status='Please sign in with your owner password to reopen your private reader list.';
+   }else status='Unable to load member records: '+memberFetchError;
    memberListLoaded=false;
   }
   if(admin)await fetchUpdates();
