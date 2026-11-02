@@ -366,6 +366,21 @@ html,body{max-width:100%;overflow-x:clip}
 .ew-owner-broadcast-actions button{flex:1 1 200px}
 .ew-alert-progress{height:5px;width:100%;background:linear-gradient(90deg,#16c5d8,#a9eaf2);transform-origin:left;animation:ewAlertCountdown 10s linear forwards}
 @keyframes ewAlertCountdown{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+
+/* Calls dashboard: high legibility, party and state prominent. */
+.cmd-call{padding:24px!important;border-radius:16px!important;min-width:0}
+.cmd-call-badges{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.cmd-call .cmd-call-party{font:900 clamp(15px,1.25vw,20px)/1.2 'DM Sans',system-ui,sans-serif;letter-spacing:.45px;text-transform:uppercase;border-radius:10px;padding:9px 13px;border:2px solid #587189;color:#e5f5ff;background:#254058}
+.cmd-call.r .cmd-call-party{color:#fff0f2;background:#803040;border-color:#ff627a}
+.cmd-call.d .cmd-call-party{color:#eff7ff;background:#19487f;border-color:#6fb1ff}
+.cmd-call .cmd-call-source-type{font:800 10px/1.4 'DM Sans',system-ui,sans-serif;letter-spacing:1px;color:#b4c9dc}
+.cmd-call h3.cmd-call-candidate{font:900 clamp(29px,2.45vw,39px)/1.08 'Barlow Condensed',Impact,sans-serif;margin:16px 0 14px;color:#fff;overflow-wrap:anywhere}
+.cmd-call-race{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:7px 0 15px}
+.cmd-call .cmd-call-state{font:900 clamp(22px,1.9vw,29px)/1.1 'Barlow Condensed',Impact,sans-serif;letter-spacing:.5px;color:#fff}
+.cmd-call .cmd-call-office,.cmd-call .cmd-call-district{font:900 clamp(15px,1.15vw,18px)/1.25 'DM Sans',system-ui,sans-serif;letter-spacing:.35px;padding:5px 9px;border-radius:7px;background:#243e58;color:#dcf3ff;border:1px solid #436b86}
+.cmd-call .cmd-call-meta{font:700 13px/1.45 'DM Sans',system-ui,sans-serif;color:#b9cde0}
+.cmd-call a.cmd-call-original{font-size:13px;font-weight:900;line-height:1.5;margin-top:18px}
+@media(max-width:620px){.cmd-call{padding:19px!important}.cmd-call-race{gap:8px}.cmd-call .cmd-call-source-type{font-size:10px}.cmd-call .cmd-call-state{font-size:25px}}
 </style>
 <link rel="stylesheet" href="/election-maps.css"><link rel="stylesheet" href="/studio.css"></head>
 <body>
@@ -770,7 +785,20 @@ function raceList(type){
  return title(page,subtitle)+notice()+'<p class="ew-candidate-provenance">Candidate names: <a target="_blank" rel="noopener noreferrer" href="https://github.com/ElectIndex/26_us_forecast_data/blob/main/races.csv">2026 curated election roster</a> — not an official certified ballot. Some races have independents or two same-party nominees; where no opposing nominee is confirmed, none is invented.</p>'+'<div class="cmd-toolbar"><input aria-label="Search races" placeholder="Search states, offices, districts…" id="cmdRaceSearch" value="'+esc(raceQuery)+'"><select id="cmdStateFilter" aria-label="Filter state">'+options+'</select><span class="cmd-pill">'+data.length+' MATCHING CONTESTS</span></div><div class="cmd-card"><div class="cmd-scroll">'+data.slice(0,isHouse?houseLimit:120).map(cardRace).join('')+'</div></div>'+(isHouse&&data.length>houseLimit?'<div class="cmd-toolbar"><button data-show-more="1" class="cmd-primary">SHOW MORE DISTRICTS · '+(data.length-houseLimit)+' REMAINING</button></div>':'')
 }
 function callCards(arr){
- return arr.map(c=>'<div class="cmd-call '+(c.party==='R'?'r':c.party==='D'?'d':'')+'"><span class="cmd-pill '+(c.party==='R'?'red':c.party==='D'?'blue':'')+'">'+esc(partyLabel(c.party))+' · '+(c.editorial?'EVENING WIRE EDITORIAL CALL':'SOURCE PROJECTION')+'</span><h3>'+esc(c.candidate)+'</h3><small>'+esc(stateName(c.state))+' · '+esc(c.office.toUpperCase())+(c.district?' · District '+c.district:'')+'<br>'+esc(c.sourceName)+' · '+formatTime(c.calledAt)+'</small><a href="'+siteURL(c.sourceUrl)+'" target="_blank" rel="noopener noreferrer">OPEN ORIGINAL CALL ANNOUNCEMENT ↗</a></div>').join('')
+ return arr.map(c=>{
+  const partyClass=c.party==='R'?'r':c.party==='D'?'d':'';
+  const party=esc(partyLabel(c.party)).toUpperCase();
+  const state=esc(stateName(c.state)).toUpperCase();
+  const office=esc(c.office==='house'?'HOUSE':c.office==='governor'?'GOVERNOR':'SENATE');
+  const district=c.district?'<span class="cmd-call-district">DISTRICT '+esc(c.district)+'</span>':'';
+  return '<article class="cmd-call '+partyClass+'">'+
+   '<div class="cmd-call-badges"><span class="cmd-call-party">'+party+'</span><span class="cmd-call-source-type">'+(c.editorial?'EVENING WIRE EDITORIAL CALL':'SOURCE PROJECTION')+'</span></div>'+
+   '<h3 class="cmd-call-candidate">'+esc(c.candidate)+'</h3>'+
+   '<div class="cmd-call-race"><strong class="cmd-call-state">'+state+'</strong><span class="cmd-call-office">'+office+'</span>'+district+'</div>'+
+   '<div class="cmd-call-meta">'+esc(c.sourceName)+' · '+formatTime(c.calledAt)+'</div>'+
+   '<a class="cmd-call-original" href="'+siteURL(c.sourceUrl)+'" target="_blank" rel="noopener noreferrer">OPEN ORIGINAL CALL ANNOUNCEMENT ↗</a>'+
+   '</article>';
+ }).join('')
 }
 function callsView(){
  const calls=(results.calls||[]).filter(x=>callFilter==='all'||x.office===callFilter).slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt));
