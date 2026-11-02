@@ -47,13 +47,13 @@ export async function updateRoute(req,res,path){
   return true
  }
  if(path==='/api/updates/admin'&&req.method==='GET'){
-  if(!isEditorAdmin(req)){send(res,403,{error:'Owner authentication required'});return true}
+  if(!await isEditorAdmin(req)){send(res,403,{error:'Owner authentication required'});return true}
   const rows=await pool.query("SELECT id,category,message,source_url,created_at,expires_at,retracted_at FROM ew_election_updates ORDER BY created_at DESC LIMIT 30");
   send(res,200,{updates:rows.rows.map(record)});return true
  }
  if(req.method==='POST'&&!sameOrigin(req)){send(res,403,{error:'Request origin not allowed'});return true}
  if(path==='/api/updates'&&req.method==='POST'){
-  if(!isEditorAdmin(req)){send(res,403,{error:'Only The Evening Wire owner can publish Election Updates.'});return true}
+  if(!await isEditorAdmin(req)){send(res,403,{error:'Only The Evening Wire owner can publish Election Updates.'});return true}
   let x;try{x=await body(req)}catch(e){send(res,400,{error:e.message});return true}
   const message=String(x.message||'').trim(),category=String(x.category||'important');
   if(message.length<8||message.length>700||!types.has(category)){
@@ -75,7 +75,7 @@ export async function updateRoute(req,res,path){
  }
  const remove=path.match(/^\/api\/updates\/([0-9a-f-]{36})\/retract$/);
  if(remove&&req.method==='POST'){
-  if(!isEditorAdmin(req)){send(res,403,{error:'Owner authentication required'});return true}
+  if(!await isEditorAdmin(req)){send(res,403,{error:'Owner authentication required'});return true}
   const row=await pool.query("UPDATE ew_election_updates SET retracted_at=now() WHERE id=$1 AND retracted_at IS NULL RETURNING id",[remove[1]]);
   if(!row.rowCount){send(res,404,{error:'Election Update not found or already withdrawn'});return true}
   push('election-update-withdrawn',{id:remove[1]});
