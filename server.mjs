@@ -325,6 +325,14 @@ const server=http.createServer(async (req,res)=>{
   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});
   return res.end(loginPage);
  }
+ if(u.pathname==='/about-security'){
+  try{
+   const html=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/about-security.html',import.meta.url),'utf8'));
+   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});
+   return res.end(html);
+  }catch(err){return json({error:'About and account-safety information is temporarily unavailable'},503)}
+ }
+
  const visitor=await authenticatedMember(req).catch(()=>null);
  const publicRead = req.method==='GET' && (
   ['/api/stories','/api/status','/api/stream','/api/election','/api/historical','/api/historical/counties','/api/race-catalog','/api/editor/calls'].includes(u.pathname) ||
