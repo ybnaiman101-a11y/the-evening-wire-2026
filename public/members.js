@@ -4,7 +4,7 @@
  const host=document.getElementById('commandDesk');if(!host)return;
  const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
  const when=x=>x&&Number.isFinite(Date.parse(x))?new Date(x).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',year:'numeric'}):'Never';
- let panel='login',dbReady=false,member=null,admin=false,memberRows=[],total=0,status='',loading=false,adminUpdates=[];
+ let panel='login',dbReady=false,member=null,admin=false,memberRows=[],total=0,status='',loading=false,adminUpdates=[],memberListLoaded=false,memberFetchError='',storageSource='';
  const shown=()=>document.body.dataset.ewView==='members';
  async function request(url,method='GET',body){
   const response=await fetch(url,{method,credentials:'same-origin',cache:'no-store',
@@ -19,9 +19,19 @@
   if(panel==='admin'&&admin&&dbReady)await fetchMembers();
  }
  async function fetchMembers(){
-  try{const data=await request('/api/admin/members');memberRows=data.members||[];total=data.total||0}
-  catch(err){status=err.message;memberRows=[];total=0}
-  if(admin)await fetchUpdates()
+  try{
+   const data=await request('/api/admin/members');
+   if(!Array.isArray(data.members)||!Number.isSafeInteger(data.total))throw Error('Invalid response from the member directory');
+   memberRows=data.members;total=data.total;memberListLoaded=true;memberFetchError='';
+   storageSource=String(data.storageSource||'PostgreSQL');
+  }catch(err){
+   memberFetchError=String(err.message||err);
+   status='Unable to load member records: '+memberFetchError;
+   // An API error must NEVER be presented as a verified count of zero.
+   memberListLoaded=false;
+  }
+  if(admin)await fetchUpdates();
+  return !memberFetchError;
  }
  async function fetchUpdates(){
   try{const data=await request('/api/updates/admin');adminUpdates=Array.isArray(data.updates)?data.updates:[]}
@@ -82,12 +92,15 @@
   if(!admin)return '<h2>OWNER ONLY · ADMIN LOGIN</h2><p>Use your private Races Called administrator password. Public readers cannot see registered members.</p>'+
    '<form id="ewMemberAdminLogin" class="ew-member-form"><label>Owner administrator password'+input('password','password','current-password','Private admin password','required')+'</label>'+
    '<button class="cmd-primary" type="submit">UNLOCK ADMIN DIRECTORY</button></form>';
-  return '<div class="ew-members-head"><h2>REGISTERED READERS</h2><span>'+total+' total</span></div>'+
-   (!dbReady?'<p>Permanent storage is not connected yet. No member accounts can be registered.</p>':
-    '<p class="ew-members-disclosure">Private owner view · Email addresses are supplied by visitors, not verified. Passwords and password hashes are never shown.</p>'+
+  return '<div class="ew-members-head"><h2>REGISTERED READERS</h2><span>'+(memberListLoaded&&!memberFetchError?total+' total':'COUNT UNAVAILABLE')+'</span></div>'+
+   (!dbReady?'<p class="ew-members-offline">The member database is not connected. Existing accounts cannot be verified until the connection is restored.</p>':
+    memberFetchError?'<p class="ew-members-offline"><strong>MEMBER LIST COULD NOT BE LOADED</strong><p>'+safe(memberFetchError)+'</p><p>This is not a confirmed zero-member count. Check the database and try Refresh.</p></p>':
+    !memberListLoaded?'<p class="ew-members-disclosure">Loading registered readers from PostgreSQL…</p>':
+    '<p class="ew-members-disclosure">Private owner view · Display names and emails are from the active '+safe(storageSource)+' database. Emails are not verified. Passwords are never shown.</p>'+
+    (total===0?'<p class="ew-members-offline">No member records were found in the database currently connected to this deployment. If readers previously registered, confirm this is the same PostgreSQL database used when they signed up; do not create fake entries or reset your accounts.</p>':'')+
     '<div class="ew-members-table-wrap"><table class="ew-members-table"><thead><tr><th>Display name</th><th>Email address</th><th>Joined</th><th>Last login</th></tr></thead>'+
     '<tbody>'+(memberRows.length?memberRows.map(x=>'<tr><td>'+safe(x.displayName)+'</td><td>'+safe(x.email)+'</td><td>'+when(x.joinedAt)+'</td><td>'+when(x.lastLoginAt)+'</td></tr>').join(''):
-    '<tr><td colspan="4">No registered readers yet.</td></tr>')+'</tbody></table></div>')+
+    '<tr><td colspan="4">No records found in the connected database.</td></tr>')+'</tbody></table></div>')+
    '<button type="button" class="cmd-minibtn" id="ewMembersReload">REFRESH MEMBER LIST</button>'+updateAdminPanel();
  }
  function render(){
@@ -161,7 +174,7 @@
   const logout=host.querySelector('#ewMemberLogout');
   if(logout)logout.onclick=()=>perform(async()=>{await request('/api/members/logout','POST');member=null;status='Signed out.';render()});
   const reload=host.querySelector('#ewMembersReload');
-  if(reload)reload.onclick=()=>perform(async()=>{await fetchMembers();status='Member list refreshed.';render()});
+  if(reload)reload.onclick=()=>perform(async()=>{const ok=await fetchMembers();if(ok)status='Member directory refreshed from the connected database.';render()});
  }
  async function open(){status='';render();await sync();render()}
  window.EWMembers={open,sync,render,member:()=>member,loggedIn:()=>!!member};
