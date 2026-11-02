@@ -982,8 +982,11 @@ go(active);sync();setInterval(sync,30000);document.addEventListener('visibilityc
   const target=e.target.closest('button,a,[role="button"]');
   if(!target||signedIn||!checked)return;
   if(target.closest('.ew-guest-note')||target.closest('a[href="/login"]'))return;
-  // Let visitors scroll, view stories and see the public dashboard.
-  // Any click that operates a tool instead takes them to account creation/sign-in.
+  // Guest navigation must not block member sign-in or registration buttons.
+  // Server-side authorization still protects owner tools.
+  if(target.closest('[data-ew-tab="members"]'))return;
+  if(document.body.dataset.ewView==='members'&&target.closest('#commandDesk'))return;
+  // Other interactive newsroom tools require a reader account.
   e.preventDefault();e.stopImmediatePropagation();
   window.location.assign('/login');
  },true);
