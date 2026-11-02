@@ -14,8 +14,18 @@ let calls=[],audit=[],store=db?'unavailable':'temporary',pool=null,queue=Promise
 function send(res,code,data,headers={}){res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(JSON.stringify(data))}
 function meta(){return {configured:/^[a-f0-9]{64}$/.test(passwordHash),storage:store,persistent:store==='postgresql',warning:store==='temporary'?'Temporary server storage: calls may disappear after a restart or redeployment. Export backups until PostgreSQL is connected.':null}}
 const snapshot=()=>({version:1,calls,audit});
-export function isEditorAdmin(req){return current(req)}
-function current(req){const key=(String(req.headers.cookie||'').match(/(?:^|;\s*)ew_editor_session=([a-f0-9]{64})(?:;|$)/)||[])[1];const expiry=sessions.get(key);return !!expiry&&expiry>Date.now()}
+export async function isEditorAdmin(req){await init;return current(req)}
+async function current(req){
+ const key=(String(req.headers.cookie||'').match(/(?:^|;\s*)ew_editor_session=([a-f0-9]{64})(?:;|$)/)||[])[1];
+ if(!key)return false;
+ if(store==='postgresql'){
+  try{
+   const row=await pool.query("SELECT 1 FROM ew_editor_sessions WHERE token_hash=$1 AND expires_at>now() LIMIT 1",[createHash('sha256').update(key).digest('hex')]);
+   return row.rowCount>0;
+  }catch(err){console.warn('EW_ADMIN_SESSION_CHECK_FAILED',String(err.message||err));return false}
+ }
+ const expiry=sessions.get(key);return !!expiry&&expiry>Date.now();
+}
 function secureOrigin(req){return !req.headers.origin||req.headers.origin==='https://'+req.headers.host||req.headers.origin==='http://'+req.headers.host}
 function validPassword(value){return typeof value==='string'&&value.length<=256&&/^[a-f0-9]{64}$/.test(passwordHash)&&timingSafeEqual(createHash('sha256').update(value).digest(),Buffer.from(passwordHash,'hex'))}
 async function input(req,max=250000){let s='';for await(const chunk of req){s+=chunk;if(s.length>max)throw Error('Request too large')}try{return JSON.parse(s||'{}')}catch{throw Error('Invalid JSON')}}
@@ -42,6 +52,7 @@ const init=(async()=>{
  if(db){try{
   pool=new Pool({connectionString:db,max:3,connectionTimeoutMillis:8000,ssl:db.includes('localhost')?false:{rejectUnauthorized:false}});
   await pool.query('CREATE TABLE IF NOT EXISTS ew_editor_state(id integer PRIMARY KEY,data jsonb NOT NULL)');
+  await pool.query('CREATE TABLE IF NOT EXISTS ew_editor_sessions(token_hash varchar(64) PRIMARY KEY,expires_at timestamptz NOT NULL)');
   const result=await pool.query('SELECT data FROM ew_editor_state WHERE id=1'),saved=result.rows[0]?.data;
   if(Array.isArray(saved?.calls)){calls=saved.calls;audit=Array.isArray(saved.audit)?saved.audit:[]}
   store='postgresql';console.log('EW_EDITOR_DB_READY total='+calls.length);return;
@@ -55,7 +66,7 @@ export function publicMeta(){return meta()}
 export async function editorRoute(req,res,path){
  if(path==='/api/editor/calls'){await init;send(res,200,{...meta(),calls:publicCalls()});return true}
  if(!path.startsWith('/api/admin/'))return false;
- await init;const route=path.slice('/api/admin/'.length),authed=current(req);
+ await init;const route=path.slice('/api/admin/'.length),authed=await current(req);
  if(route==='session'&&req.method==='GET'){send(res,200,{authenticated:authed,...meta(),count:calls.length});return true}
  if(!secureOrigin(req)){send(res,403,{error:'Origin not allowed'});return true}
  if(route==='login'&&req.method==='POST'){
@@ -63,10 +74,18 @@ export async function editorRoute(req,res,path){
   if(last&&n-last.start<900000&&last.count>=6){send(res,429,{error:'Too many attempts. Try again later.'});return true}
   let b;try{b=await input(req,1500)}catch(e){send(res,400,{error:e.message});return true}
   if(!validPassword(b.password)){const f=last&&n-last.start<900000?last:{start:n,count:0};f.count++;failures.set(address,f);send(res,401,{error:'Incorrect administrator password'});return true}
-  failures.delete(address);const key=randomBytes(32).toString('hex');sessions.set(key,n+43200000);
+  failures.delete(address);const key=randomBytes(32).toString('hex');
+  if(store==='postgresql'){
+   try{await pool.query("INSERT INTO ew_editor_sessions(token_hash,expires_at) VALUES($1,now()+interval '12 hours')",[createHash('sha256').update(key).digest('hex')])}
+   catch(err){console.error('EW_ADMIN_SESSION_SAVE_FAILED',String(err.message||err));send(res,503,{error:'Unable to save your secure administrator session. Please retry.'});return true}
+  }else sessions.set(key,n+43200000);
   send(res,200,{authenticated:true,...meta(),count:calls.length},{'Set-Cookie':'ew_editor_session='+key+'; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=43200'});return true;
  }
- if(route==='logout'&&req.method==='POST'){const k=(String(req.headers.cookie||'').match(/ew_editor_session=([a-f0-9]{64})/)||[])[1];sessions.delete(k);send(res,200,{authenticated:false},{'Set-Cookie':'ew_editor_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'});return true}
+ if(route==='logout'&&req.method==='POST'){
+  const k=(String(req.headers.cookie||'').match(/ew_editor_session=([a-f0-9]{64})/)||[])[1];
+  if(k&&store==='postgresql')await pool.query('DELETE FROM ew_editor_sessions WHERE token_hash=$1',[createHash('sha256').update(k).digest('hex')]);
+  if(k)sessions.delete(k);
+  send(res,200,{authenticated:false},{'Set-Cookie':'ew_editor_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'});return true}
  if(!authed){send(res,403,{error:'Admin login required'});return true}
  if(route==='backup'&&req.method==='GET'){send(res,200,{...snapshot(),exportedAt:new Date().toISOString(),...meta()},{'Content-Disposition':'attachment; filename="evening-wire-race-calls.json"'});return true}
  if(store==='unavailable'){send(res,503,{error:'Database unavailable. Publishing disabled to prevent data loss.'});return true}
