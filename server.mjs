@@ -289,6 +289,23 @@ const page=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./publ
 const loginPage=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/login.html',import.meta.url),'utf8'));
 const server=http.createServer(async (req,res)=>{
  const u=new URL(req.url,'http://localhost');
+ // Security headers on all routes, including authentication, API and errors.
+ // TLS termination and certificates are managed by Render at the public edge.
+ const csp="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https:; frame-src 'none'";
+ res.setHeader('Content-Security-Policy',csp);
+ res.setHeader('Strict-Transport-Security','max-age=31536000');
+ res.setHeader('X-Content-Type-Options','nosniff');
+ res.setHeader('X-Frame-Options','DENY');
+ res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
+ res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=(), payment=()');
+ res.setHeader('Cross-Origin-Opener-Policy','same-origin');
+ // Public traffic is HTTPS-only; keep health checks and local development working.
+ const host=String(req.headers.host||'').toLowerCase().split(':')[0];
+ const forwarded=String(req.headers['x-forwarded-proto']||'').toLowerCase().split(',')[0].trim();
+ if(host.endsWith('.onrender.com')&&forwarded==='http'){
+  res.writeHead(308,{'Location':'https://'+host+u.pathname+u.search,'Cache-Control':'no-store'});
+  res.end();return;
+ }
  // The duplicate -1 deployment has no member database. Route readers to the
  // canonical deployment so signups, sign-in, and reader counts stay consistent.
  const requestHost=String(req.headers.host||'').toLowerCase().split(':')[0];
