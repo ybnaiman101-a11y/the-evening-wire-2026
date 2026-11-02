@@ -94,7 +94,7 @@
    '<button class="cmd-primary" type="submit">UNLOCK ADMIN DIRECTORY</button></form>';
   return '<div class="ew-members-head"><h2>REGISTERED READERS</h2><span>'+(memberListLoaded&&!memberFetchError?total+' total':'COUNT UNAVAILABLE')+'</span></div>'+
    (!dbReady?'<p class="ew-members-offline">The member database is not connected. Existing accounts cannot be verified until the connection is restored.</p>':
-    memberFetchError?'<p class="ew-members-offline"><strong>MEMBER LIST COULD NOT BE LOADED</strong><p>'+safe(memberFetchError)+'</p><p>This is not a confirmed zero-member count. Check the database and try Refresh.</p></p>':
+    memberFetchError?'<div class="ew-members-offline"><strong>MEMBER LIST COULD NOT BE LOADED</strong><p>'+safe(memberFetchError)+'</p><p>This is not a confirmed zero-member count. Check the database and try Refresh.</p></div>':
     !memberListLoaded?'<p class="ew-members-disclosure">Loading registered readers from PostgreSQL…</p>':
     '<p class="ew-members-disclosure">Private owner view · Display names and emails are from the active '+safe(storageSource)+' database. Emails are not verified. Passwords are never shown.</p>'+
     (total===0?'<p class="ew-members-offline">No member records were found in the database currently connected to this deployment. If readers previously registered, confirm this is the same PostgreSQL database used when they signed up; do not create fake entries or reset your accounts.</p>':'')+
