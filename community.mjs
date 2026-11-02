@@ -1,4 +1,5 @@
 import {Pool} from 'pg';
+import {postgresTLS,postgresConnectionString} from './postgres-tls.mjs';
 import {temporaryCommunityRoute} from './community-temp.mjs';
 import {authenticatedMember} from './members.mjs';
 import {randomUUID,createHash,timingSafeEqual} from 'node:crypto';
@@ -14,7 +15,7 @@ function rate(req,limit,ms){const k=fingerprint(req)+req.url.split('?')[0]+req.m
 async function setup(){
  if(!connection)return;
  try{
-  pool=new Pool({connectionString:connection,max:4,connectionTimeoutMillis:8000,ssl:connection.includes('localhost')?false:{rejectUnauthorized:false}});
+  pool=new Pool({connectionString:postgresConnectionString(connection),max:4,connectionTimeoutMillis:8000,ssl:postgresTLS(connection)});
   await pool.query("CREATE TABLE IF NOT EXISTS community_posts(id uuid PRIMARY KEY,name varchar(30) NOT NULL,topic varchar(32) NOT NULL,message varchar(700) NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),likes integer NOT NULL DEFAULT 0,reports integer NOT NULL DEFAULT 0,status varchar(20) NOT NULL DEFAULT 'visible')");
   await pool.query("CREATE TABLE IF NOT EXISTS community_likes(post_id uuid NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,visitor varchar(24) NOT NULL,PRIMARY KEY(post_id,visitor))");
   await pool.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS member_id uuid REFERENCES ew_members(id)");

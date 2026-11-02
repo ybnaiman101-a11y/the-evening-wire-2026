@@ -1,6 +1,7 @@
 // THE EVENING WIRE: public member accounts backed ONLY by PostgreSQL.
 // No ephemeral authentication, no plaintext passwords, no public member directory.
 import {Pool} from 'pg';
+import {postgresTLS,postgresConnectionString} from './postgres-tls.mjs';
 import {randomBytes,randomUUID,createHash,scrypt as scryptCb,timingSafeEqual} from 'node:crypto';
 import {promisify} from 'node:util';
 import {isEditorAdmin} from './editor-calls.mjs';
@@ -20,7 +21,7 @@ async function checkOtherRegistrationDatabases(){
   seen.add(link);
   let alt=null;
   try{
-   alt=new Pool({connectionString:link,max:1,connectionTimeoutMillis:3500,ssl:link.includes('localhost')?false:{rejectUnauthorized:false}});
+   alt=new Pool({connectionString:postgresConnectionString(link),max:1,connectionTimeoutMillis:3500,ssl:postgresTLS(link)});
    const exists=await alt.query("SELECT to_regclass('public.ew_members') AS member_table");
    const hasTable=Boolean(exists.rows[0]?.member_table);
    const count=hasTable?Number((await alt.query('SELECT count(*)::integer AS n FROM public.ew_members')).rows[0].n):0;
@@ -60,7 +61,7 @@ async function setup(){
  if(!url||connecting||ready)return;
  connecting=true;
  try{
-  db=new Pool({connectionString:url,max:3,connectionTimeoutMillis:8000,ssl:url.includes('localhost')?false:{rejectUnauthorized:false}});
+  db=new Pool({connectionString:postgresConnectionString(url),max:3,connectionTimeoutMillis:8000,ssl:postgresTLS(url)});
   await db.query("CREATE TABLE IF NOT EXISTS ew_members(id uuid PRIMARY KEY,display_name varchar(40) NOT NULL,email varchar(254) UNIQUE NOT NULL,password_hash varchar(255) NOT NULL,joined_at timestamptz NOT NULL DEFAULT now(),last_login_at timestamptz)");
   await db.query("CREATE TABLE IF NOT EXISTS ew_member_sessions(token_hash varchar(64) PRIMARY KEY,member_id uuid NOT NULL REFERENCES ew_members(id) ON DELETE CASCADE,expires_at timestamptz NOT NULL)");
   await db.query("ALTER TABLE ew_members ADD COLUMN IF NOT EXISTS pin_hash varchar(255)");

@@ -2,6 +2,7 @@
 // Owner race calls are NEVER final-result inputs and NEVER used for scoring.
 import {readFileSync} from 'node:fs';
 import {Pool} from 'pg';
+import {postgresTLS,postgresConnectionString} from './postgres-tls.mjs';
 import {isEditorAdmin} from './editor-calls.mjs';
 import {authenticatedMember} from './members.mjs';
 
@@ -49,7 +50,7 @@ async function init(){
  if(!dbURL||connecting||ready)return;
  connecting=true;
  try{
-  pool=new Pool({connectionString:dbURL,max:4,connectionTimeoutMillis:8000,ssl:dbURL.includes('localhost')?false:{rejectUnauthorized:false}});
+  pool=new Pool({connectionString:postgresConnectionString(dbURL),max:4,connectionTimeoutMillis:8000,ssl:postgresTLS(dbURL)});
   await pool.query("CREATE TABLE IF NOT EXISTS ew_challenge_predictions(member_id uuid NOT NULL REFERENCES ew_members(id) ON DELETE CASCADE,race_key varchar(55) NOT NULL,choice varchar(200) NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(member_id,race_key))");
   await pool.query("CREATE INDEX IF NOT EXISTS ew_challenge_predictions_race_idx ON ew_challenge_predictions(race_key)");
   await pool.query("CREATE TABLE IF NOT EXISTS ew_challenge_finals(race_key varchar(55) PRIMARY KEY,choice varchar(200) NOT NULL,source_name varchar(120) NOT NULL,source_url varchar(650) NOT NULL,rep_votes bigint,dem_votes bigint,total_votes bigint,recorded_at timestamptz NOT NULL DEFAULT now(),correction_note text)");
