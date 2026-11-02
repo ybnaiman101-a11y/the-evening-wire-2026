@@ -7,7 +7,7 @@ const states='AL Alabama|AK Alaska|AZ Arizona|AR Arkansas|CA California|CO Color
 const stateName=code=>states.find(s=>s.code===code)?.name||code;
 const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const q=id=>document.getElementById(id);
-const parties={R:'REPUBLICAN',D:'DEMOCRATIC',I:'INDEPENDENT',OTHER:'OTHER'};
+const parties={R:'REPUBLICAN',D:'DEMOCRAT',I:'INDEPENDENT',OTHER:'OTHER'};
 const roster=()=>window.EWRaceCatalog?.races||[];
 const byKey=key=>window.EWRaceCatalog?.byKey?.[key]||null;
 const title=x=>stateName(x.state)+' '+(x.office==='senate'?(x.special?'Special Senate':'Senate'):x.office==='governor'?'Governor':'House District '+x.district);
@@ -27,7 +27,7 @@ async function load(){
 }
 function namedWinner(c,i){
  return '<label class="ew-winner-option"><input type="radio" name="winner" value="'+i+'" required>'+
-  '<span><b>'+safe(c.party==='R'?'🔴 REPUBLICAN':c.party==='D'?'🔵 DEMOCRATIC':'⚪ INDEPENDENT / OTHER')+'</b><br>'+
+  '<span><b>'+safe(c.party==='R'?'🔴 REPUBLICAN':c.party==='D'?'🔵 DEMOCRAT':'⚪ INDEPENDENT / OTHER')+'</b><br>'+
   safe(c.name)+(c.status==='confirmed'?'':' <small>· NOMINEE STATUS REQUIRES VERIFICATION</small>')+'</span></label>';
 }
 function populateStates(){
