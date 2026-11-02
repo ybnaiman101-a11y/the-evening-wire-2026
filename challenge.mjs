@@ -40,7 +40,7 @@ function source(x){
 function totals(body){
  const fields=['repVotes','demVotes','totalVotes'];
  if(fields.every(k=>body[k]===undefined||body[k]===null||body[k]===''))return [null,null,null];
- if(!fields.every(k=>body[k]!==undefined&&body[k]!==null&&body[k]!==''))throw Error('To publish vote counts, provide Republican, Democratic AND total ballots');
+ if(!fields.every(k=>body[k]!==undefined&&body[k]!==null&&body[k]!==''))throw Error('To publish vote counts, provide Republican, Democrat AND total ballots');
  const v=fields.map(k=>Number(body[k]));
  if(v.some(x=>!Number.isSafeInteger(x)||x<0)||v[0]+v[1]>v[2]||v[2]===0)throw Error('Vote totals must be nonnegative integers and total votes must cover both major parties');
  return v;
