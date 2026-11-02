@@ -33,7 +33,7 @@ Database-backed members, their authentication hashes/sessions, reactions, electi
    - `REACTION_ADMIN_TOKEN`: only if the old site used it; restore/rotate securely.
    - `AP_ELECTIONS_API_KEY`: only if a properly authorized AP feed integration exists. Never claim AP is connected if it is not.
    - `POLL_INTERVAL_MS`, `AP_RESULTS_POLL_MS`, `ELECTION_RESULTS_FEED_URL`, `ELECTION_RESULTS_FEED_TOKEN` only if relevant and authorized.
-   - Confirm database TLS certificate validation: the current code includes permissive PostgreSQL SSL configuration and **must be reviewed/hardened** before enabling member login on the replacement.
+   - The recovery branch now requires database TLS certificate verification via `postgres-tls.mjs`. For DigitalOcean-managed PostgreSQL, provide the provider's trusted CA certificate as the encrypted `PG_CA_CERT` environment variable if needed. Never disable certificate verification. Verify database connections in the restricted environment before enabling member login.
 9. Conduct a security review of the former phishing classification, forms, redirects, outbound links, dependencies, headers, sign-in flow, rate-limiting and logging. Verify admin authentication remains restricted, email addresses are not publicly displayed, and credential handling is appropriate.
 10. Confirm the host's account/acceptable-use approval and resolve Google Safe Browsing/Search Console security issues. After remediation, request a review of any incorrect flag. Do not route visitors to an unreviewed new address to evade the old warning.
 11. Test in a restricted environment: `/health`, the homepage, public navigation, all major election tabs, member sign-in, owner-only directory, API calls, editorial calls, live updates, reaction hub, maps, and data integrity. Recheck after restart and redeploy.
@@ -52,3 +52,6 @@ Useful documentation:
 - https://docs.digitalocean.com/products/app-platform/how-to/create-apps/
 - https://docs.digitalocean.com/products/app-platform/reference/app-spec/
 - https://docs.digitalocean.com/products/app-platform/how-to/manage-databases/
+
+## Verification in the recovery branch
+The `.github/workflows/recovery-checks.yml` GitHub Actions workflow checks JavaScript syntax, runs `test/recovery.test.mjs` for PostgreSQL TLS validation, and audits production dependencies. Passing CI validates these checks only; it does not establish that Google or Render has cleared the previous security warning or that the real member database has been restored.
