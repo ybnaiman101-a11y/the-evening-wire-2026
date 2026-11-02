@@ -367,20 +367,21 @@ html,body{max-width:100%;overflow-x:clip}
 .ew-alert-progress{height:5px;width:100%;background:linear-gradient(90deg,#16c5d8,#a9eaf2);transform-origin:left;animation:ewAlertCountdown 10s linear forwards}
 @keyframes ewAlertCountdown{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 
-/* Calls dashboard: high legibility, party and state prominent. */
-.cmd-call{padding:24px!important;border-radius:16px!important;min-width:0}
-.cmd-call-badges{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
-.cmd-call .cmd-call-party{font:900 clamp(15px,1.25vw,20px)/1.2 'DM Sans',system-ui,sans-serif;letter-spacing:.45px;text-transform:uppercase;border-radius:10px;padding:9px 13px;border:2px solid #587189;color:#e5f5ff;background:#254058}
+/* Compact race calls: no nested cards, dense election-night tiles. */
+.cmd-grid>.cmd-call{width:100%;min-width:0;margin:0}
+.cmd-call{padding:11px 13px!important;border-radius:10px!important;border-left-width:4px!important}
+.cmd-call-badges{display:flex;gap:5px 8px;align-items:center;flex-wrap:wrap}
+.cmd-call .cmd-call-party{display:inline-block;font:900 12px/1.15 'DM Sans',system-ui,sans-serif;letter-spacing:.3px;text-transform:uppercase;border-radius:6px;padding:5px 8px;border:1px solid #587189;color:#e5f5ff;background:#254058}
 .cmd-call.r .cmd-call-party{color:#fff0f2;background:#803040;border-color:#ff627a}
 .cmd-call.d .cmd-call-party{color:#eff7ff;background:#19487f;border-color:#6fb1ff}
-.cmd-call .cmd-call-source-type{font:800 10px/1.4 'DM Sans',system-ui,sans-serif;letter-spacing:1px;color:#b4c9dc}
-.cmd-call h3.cmd-call-candidate{font:900 clamp(29px,2.45vw,39px)/1.08 'Barlow Condensed',Impact,sans-serif;margin:16px 0 14px;color:#fff;overflow-wrap:anywhere}
-.cmd-call-race{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:7px 0 15px}
-.cmd-call .cmd-call-state{font:900 clamp(22px,1.9vw,29px)/1.1 'Barlow Condensed',Impact,sans-serif;letter-spacing:.5px;color:#fff}
-.cmd-call .cmd-call-office,.cmd-call .cmd-call-district{font:900 clamp(15px,1.15vw,18px)/1.25 'DM Sans',system-ui,sans-serif;letter-spacing:.35px;padding:5px 9px;border-radius:7px;background:#243e58;color:#dcf3ff;border:1px solid #436b86}
-.cmd-call .cmd-call-meta{font:700 13px/1.45 'DM Sans',system-ui,sans-serif;color:#b9cde0}
-.cmd-call a.cmd-call-original{font-size:13px;font-weight:900;line-height:1.5;margin-top:18px}
-@media(max-width:620px){.cmd-call{padding:19px!important}.cmd-call-race{gap:8px}.cmd-call .cmd-call-source-type{font-size:10px}.cmd-call .cmd-call-state{font-size:25px}}
+.cmd-call .cmd-call-source-type{font:800 9px/1.25 'DM Sans',system-ui,sans-serif;letter-spacing:.35px;color:#b4c9dc}
+.cmd-call h3.cmd-call-candidate{font:900 clamp(20px,1.8vw,25px)/1.1 'Barlow Condensed',Impact,sans-serif;margin:8px 0 7px;color:#fff;overflow-wrap:anywhere}
+.cmd-call-race{display:flex;align-items:center;flex-wrap:wrap;gap:4px 7px;margin:0 0 7px}
+.cmd-call .cmd-call-state{font:900 clamp(16px,1.45vw,19px)/1.15 'Barlow Condensed',Impact,sans-serif;letter-spacing:.3px;color:#fff}
+.cmd-call .cmd-call-office,.cmd-call .cmd-call-district{font:800 10px/1.25 'DM Sans',system-ui,sans-serif;letter-spacing:.2px;padding:3px 5px;border-radius:4px;background:#243e58;color:#dcf3ff;border:1px solid #436b86}
+.cmd-call .cmd-call-meta{font:600 10px/1.35 'DM Sans',system-ui,sans-serif;color:#b9cde0}
+.cmd-call a.cmd-call-original{font-size:10px;font-weight:800;line-height:1.3;margin-top:8px}
+@media(max-width:620px){.cmd-call{padding:10px 12px!important}.cmd-call .cmd-call-state{font-size:18px}}
 </style>
 <link rel="stylesheet" href="/election-maps.css"><link rel="stylesheet" href="/studio.css"></head>
 <body>
@@ -805,7 +806,7 @@ function callsView(){
  const counts={R:calls.filter(x=>x.party==='R').length,D:calls.filter(x=>x.party==='D').length,other:calls.filter(x=>!['R','D'].includes(x.party)).length};
  return title('RACES CALLED','Published calls may come from The Evening Wire editorial desk or an explicitly configured results provider. All calls must be sourced; a projection is not official certification.')+notice()+'<div class="cmd-toolbar">'+['all','senate','governor','house'].map(v=>'<button data-call-filter="'+v+'" class="'+(callFilter===v?'cmd-primary':'')+'">'+(v==='all'?'ALL RACES':v.toUpperCase())+'</button>').join('')+'</div>'
  +'<div class="cmd-grid"><article class="cmd-card"><span class="cmd-eyebrow">REPUBLICAN</span><h3>'+(results.configured?counts.R:'—')+' CALLED</h3></article><article class="cmd-card"><span class="cmd-eyebrow">DEMOCRATIC</span><h3>'+(results.configured?counts.D:'—')+' CALLED</h3></article><article class="cmd-card"><span class="cmd-eyebrow">OTHER / INDEPENDENT</span><h3>'+(results.configured?counts.other:'—')+' CALLED</h3></article></div>'
- +wrap(calls.length?'<div class="cmd-grid">'+calls.map(x=>'<article class="cmd-card">'+callCards([x])+'</article>').join('')+'</div>':unavail('No administrator-published race calls yet. Winner fields remain empty until a sourced call is explicitly published.'))
+ +wrap(calls.length?'<div class="cmd-grid">'+calls.map(x=>callCards([x])).join('')+'</div>':unavail('No administrator-published race calls yet. Winner fields remain empty until a sourced call is explicitly published.'))
  +wrap('<div id="ewEditorMount"></div>')
 }
 function watched(){
