@@ -16,7 +16,12 @@
   const [m,a]=await Promise.allSettled([request('/api/members/session'),request('/api/admin/session')]);
   dbReady=m.status==='fulfilled'&&m.value.ready===true;member=m.status==='fulfilled'?m.value.user:null;
   admin=a.status==='fulfilled'&&a.value.authenticated===true;
-  if(panel==='admin'&&admin&&dbReady)await fetchMembers();
+  // An authenticated owner should see the real reader directory immediately,
+  // rather than a login tab or a stale "0 members" placeholder.
+  if(admin&&dbReady){
+   if(panel==='login')panel='admin';
+   await fetchMembers();
+  }
  }
  async function fetchMembers(){
   try{
@@ -188,7 +193,7 @@
   const logout=host.querySelector('#ewMemberLogout');
   if(logout)logout.onclick=()=>perform(async()=>{await request('/api/members/logout','POST');member=null;status='Signed out.';render()});
   const reload=host.querySelector('#ewMembersReload');
-  if(reload)reload.onclick=()=>perform(async()=>{const ok=await fetchMembers();if(ok)status='Member directory refreshed from the connected database.';render()});
+  if(reload)reload.onclick=()=>perform(async()=>{status='Checking registered readers…';const ok=await fetchMembers();if(ok)status='Member directory refreshed: '+total+' registered readers found.';render()});
  }
  async function open(){status='';render();await sync();render()}
  window.EWMembers={open,sync,render,member:()=>member,loggedIn:()=>!!member};
