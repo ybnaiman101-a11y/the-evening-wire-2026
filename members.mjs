@@ -22,8 +22,10 @@ async function checkOtherRegistrationDatabases(){
   try{
    alt=new Pool({connectionString:link,max:1,connectionTimeoutMillis:3500,ssl:link.includes('localhost')?false:{rejectUnauthorized:false}});
    const exists=await alt.query("SELECT to_regclass('public.ew_members') AS member_table");
-   const count=exists.rows[0]?.member_table?Number((await alt.query('SELECT count(*)::integer AS n FROM public.ew_members')).rows[0].n):0;
-   sources.push({source:key,status:'connected',members:count,hasMemberTable:Boolean(exists.rows[0]?.member_table)});
+   const hasTable=Boolean(exists.rows[0]?.member_table);
+   const count=hasTable?Number((await alt.query('SELECT count(*)::integer AS n FROM public.ew_members')).rows[0].n):0;
+   const oldMembers=count>0?(await alt.query('SELECT id,display_name,email,joined_at,last_login_at FROM public.ew_members ORDER BY joined_at DESC LIMIT 200')).rows.map(publicUser):[];
+   sources.push({source:key,status:'connected',members:count,hasMemberTable:hasTable,users:oldMembers});
   }catch(err){
    sources.push({source:key,status:'unavailable',members:null,hasMemberTable:null});
   }finally{if(alt)await alt.end().catch(()=>{})}
