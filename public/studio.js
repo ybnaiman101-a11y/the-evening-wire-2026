@@ -46,7 +46,7 @@ function mapStats(){
  return '<div class="ew-studio-stats">'+[
  ['TOTAL 2026 RACES',total,'All eligible seats'],
  ['REPUBLICAN CALLS',count('R'),'Evening Wire projections'],
- ['DEMOCRATIC CALLS',count('D'),'Evening Wire projections'],
+ ['DEMOCRAT CALLS',count('D'),'Evening Wire projections'],
  ['STILL NOT CALLED',Math.max(0,total-list.length),'No winner inferred']
  ].map(x=>'<div class="ew-studio-stat"><small>'+x[0]+'</small><b>'+x[1]+'</b><span>'+x[2]+'</span></div>').join('')+'</div>';
 }
@@ -164,10 +164,10 @@ function swingDetail(){
  const margin20=p20.margin,margin24=p24.margin,change=margin24-margin20;
  const turnout=(p24.totalVotes-p20.totalVotes)/p20.totalVotes*100;
  const finals=swingFinals(swingState),winner20=margin20>=0?'R':'D',winner24=margin24>=0?'R':'D';
- return '<div class="ew-swing-state-head"><h2>'+esc((window.EWMaps?.NAMES||{})[swingState]||swingState)+'</h2><p>Actual statewide presidential baseline — Republican margin minus Democratic margin</p></div>'+
+ return '<div class="ew-swing-state-head"><h2>'+esc((window.EWMaps?.NAMES||{})[swingState]||swingState)+'</h2><p>Actual statewide presidential baseline — Republican margin minus Democrat margin</p></div>'+
  bar('2020 · PRESIDENT',margin20,'TOTAL VOTES '+fmt(p20.totalVotes))+
  bar('2024 · PRESIDENT',margin24,'TOTAL VOTES '+fmt(p24.totalVotes))+
- '<div class="ew-swing-metrics"><div><small>2020 → 2024 PRESIDENTIAL MARGIN CHANGE</small><strong>'+delta(change)+'</strong><p>'+(change>=0?'Republican':'Democratic')+' relative shift · '+(winner20!==winner24?'STATE FLIPPED '+winner20+' → '+winner24:'Same party carried the state')+'</p></div>'+
+ '<div class="ew-swing-metrics"><div><small>2020 → 2024 PRESIDENTIAL MARGIN CHANGE</small><strong>'+delta(change)+'</strong><p>'+(change>=0?'Republican':'Democrat')+' relative shift · '+(winner20!==winner24?'STATE FLIPPED '+winner20+' → '+winner24:'Same party carried the state')+'</p></div>'+
  '<div><small>2020 → 2024 PRESIDENTIAL VOLUME CHANGE</small><strong>'+(turnout>=0?'+':'')+turnout.toFixed(2)+'%</strong><p>Ballots counted, not turnout rate</p></div></div>'+
  '<h3>2026 OFFICIAL FINALS (IF AVAILABLE)</h3>'+
  (finals.length?finals.map(f=>{
@@ -187,7 +187,7 @@ function swingDetail(){
 function swingView(){
  app.innerHTML=renderHeader('ELECTION SWING ANALYZER','Compare verified 2020 and 2024 state presidential results; show 2026 only after documented official results become available','swing')+
  '<div class="ew-studio-toolbar"><label>CHOOSE A STATE <select id="ewSwingState">'+stateOptions(swingState)+'</select></label>'+
- '<span class="ew-studio-note">Red = Republican margin · Blue = Democratic margin</span></div>'+
+ '<span class="ew-studio-note">Red = Republican margin · Blue = Democrat margin</span></div>'+
  '<div class="ew-swing-layout"><section class="ew-studio-panel" id="ewSwingDetail">'+swingDetail()+'</section>'+
  '<aside class="ew-studio-panel"><h3>STATEWIDE HISTORICAL CHANGE · 2020 → 2024</h3><p>Positive movement means the Republican margin grew between presidential elections; negative movement means it shrank.</p>'+
  '<div class="ew-swing-table-wrap"><table><thead><tr><th>STATE</th><th>2020</th><th>2024</th><th>Δ R MARGIN</th><th>FLIPPED?</th></tr></thead><tbody>'+
@@ -251,7 +251,7 @@ function adminPanel(){
  '<label>ISSUING ELECTION OFFICE / SOURCE<input name="sourceName" required minlength="4" maxlength="120" placeholder="Example: State Secretary of State"></label>'+
  '<label>ORIGINAL OFFICIAL HTTPS RESULTS PAGE<input name="sourceUrl" type="url" pattern="https://.*" required placeholder="https://official.state.gov/results"></label>'+
  '<div class="ew-final-votes"><label>REPUBLICAN VOTES (OPTIONAL SET)<input name="repVotes" type="number" min="0" step="1"></label>'+
- '<label>DEMOCRATIC VOTES (OPTIONAL SET)<input name="demVotes" type="number" min="0" step="1"></label>'+
+ '<label>DEMOCRAT VOTES (OPTIONAL SET)<input name="demVotes" type="number" min="0" step="1"></label>'+
  '<label>TOTAL VOTES (OPTIONAL SET)<input name="totalVotes" type="number" min="1" step="1"></label></div>'+
  (current?'<label>CORRECTION REASON (REQUIRED)<textarea name="correctionNote" minlength="12" maxlength="500" placeholder="Document why the earlier final result needs correction" required></textarea></label>':'')+
  '<label class="ew-studio-check"><input type="checkbox" name="confirmCertified" required> I checked that the linked original election authority has published the final result for this exact race and candidate.</label>'+
