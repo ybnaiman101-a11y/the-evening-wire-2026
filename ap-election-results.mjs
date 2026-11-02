@@ -14,7 +14,7 @@ function validateURL(raw){
  try{const u=new URL(String(raw));return u.protocol==='https:'&&u.hostname==='api.ap.org'&&u.pathname.startsWith('/v3/elections/'+electionDate)?u.href:null}
  catch{return null}
 }
-function partyName(s){const x=String(s||'').toUpperCase();return x==='GOP'||x==='REP'?'Republican':x==='DEM'?'Democratic':x==='IND'?'Independent':String(s||'Other').slice(0,40)}
+function partyName(s){const x=String(s||'').toUpperCase();return x==='GOP'||x==='REP'?'Republican':x==='DEM'?'Democrat':x==='IND'?'Independent':String(s||'Other').slice(0,40)}
 function candidateName(c){return [c.first,c.middle,c.last,c.suffix].map(x=>String(x||'').trim()).filter(Boolean).join(' ').slice(0,130)}
 function mapRace(r,payloadTimestamp){
  if(!r||typeof r!=='object'||r.raceTypeID!=='G'||!Object.hasOwn(officeMap,String(r.officeID||'')))return null;
