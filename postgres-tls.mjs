@@ -13,3 +13,16 @@ export function postgresTLS(connectionString){
  const ca=configuredCA.replace(/\\n/g,'\n');
  return ca?{rejectUnauthorized:true,ca}:{rejectUnauthorized:true};
 }
+
+/** Strip SSL URL options that would override the separately verified TLS config.
+ * node-postgres warns that sslmode/sslrootcert/sslkey/sslcert in a connection
+ * string replace the explicit ssl object. Keep other connection parameters. */
+export function postgresConnectionString(connectionString){
+ // Validate before removing any SSL parameter.
+ postgresTLS(connectionString);
+ const parsed=new URL(connectionString);
+ for(const option of ['sslmode','sslcert','sslkey','sslrootcert','ssl','uselibpqcompat']){
+  parsed.searchParams.delete(option);
+ }
+ return parsed.toString();
+}
