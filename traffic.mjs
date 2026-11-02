@@ -44,7 +44,7 @@ export async function trafficRoute(req,res,path){
   send(res,200,{ok:true});return true
  }
  if(part==='summary'&&req.method==='GET'){
-  if(!isEditorAdmin(req)){send(res,403,{error:'Only the owner may view traffic statistics.'});return true}
+  if(!await isEditorAdmin(req)){send(res,403,{error:'Only the owner may view traffic statistics.'});return true}
   const [live,totals,bySection,day,referrers,outbound]=await Promise.all([
    pool.query("SELECT count(*)::int AS total FROM ew_site_presence WHERE last_seen>now()-interval '2 minutes'"),
    pool.query("SELECT count(*)::int AS pageviews,count(DISTINCT member_id)::int AS visitors FROM ew_site_visits"),
