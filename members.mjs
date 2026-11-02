@@ -66,6 +66,8 @@ async function setup(){
   await db.query("ALTER TABLE ew_members ADD COLUMN IF NOT EXISTS pin_hash varchar(255)");
   await db.query("CREATE TABLE IF NOT EXISTS ew_member_login_attempts(email varchar(254) PRIMARY KEY,attempts integer NOT NULL DEFAULT 0,locked_until timestamptz,updated_at timestamptz DEFAULT now())");
   ready=true;diagnostic=null;console.log('EW_MEMBERS_DATABASE_CONNECTED');
+  const memberCount=await db.query('SELECT count(*)::integer AS total FROM ew_members');
+  console.log('EW_MEMBERS_RECORD_COUNT='+memberCount.rows[0].total+' database_env='+databaseSource);
  }catch(e){diagnostic=String(e.message||e).slice(0,150);console.warn('EW_MEMBERS_DATABASE_UNAVAILABLE '+diagnostic);await db?.end().catch(()=>{});db=null;ready=false}
  finally{connecting=false}
 }
