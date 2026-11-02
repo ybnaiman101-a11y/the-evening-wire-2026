@@ -103,7 +103,7 @@ export async function challengeRoute(req,res,path){
  // Final certification must be entered separately with an official results link.
  // It is NEVER inferred from AP, news headlines, member votes or owner editorial calls.
  if(path==='/api/challenge/admin/final'){
-  if(!isEditorAdmin(req)){send(res,403,{error:'Only the authenticated site owner can record final official results'});return true}
+  if(!await isEditorAdmin(req)){send(res,403,{error:'Only the authenticated site owner can record final official results'});return true}
   if(Date.now()<deadlineMs){send(res,409,{error:'Election has not started; final results cannot be entered before election day'});return true}
   let x;try{x=await input(req)}catch(e){send(res,400,{error:e.message});return true}
   let p,src,v;
@@ -117,7 +117,7 @@ export async function challengeRoute(req,res,path){
   send(res,201,{ok:true,raceKey:p.race.key,choice:p.choice,sourceName:src.sourceName,sourceUrl:src.sourceUrl});return true
  }
  if(path==='/api/challenge/admin/correct'){
-  if(!isEditorAdmin(req)){send(res,403,{error:'Owner authorization required'});return true}
+  if(!await isEditorAdmin(req)){send(res,403,{error:'Owner authorization required'});return true}
   let x;try{x=await input(req)}catch(e){send(res,400,{error:e.message});return true}
   let p,src,v,note;
   try{
