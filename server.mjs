@@ -289,6 +289,15 @@ const page=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./publ
 const loginPage=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/login.html',import.meta.url),'utf8'));
 const server=http.createServer(async (req,res)=>{
  const u=new URL(req.url,'http://localhost');
+ // The duplicate -1 deployment has no member database. Route readers to the
+ // canonical deployment so signups, sign-in, and reader counts stay consistent.
+ const requestHost=String(req.headers.host||'').toLowerCase().split(':')[0];
+ if(requestHost==='the-evening-wire-2026-1.onrender.com'){
+  const redirect='https://the-evening-wire-2026.onrender.com'+u.pathname+u.search+u.hash;
+  res.writeHead(307,{'Location':redirect,'Cache-Control':'no-store'});
+  res.end();return;
+ }
+
  const json=(obj,code=200)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
  if(u.pathname.startsWith('/api/members/')||u.pathname==='/api/admin/members'){memberRoute(req,res,u.pathname).catch(err=>{console.error('Members API error:',String(err?.message||err));if(!res.headersSent)json({error:'Member service temporarily unavailable'},503);else res.end()});return;}
  // Public showroom: visitors can view election coverage before creating an account.
