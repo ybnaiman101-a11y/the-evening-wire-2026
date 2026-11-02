@@ -1,6 +1,7 @@
 // THE EVENING WIRE — owner-only, persistent, site-wide Election Update notices.
 // Members can read; only the authenticated administrator can publish or retract.
 import {Pool} from 'pg';
+import {postgresTLS} from './postgres-tls.mjs';
 import {randomUUID} from 'node:crypto';
 import {isEditorAdmin} from './editor-calls.mjs';
 
@@ -22,7 +23,7 @@ function record(r){return {id:r.id,category:r.category,message:r.message,sourceU
 const init=(async()=>{
  if(!url){console.warn('EW_ELECTION_UPDATES_UNAVAILABLE DATABASE_URL not configured');return}
  try{
-  pool=new Pool({connectionString:url,max:3,connectionTimeoutMillis:8000,ssl:url.includes('localhost')?false:{rejectUnauthorized:false}});
+  pool=new Pool({connectionString:url,max:3,connectionTimeoutMillis:8000,ssl:postgresTLS(url)});
   await pool.query("CREATE TABLE IF NOT EXISTS ew_election_updates(id uuid PRIMARY KEY,category varchar(24) NOT NULL,message varchar(700) NOT NULL,source_url varchar(600),created_at timestamptz NOT NULL DEFAULT now(),expires_at timestamptz NOT NULL,retracted_at timestamptz)");
   await pool.query('CREATE INDEX IF NOT EXISTS ew_election_updates_recent ON ew_election_updates(created_at DESC)');
   ready=true;console.log('EW_ELECTION_UPDATES_DB_READY');
