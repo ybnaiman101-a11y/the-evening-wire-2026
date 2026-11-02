@@ -1,7 +1,7 @@
 // Private, aggregated visitor analytics. Tracking is limited to signed-in account IDs,
 // page section, timestamp and optional referrer domain. Never expose individual browsing histories.
 import {Pool} from 'pg';
-import {postgresTLS} from './postgres-tls.mjs';
+import {postgresTLS,postgresConnectionString} from './postgres-tls.mjs';
 import {authenticatedMember} from './members.mjs';
 import {isEditorAdmin} from './editor-calls.mjs';
 const connection=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
@@ -11,7 +11,7 @@ const send=(res,n,o)=>{res.writeHead(n,{'Content-Type':'application/json; charse
 const init=(async()=>{
  if(!connection)return;
  try{
-  pool=new Pool({connectionString:connection,max:3,connectionTimeoutMillis:8000,ssl:postgresTLS(connection)});
+  pool=new Pool({connectionString:postgresConnectionString(connection),max:3,connectionTimeoutMillis:8000,ssl:postgresTLS(connection)});
   await pool.query('CREATE TABLE IF NOT EXISTS ew_site_visits(id bigserial PRIMARY KEY, member_id uuid NOT NULL, section varchar(30) NOT NULL, referrer varchar(100), visited_at timestamptz NOT NULL DEFAULT now())');
   await pool.query('CREATE INDEX IF NOT EXISTS ew_visit_time_idx ON ew_site_visits(visited_at DESC)');
   await pool.query('CREATE TABLE IF NOT EXISTS ew_site_presence(member_id uuid PRIMARY KEY, section varchar(30) NOT NULL,last_seen timestamptz NOT NULL DEFAULT now())');
