@@ -1,6 +1,7 @@
 import {randomBytes,createHash,timingSafeEqual} from 'node:crypto';
 import {readFile,writeFile,rename} from 'node:fs/promises';
 import {Pool} from 'pg';
+import {postgresTLS} from './postgres-tls.mjs';
 const passwordHash=String(process.env.EW_ADMIN_PASSWORD_SHA256||'').toLowerCase();
 const db=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
 const file='/tmp/ew-race-calls.json',sessions=new Map(),failures=new Map();
@@ -50,7 +51,7 @@ async function save(){
 }
 const init=(async()=>{
  if(db){try{
-  pool=new Pool({connectionString:db,max:3,connectionTimeoutMillis:8000,ssl:db.includes('localhost')?false:{rejectUnauthorized:false}});
+  pool=new Pool({connectionString:db,max:3,connectionTimeoutMillis:8000,ssl:postgresTLS(db)});
   await pool.query('CREATE TABLE IF NOT EXISTS ew_editor_state(id integer PRIMARY KEY,data jsonb NOT NULL)');
   await pool.query('CREATE TABLE IF NOT EXISTS ew_editor_sessions(token_hash varchar(64) PRIMARY KEY,expires_at timestamptz NOT NULL)');
   const result=await pool.query('SELECT data FROM ew_editor_state WHERE id=1'),saved=result.rows[0]?.data;
