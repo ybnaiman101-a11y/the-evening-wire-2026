@@ -4,7 +4,7 @@
  const host=document.getElementById('commandDesk');if(!host)return;
  const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
  const when=x=>x&&Number.isFinite(Date.parse(x))?new Date(x).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',year:'numeric'}):'Never';
- let panel='login',dbReady=false,member=null,admin=false,memberRows=[],total=0,status='',loading=false,adminUpdates=[],memberListLoaded=false,memberFetchError='',storageSource='';
+ let panel='login',dbReady=false,member=null,admin=false,memberRows=[],total=0,status='',loading=false,adminUpdates=[],memberListLoaded=false,memberFetchError='',storageSource='',alternateDatabases=[];
  const shown=()=>document.body.dataset.ewView==='members';
  async function request(url,method='GET',body){
   const response=await fetch(url,{method,credentials:'same-origin',cache:'no-store',
@@ -24,6 +24,7 @@
    if(!Array.isArray(data.members)||!Number.isSafeInteger(data.total))throw Error('Invalid response from the member directory');
    memberRows=data.members;total=data.total;memberListLoaded=true;memberFetchError='';
    storageSource=String(data.storageSource||'PostgreSQL');
+   alternateDatabases=Array.isArray(data.alternateDatabases)?data.alternateDatabases:[];
   }catch(err){
    memberFetchError=String(err.message||err);
    status='Unable to load member records: '+memberFetchError;
@@ -88,6 +89,19 @@
    '<span>I understand the owner can see my account name, email, registration date and last login. Emails are not verified.</span></label>'+
    '<button class="cmd-primary" type="submit" '+(!dbReady?'disabled':'')+'>CREATE ACCOUNT</button></form>';
  }
+ function alternateRegistrations(){
+  if(!memberListLoaded||total!==0)return '';
+  const found=alternateDatabases.filter(s=>s.status==='connected'&&s.members>0);
+  const inaccessible=alternateDatabases.filter(s=>s.status!=='connected');
+  if(!found.length&&!inaccessible.length)return '<p class="ew-members-disclosure">No registrations were found in the active member table'+(alternateDatabases.length?' or other configured database connections':'')+'. If you expected existing readers, confirm this website is connected to the same database used when they registered.</p>';
+  return '<section class="ew-members-panel" style="margin-top:18px"><h2>OLDER REGISTRATION SEARCH</h2>'+
+   (found.length?'<p class="ew-members-disclosure">Existing reader records were found in another database configured for this deployment. These are read-only records; those readers must be migrated to the active member database to sign in here. No accounts were moved or deleted.</p>'+
+   found.map(db=>'<div class="ew-members-head"><h3>'+safe(db.source)+'</h3><span>'+Number(db.members)+' old registrations</span></div>'+
+     '<div class="ew-members-table-wrap"><table class="ew-members-table"><thead><tr><th>Display name</th><th>Email address</th><th>Joined</th><th>Last login</th></tr></thead><tbody>'+
+     (db.users||[]).map(u=>'<tr><td>'+safe(u.displayName)+'</td><td>'+safe(u.email)+'</td><td>'+when(u.joinedAt)+'</td><td>'+when(u.lastLoginAt)+'</td></tr>').join('')+'</tbody></table></div>').join(''):'')+
+   (inaccessible.length?'<p class="ew-members-offline">Additional configured database sources could not be checked: '+inaccessible.map(s=>safe(s.source)).join(', ')+'.</p>':'')+
+   '</section>';
+ }
  function adminContent(){
   if(!admin)return '<h2>OWNER ONLY · ADMIN LOGIN</h2><p>Use your private Races Called administrator password. Public readers cannot see registered members.</p>'+
    '<form id="ewMemberAdminLogin" class="ew-member-form"><label>Owner administrator password'+input('password','password','current-password','Private admin password','required')+'</label>'+
@@ -101,7 +115,7 @@
     '<div class="ew-members-table-wrap"><table class="ew-members-table"><thead><tr><th>Display name</th><th>Email address</th><th>Joined</th><th>Last login</th></tr></thead>'+
     '<tbody>'+(memberRows.length?memberRows.map(x=>'<tr><td>'+safe(x.displayName)+'</td><td>'+safe(x.email)+'</td><td>'+when(x.joinedAt)+'</td><td>'+when(x.lastLoginAt)+'</td></tr>').join(''):
     '<tr><td colspan="4">No records found in the connected database.</td></tr>')+'</tbody></table></div>')+
-   '<button type="button" class="cmd-minibtn" id="ewMembersReload">REFRESH MEMBER LIST</button>'+updateAdminPanel();
+   '<button type="button" class="cmd-minibtn" id="ewMembersReload">REFRESH MEMBER LIST</button>'+alternateRegistrations()+updateAdminPanel();
  }
  function render(){
   if(!shown())return;
