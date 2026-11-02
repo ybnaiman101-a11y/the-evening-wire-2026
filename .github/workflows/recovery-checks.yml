@@ -1,0 +1,26 @@
+name: Recovery branch checks
+on:
+  push:
+    branches: [digitalocean-recovery-prep]
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check all Node.js module syntax
+        run: |
+          for file in ./*.mjs test/*.mjs public/*.js; do
+            node --check "$file"
+          done
+      - name: Run recovery security checks
+        run: node --test test/recovery.test.mjs
+      - name: Install production dependencies
+        run: npm install --no-fund --ignore-scripts
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
