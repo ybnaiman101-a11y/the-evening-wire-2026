@@ -853,7 +853,7 @@ function callsView(){
  +wrap('<div id="ewEditorMount"></div>')
 }
 function watched(){
- return title('BATTLEGROUND WATCH','States you're following.')+'<div class="cmd-card"><div class="cmd-toolbar"><button data-tab="mydesk" class="cmd-primary">EDIT MY WATCHLIST</button></div>'+followed.map(code=>{
+ return title('BATTLEGROUND WATCH','Followed States')+'<div class="cmd-card"><div class="cmd-toolbar"><button data-tab="mydesk" class="cmd-primary">EDIT MY WATCHLIST</button></div>'+followed.map(code=>{
    const st=BY_CODE[code];if(!st)return '';
    const races=[...SENATE,...GOVERNOR,...HOUSE].filter(x=>x.state===code);
    return '<div class="cmd-row"><span class="abbr">'+code+'</span><span class="txt"><strong>'+esc(st.name)+'</strong><small>'+races.filter(x=>x.office==='senate').length+' Senate · '+races.filter(x=>x.office==='governor').length+' governor · '+st.districts+' House contests</small></span><button data-state="'+code+'" class="cmd-minibtn">OPEN STATE →</button></div>';
