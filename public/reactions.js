@@ -188,7 +188,7 @@ function composer(){
   '<div class="hub2-compose-head">'+avatar({name:member.displayName,member_id:member.id})+'<div><b>'+safe(member.displayName)+'</b><small>Verified member session · Your name stays with your posts</small></div></div>'+
   '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
   '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
-  '<label>YOUR MESSAGE OR MEDIA CAPTION<textarea name="message" maxlength="700" placeholder="Share an election take, a picture, a voice note, or all three."></textarea></label>'+ 
+  '<label>YOUR POST OR REPLY<textarea name="message" maxlength="700" placeholder="What is happening this election night? Add a photo, video, or voice note…"></textarea></label>'+ 
   '<label class="hub2-photo-field">📷 ADD A PICTURE <input id="hubPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"></label>'+
   '<div id="hubPhotoPreview" class="hub2-photo-preview" hidden></div>'+ 
   '<label class="hub2-photo-field pulse-video-field">🎬 ADD A VIDEO CLIP (MP4 / WEBM, MAX 12 MB) <input id="hubVideoFile" type="file" accept="video/mp4,video/webm"></label>'+ 
@@ -384,17 +384,18 @@ function wireEvents(){
   }
   if(node.dataset.hubRefresh){refresh();return}
   if(node.dataset.hubRemovePhoto){clearPicture();return}
+  if(node.dataset.hubRemoveVideo){clearVideo();return}
   if(node.dataset.hubRecordStart){try{await beginVoice()}catch(err){feedback(err.message)}return}
   if(node.dataset.hubRecordStop){stopVoice();return}
   if(node.dataset.hubRemoveVoice){clearVoice();return}
   if(node.dataset.hubPhoto){q('hubLightboxImg').src='/api/community/images/'+encodeURIComponent(node.dataset.hubPhoto);q('hubPhotoLightbox').hidden=false;return}
   if(node.dataset.hubClosePhoto){q('hubPhotoLightbox').hidden=true;q('hubLightboxImg').removeAttribute('src');return}
   if(node.id==='hubNewMessages'){q('hubFeed').scrollTo({top:0,behavior:'smooth'});unread=0;node.hidden=true;return}
-  if(node.dataset.hubCancel){replyId=null;editId=null;clearPicture();clearVoice();updateReply();q('hubComposer').elements.namedItem('message').value='';q('hubPostSubmit').textContent='SEND MESSAGE';return}
+  if(node.dataset.hubCancel){replyId=null;editId=null;clearPicture();clearVideo();clearVoice();updateReply();q('hubComposer').elements.namedItem('message').value='';q('hubPostSubmit').textContent='SEND MESSAGE';return}
   const id=node.dataset.hubReply||node.dataset.hubEdit||node.dataset.hubDelete||node.dataset.hubReport||node.dataset.hubPin||node.dataset.hubHide||node.dataset.hubReact;
   try{
    if(node.dataset.hubReply){if(!requireMember())return;const p=posts.find(x=>x.id===id);if(!p)return;replyId=p.id;editId=null;updateReply();focusComposer();return}
-   if(node.dataset.hubEdit){clearPicture();clearVoice();const p=posts.find(x=>x.id===id);if(!p||!member||p.member_id!==member.id)return;editId=id;replyId=null;updateReply();const form=q('hubComposer');form.elements.namedItem('message').value=p.message;form.elements.namedItem('topic').value=p.topic;q('hubPostSubmit').textContent='SAVE EDIT';focusComposer();return}
+   if(node.dataset.hubEdit){clearPicture();clearVideo();clearVoice();const p=posts.find(x=>x.id===id);if(!p||!member||p.member_id!==member.id)return;editId=id;replyId=null;updateReply();const form=q('hubComposer');form.elements.namedItem('message').value=p.message;form.elements.namedItem('topic').value=p.topic;q('hubPostSubmit').textContent='SAVE EDIT';focusComposer();return}
    if(node.dataset.hubReact){if(!requireMember())return;await action(id+'/react',{emoji:node.dataset.emoji});return}
    if(node.dataset.hubDelete){if(!confirm('Delete your message?'))return;await action(id+'/delete');return}
    if(node.dataset.hubReport){if(!requireMember()||!confirm('Report this message to the moderators?'))return;await action(id+'/report');return}
@@ -410,10 +411,28 @@ function wireEvents(){
   if(e.target.name==='message'&&e.target.closest('#hubComposer')){const x=q('hubCharCount');if(x)x.textContent=e.target.value.length+' / 700'}
  };
  host.onchange=async e=>{
-  if(e.target.id!=='hubPhotoFile')return;
-  const file=e.target.files?.[0];if(!file)return;
-  try{feedback('Preparing picture…');const ready=await preparePicture(file);clearPicture();pendingImageData=ready.imageData;pendingImageUrl=ready.imageUrl;showPicturePreview();feedback('Picture attached. Add a caption if you like, then publish.')}
-  catch(err){clearPicture();feedback(String(err.message||err))}
+  if(!shown())return;
+  const type=e.target.id,file=e.target.files?.[0];if(!file)return;
+  try{
+   if(type==='hubPhotoFile'){
+    feedback('Preparing picture…');const ready=await preparePicture(file);
+    clearPicture();pendingImageData=ready.imageData;pendingImageUrl=ready.imageUrl;
+    showPicturePreview();feedback('Picture attached and ready to post.')
+   }else if(type==='hubVideoFile'){
+    feedback('Preparing video (up to 12 MB)…');const ready=await prepareVideo(file);
+    clearVideo();pendingVideoData=ready.videoData;pendingVideoUrl=ready.videoUrl;
+    showVideoPreview();feedback('Video ready. You can add a caption before posting.')
+   }else if(type==='hubAudioFile'){
+    feedback('Preparing audio file…');const ready=await prepareAudioFile(file);
+    clearVoice();pendingAudioData=ready.audioData;pendingAudioUrl=ready.audioUrl;
+    showVoicePreview();feedback('Voice note ready. Listen before posting.')
+   }
+  }catch(err){
+   if(type==='hubPhotoFile')clearPicture();
+   else if(type==='hubVideoFile')clearVideo();
+   else if(type==='hubAudioFile')clearVoice();
+   feedback(String(err.message||err))
+  }
  };
  host.onsubmit=async e=>{
   if(!shown())return;const form=e.target.closest('form');if(!form)return;
@@ -423,10 +442,11 @@ function wireEvents(){
    const d=new FormData(form);
    if(form.id==='hubComposer'){
     const message=String(d.get('message')||'').trim(),topic=replyId?posts.find(x=>x.id===replyId)?.topic||'general':d.get('topic')||'general';
-    if(!editId&&!pendingImageData&&!pendingAudioData&&message.length<8)throw Error('Write at least eight characters or attach a picture or voice note.');
-    if(editId){if(pendingImageData||pendingAudioData)throw Error('Media attachments can be added when creating a message.');await action(editId+'/edit',{message})}
-    else await action('posts',{topic,message,parentId:replyId,imageData:pendingImageData,audioData:pendingAudioData});
-    clearPicture();clearVoice();form.reset();q('hubCharCount').textContent='0 / 700';q('hubPostSubmit').textContent='SEND MESSAGE';replyId=null;editId=null;updateReply();feedback('Message published successfully.')
+    if(voiceRecorder)throw Error('Finish your microphone recording before publishing.');
+    if(!editId&&!pendingImageData&&!pendingAudioData&&!pendingVideoData&&message.length<8)throw Error('Write at least eight characters or attach a picture, video, or voice note.');
+    if(editId){if(pendingImageData||pendingAudioData||pendingVideoData)throw Error('Media attachments can be added when creating a message.');await action(editId+'/edit',{message})}
+    else await action('posts',{topic,message,parentId:replyId,imageData:pendingImageData,audioData:pendingAudioData,videoData:pendingVideoData});
+    clearPicture();clearVideo();clearVoice();form.reset();q('hubCharCount').textContent='0 / 700';q('hubPostSubmit').textContent='SEND MESSAGE';replyId=null;editId=null;updateReply();feedback('Message published successfully.')
    }else if(form.id==='hubAnnouncement'){
     await action('admin/announcement',{message:d.get('message'),topic:d.get('topic')});form.reset();feedback('Official announcement published.')
    }else{
