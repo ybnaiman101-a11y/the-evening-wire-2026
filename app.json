@@ -1,0 +1,23 @@
+{
+  "name": "The Evening Wire — Recovery",
+  "description": "Prepared Heroku deployment for the existing election news application. Internal security and database recovery checks required before public launch.",
+  "repository": "https://github.com/ybnaiman101-a11y/the-evening-wire-2026",
+  "keywords": [
+    "nodejs",
+    "election-news",
+    "postgresql"
+  ],
+  "env": {
+    "NODE_ENV": {
+      "value": "production"
+    },
+    "POLL_INTERVAL_MS": {
+      "value": "30000"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1
+    }
+  }
+}
