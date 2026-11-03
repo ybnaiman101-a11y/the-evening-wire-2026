@@ -1,7 +1,7 @@
 // THE EVENING WIRE — member prediction challenge & separately sourced final results.
 // Owner race calls are NEVER final-result inputs and NEVER used for scoring.
 import {readFileSync} from 'node:fs';
-import {Pool} from 'pg';
+import {Pool} from './local-db-pool.mjs';
 import {postgresTLS,postgresConnectionString} from './postgres-tls.mjs';
 import {isEditorAdmin} from './editor-calls.mjs';
 import {authenticatedMember} from './members.mjs';
