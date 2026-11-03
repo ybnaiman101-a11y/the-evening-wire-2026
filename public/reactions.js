@@ -310,14 +310,17 @@ function wireEvents(){
   }
   if(node.dataset.hubRefresh){refresh();return}
   if(node.dataset.hubRemovePhoto){clearPicture();return}
+  if(node.dataset.hubRecordStart){try{await beginVoice()}catch(err){feedback(err.message)}return}
+  if(node.dataset.hubRecordStop){stopVoice();return}
+  if(node.dataset.hubRemoveVoice){clearVoice();return}
   if(node.dataset.hubPhoto){q('hubLightboxImg').src='/api/community/images/'+encodeURIComponent(node.dataset.hubPhoto);q('hubPhotoLightbox').hidden=false;return}
   if(node.dataset.hubClosePhoto){q('hubPhotoLightbox').hidden=true;q('hubLightboxImg').removeAttribute('src');return}
   if(node.id==='hubNewMessages'){q('hubFeed').scrollTo({top:0,behavior:'smooth'});unread=0;node.hidden=true;return}
-  if(node.dataset.hubCancel){replyId=null;editId=null;clearPicture();updateReply();q('hubComposer').elements.namedItem('message').value='';q('hubPostSubmit').textContent='SEND MESSAGE';return}
+  if(node.dataset.hubCancel){replyId=null;editId=null;clearPicture();clearVoice();updateReply();q('hubComposer').elements.namedItem('message').value='';q('hubPostSubmit').textContent='SEND MESSAGE';return}
   const id=node.dataset.hubReply||node.dataset.hubEdit||node.dataset.hubDelete||node.dataset.hubReport||node.dataset.hubPin||node.dataset.hubHide||node.dataset.hubReact;
   try{
    if(node.dataset.hubReply){if(!requireMember())return;const p=posts.find(x=>x.id===id);if(!p)return;replyId=p.parent_id||p.id;editId=null;updateReply();focusComposer();return}
-   if(node.dataset.hubEdit){clearPicture();const p=posts.find(x=>x.id===id);if(!p||!member||p.member_id!==member.id)return;editId=id;replyId=null;updateReply();const form=q('hubComposer');form.elements.namedItem('message').value=p.message;form.elements.namedItem('topic').value=p.topic;q('hubPostSubmit').textContent='SAVE EDIT';focusComposer();return}
+   if(node.dataset.hubEdit){clearPicture();clearVoice();const p=posts.find(x=>x.id===id);if(!p||!member||p.member_id!==member.id)return;editId=id;replyId=null;updateReply();const form=q('hubComposer');form.elements.namedItem('message').value=p.message;form.elements.namedItem('topic').value=p.topic;q('hubPostSubmit').textContent='SAVE EDIT';focusComposer();return}
    if(node.dataset.hubReact){if(!requireMember())return;await action(id+'/react',{emoji:node.dataset.emoji});return}
    if(node.dataset.hubDelete){if(!confirm('Delete your message?'))return;await action(id+'/delete');return}
    if(node.dataset.hubReport){if(!requireMember()||!confirm('Report this message to the moderators?'))return;await action(id+'/report');return}
@@ -346,10 +349,10 @@ function wireEvents(){
    const d=new FormData(form);
    if(form.id==='hubComposer'){
     const message=String(d.get('message')||'').trim(),topic=replyId?posts.find(x=>x.id===replyId)?.topic||'general':d.get('topic')||'general';
-    if(!editId&&!pendingImageData&&message.length<8)throw Error('Write at least eight characters or attach a picture.');
-    if(editId){if(pendingImageData)throw Error('Picture uploads are available on new messages.');await action(editId+'/edit',{message})}
-    else await action('posts',{topic,message,parentId:replyId,imageData:pendingImageData});
-    clearPicture();form.reset();q('hubCharCount').textContent='0 / 700';q('hubPostSubmit').textContent='SEND MESSAGE';replyId=null;editId=null;updateReply();feedback('Message published successfully.')
+    if(!editId&&!pendingImageData&&!pendingAudioData&&message.length<8)throw Error('Write at least eight characters or attach a picture or voice note.');
+    if(editId){if(pendingImageData||pendingAudioData)throw Error('Media attachments can be added when creating a message.');await action(editId+'/edit',{message})}
+    else await action('posts',{topic,message,parentId:replyId,imageData:pendingImageData,audioData:pendingAudioData});
+    clearPicture();clearVoice();form.reset();q('hubCharCount').textContent='0 / 700';q('hubPostSubmit').textContent='SEND MESSAGE';replyId=null;editId=null;updateReply();feedback('Message published successfully.')
    }else if(form.id==='hubAnnouncement'){
     await action('admin/announcement',{message:d.get('message'),topic:d.get('topic')});form.reset();feedback('Official announcement published.')
    }else{
@@ -368,6 +371,8 @@ async function open(){
  member=sess.user||null;owner=admin.authenticated===true;
  lastSignature='';renderShell();connect();await Promise.all([refresh(),presence()])
 }
+window.addEventListener('pagehide',clearVoice);
+document.addEventListener('click',e=>{if(e.target.closest('[data-ew-tab]')&&voiceRecorder)clearVoice()},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&q('hubPhotoLightbox')&&!q('hubPhotoLightbox').hidden){q('hubPhotoLightbox').hidden=true;q('hubLightboxImg').removeAttribute('src')}});
 setInterval(()=>{if(shown()&&!document.hidden)refresh()},5000);
 setInterval(()=>{if(shown()&&!document.hidden)presence()},30000);
