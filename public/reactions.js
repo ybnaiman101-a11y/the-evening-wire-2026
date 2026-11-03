@@ -9,7 +9,7 @@ const emojis=[['like','👍'],['love','❤️'],['laugh','😂'],['wow','😮'],
 const roomName=id=>rooms.find(x=>x[0]===id)?.[1]||'National Discussion';
 const clock=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Recently'};
 const tone=(x)=>{let h=0;const s=String(x||'');for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))>>>0;return h%8};
-let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null,pendingVideoData=null,pendingVideoUrl=null,pendingAudioData=null,pendingAudioUrl=null,voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceLimit=null,discardVoiceOnStop=false;
+let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null,pendingVideoData=null,pendingVideoUrl=null,pendingAudioData=null,pendingAudioUrl=null,voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceLimit=null,discardVoiceOnStop=false,voiceProcessing=false;
 function avatar(p){const number=tone(p.member_id||p.name||p.id);return '<span class="hub2-avatar a'+number+'">'+safe(String(p.name||'?').slice(0,1).toUpperCase())+'</span>'}
 function requireMember(){if(member)return true;location.href='/login';return false}
 async function api(path,method='GET',body){
@@ -131,9 +131,9 @@ async function prepareAudioFile(file){
 
 function voiceButtons(){
  const start=q('hubVoiceStart'),stop=q('hubVoiceStop'),elapsed=q('hubVoiceElapsed');
- if(start)start.hidden=!!voiceRecorder;
+ if(start){start.hidden=!!voiceRecorder||voiceProcessing;start.disabled=voiceProcessing}
  if(stop){stop.hidden=!voiceRecorder;stop.disabled=!!voiceRecorder&&voiceRecorder.state!=='recording';stop.textContent=voiceRecorder&&voiceRecorder.state!=='recording'?'● FINISHING…':'■ STOP RECORDING'}
- if(elapsed)elapsed.textContent=voiceRecorder?(voiceRecorder.state==='recording'?'🔴 RECORDING · '+Math.min(60,Math.floor((Date.now()-voiceStartedAt)/1000))+'s / 60s':'Finalizing audio…'):'Tap microphone to record up to 60 seconds';
+ if(elapsed)elapsed.textContent=voiceProcessing?'Preparing voice note…':voiceRecorder?(voiceRecorder.state==='recording'?'🔴 RECORDING · '+Math.min(60,Math.floor((Date.now()-voiceStartedAt)/1000))+'s / 60s':'Finishing recording…'):'Record up to 60 seconds';
 }
 let voiceStartedAt=0;
 function endVoiceTracks(){
@@ -142,7 +142,7 @@ function endVoiceTracks(){
  if(voiceStream){for(const track of voiceStream.getTracks())track.stop();voiceStream=null}
 }
 function clearVoice(){
- discardVoiceOnStop=true;
+ discardVoiceOnStop=true;voiceProcessing=false;
  if(voiceRecorder&&voiceRecorder.state!=='inactive'){try{voiceRecorder.stop()}catch{}}
  voiceRecorder=null;endVoiceTracks();
  if(pendingAudioUrl)URL.revokeObjectURL(pendingAudioUrl);
@@ -160,36 +160,42 @@ function showVoicePreview(){
 }
 async function beginVoice(){
  if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined')throw Error('Microphone recording needs an updated browser and HTTPS.');
- if(voiceRecorder)return;
+ if(voiceRecorder||voiceProcessing)throw Error('A voice note is already recording or being prepared.');
  clearVoice();discardVoiceOnStop=false;
  const candidates=['audio/webm;codecs=opus','audio/mp4','audio/ogg;codecs=opus','audio/webm'];
  const mime=candidates.find(x=>MediaRecorder.isTypeSupported?.(x));
  if(!mime)throw Error('This browser cannot record a supported voice-note format.');
  let stream;
  try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}
- catch{throw Error('Microphone permission was denied or the microphone is unavailable.')}
+ catch(err){throw Error(err?.name==='NotAllowedError'?'Allow microphone access in your browser’s address bar, then try again.':err?.name==='NotFoundError'?'No microphone detected. Connect a microphone or upload an audio file.':err?.name==='NotReadableError'?'Microphone is in use by another app. Close that app and retry.':'Microphone unavailable: '+(err?.message||'Try uploading an audio file.'))}
  try{
   let recorder;try{recorder=new MediaRecorder(stream,{mimeType:mime,audioBitsPerSecond:64000})}catch{recorder=new MediaRecorder(stream,{mimeType:mime})}
   voiceStream=stream;voiceRecorder=recorder;
   let chunks=[];
   recorder.ondataavailable=event=>{if(event.data?.size)chunks.push(event.data)};
-  recorder.onerror=()=>{feedback('Microphone recording failed. Please try again.');clearVoice()};
+  recorder.onerror=event=>{feedback('Recording failed: '+(event?.error?.message||'Try again or upload an audio file.'));clearVoice()};
   recorder.onstop=async()=>{
    endVoiceTracks();
    if(voiceRecorder===recorder)voiceRecorder=null;
-   voiceButtons();
-   if(discardVoiceOnStop){chunks=[];return}
-   const blob=new Blob(chunks,{type:recorder.mimeType||mime});chunks=[];
-   if(blob.size<30){feedback('Voice note was empty. Please record again.');return}
-   if(blob.size>1600000){feedback('Voice note was too large. Record a shorter one.');return}
+   voiceProcessing=true;voiceButtons();
    try{
-    const audioData=await new Promise((resolve,reject)=>{
-     const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('Unable to read recording'));reader.readAsDataURL(blob);
+    if(discardVoiceOnStop)return;
+    const blob=new Blob(chunks,{type:recorder.mimeType||mime});chunks=[];
+    if(blob.size<30)throw Error('Nothing was recorded. Speak for at least one second and try again.');
+    if(blob.size>1600000)throw Error('Voice note is too large. Record a shorter note.');
+    const source=await new Promise((resolve,reject)=>{
+     const reader=new FileReader();
+     reader.onload=()=>resolve(reader.result);
+     reader.onerror=()=>reject(Error('Could not prepare the recording.'));
+     reader.readAsDataURL(blob)
     });
+    if(discardVoiceOnStop)return;
     if(pendingAudioUrl)URL.revokeObjectURL(pendingAudioUrl);
-    pendingAudioData=audioData;pendingAudioUrl=URL.createObjectURL(blob);
-    showVoicePreview();feedback('Voice note recorded. Play it back or send it with your message.')
-   }catch(err){feedback(err.message)}
+    pendingAudioData=source;pendingAudioUrl=URL.createObjectURL(blob);
+    showVoicePreview();
+    feedback('Voice note ready. Play it or send your message.');
+   }catch(err){feedback(err.message||'Recording failed. Please try again.')}
+   finally{voiceProcessing=false;voiceButtons()}
   };
   recorder.start();voiceStartedAt=Date.now();voiceButtons();
   voiceTimer=setInterval(voiceButtons,1000);
@@ -199,14 +205,14 @@ async function beginVoice(){
 }
 function stopVoice(){
  if(!voiceRecorder)return;
- if(voiceRecorder.state==='recording')try{voiceRecorder.stop()}catch(err){feedback('Could not finish recording: '+err.message);clearVoice();return}
+ if(voiceRecorder.state==='recording')try{voiceProcessing=true;voiceRecorder.stop()}catch(err){feedback('Could not finish recording: '+err.message);clearVoice();return}
  // Wait for the final dataavailable and stop events before stopping tracks.
  voiceButtons()
 }
 
 function composer(){
  if(!member)return roleNotice();
- return '<div class="hub2-panel"><div class="hub2-label">NEW POST</div>'+
+ return '<div class="hub2-panel hub2-composer"><div class="hub2-label">NEW POST</div>'+
   '<div class="hub2-compose-head">'+avatar({name:member.displayName,member_id:member.id})+'<div><b>'+safe(member.displayName)+'</b></div></div>'+
   '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
   '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
@@ -244,8 +250,8 @@ function renderShell(){
  '<div class="hub2-columns"><aside class="hub2-side"><div class="hub2-panel"><div class="hub2-label">ELECTION DEBATE ROOMS</div>'+
  '<nav class="hub2-room-list" aria-label="Discussion rooms" id="hubRooms">'+rooms.map(([id,label])=>
  '<button class="hub2-room" data-hub-room="'+id+'" aria-pressed="'+(room===id?'true':'false')+'"><span>'+safe(label)+'</span><small id="hubRoomCount-'+id+'">0</small></button>').join('')+
- '</nav></div>'+composer()+adminPanel()+'</aside>'+
- '<main class="hub2-main"><section id="hubRaceWrap" class="hub2-panel" hidden><div class="hub2-label">⚡ OWNER RACE CALLS</div><div id="hubRaceCards"></div></section>'+
+ '</nav></div>'+adminPanel()+'</aside>'+
+ '<main class="hub2-main">'+composer()+'<section id="hubRaceWrap" class="hub2-panel" hidden><div class="hub2-label">⚡ OWNER RACE CALLS</div><div id="hubRaceCards"></div></section>'+
  '<section class="hub2-panel"><div class="hub2-tools"><div><div class="hub2-label">THE LIVE FLOOR · NEWEST FIRST ↓</div><h2 id="hubRoomTitle">ALL DISCUSSIONS</h2></div><button type="button" class="hub2-btn secondary" data-hub-refresh="1">↻ REFRESH</button></div>'+
  '<div class="hub2-tools"><input class="hub2-search" id="hubSearch" type="search" placeholder="Search messages or members..." aria-label="Search messages">'+
  '<span class="hub2-micro" id="hubUpdates">Live updates</span></div>'+
@@ -486,7 +492,7 @@ function wireEvents(){
    const d=new FormData(form);
    if(form.id==='hubComposer'){
     const message=String(d.get('message')||'').trim(),topic=replyId?posts.find(x=>x.id===replyId)?.topic||'general':d.get('topic')||'general';
-    if(voiceRecorder)throw Error('Finish your microphone recording before publishing.');
+    if(voiceRecorder||voiceProcessing)throw Error('Finish recording. Wait for the voice-note preview before sending.');
     if(!editId&&!pendingImageData&&!pendingAudioData&&!pendingVideoData&&!message.length)throw Error('Write a message, or attach a picture, video, or voice note.');
     if(editId){if(pendingImageData||pendingAudioData||pendingVideoData)throw Error('Media attachments can be added when creating a message.');await action(editId+'/edit',{message})}
     else await action('posts',{topic,message,parentId:replyId,imageData:pendingImageData,audioData:pendingAudioData,videoData:pendingVideoData});
