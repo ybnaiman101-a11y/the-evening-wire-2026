@@ -78,6 +78,25 @@ try{
  assert.equal(calls.data.storage,'postgresql','Calls must use persistent embedded database');
  const noOwner=await call('/api/admin/members',{cookie:memberCookie});
  assert.equal(noOwner.code,403,'Ordinary member cannot see admin directory');
+ const reaction=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
+  topic:'general',message:'Testing that the local database saves this election discussion.'
+ }});
+ assert.equal(reaction.code,201,'Reaction posting: '+JSON.stringify(reaction.data));
+ const readReactions=await call('/api/community/posts',{cookie:memberCookie});
+ assert.equal(readReactions.code,200,'Reaction reading: '+JSON.stringify(readReactions.data));
+ assert.equal(readReactions.data.posts.some(p=>p.id===reaction.data.id),true);
+ const deniedUpdate=await call('/api/updates',{method:'POST',cookie:memberCookie,body:{
+  category:'important',message:'Ordinary members should never publish owner alerts.'
+ }});
+ assert.equal(deniedUpdate.code,403,'Members may not publish owner alerts');
+ const adminUpdate=await call('/api/updates',{method:'POST',cookie:ownerCookie,body:{
+  category:'important',message:'Testing a private local election update.'
+ }});
+ assert.equal(adminUpdate.code,201,'Owner election update: '+JSON.stringify(adminUpdate.data));
+ const challenge=await call('/api/challenge',{cookie:memberCookie});
+ assert.equal(challenge.code,200,'Challenge read: '+JSON.stringify(challenge.data).slice(0,250));
+ assert.equal(challenge.data.raceCount,506);
+ console.log('Reaction Hub, owner election notices, prediction database PASS');
  console.log('Owner role, member registration, private directory, sessions PASS');
  await stop();
  start();await waitReady();
