@@ -8,6 +8,18 @@ export function postgresTLS(connectionString){
  if(['disable','allow','prefer','no-verify'].includes(mode)){
   throw new Error('Database SSL configuration is insecure; configure a verified TLS connection');
  }
+ // Railway service-to-service traffic on the private DNS is already encrypted
+ // inside Railway's WireGuard overlay. Allow standard PostgreSQL there without
+ // a separately provisioned PostgreSQL CA, while still requiring verified TLS
+ // for any external database. Never allow this exemption on arbitrary hosts.
+ const railwayPrivate=host.endsWith('.railway.internal')&&Boolean(process.env.RAILWAY_PROJECT_ID)&&
+   Boolean(process.env.RAILWAY_ENVIRONMENT_ID)&&process.env.NODE_ENV==='production';
+ if(railwayPrivate){
+  if(['require','verify-ca','verify-full'].includes(mode)){
+   throw new Error('Requested database TLS mode conflicts with Railway private WireGuard configuration');
+  }
+  return false;
+ }
  if(local&&process.env.NODE_ENV!=='production')return false;
  const configuredCA=process.env.PG_CA_CERT||process.env.POSTGRES_CA_CERT||'';
  const ca=configuredCA.replace(/\\n/g,'\n');
