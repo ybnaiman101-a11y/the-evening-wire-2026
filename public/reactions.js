@@ -18,7 +18,7 @@ async function api(path,method='GET',body){
  if(!response.ok)throw Error(data.error||'Unable to complete request');return data
 }
 function feedback(text){const node=q('hubFeedback');if(node)node.textContent=text||''}
-function roleNotice(){return !member?'<div class="hub2-panel"><h2>JOIN THE CONVERSATION</h2><p class="hub2-muted">Explore the discussion and polls without signing in. Sign in once, then stay remembered on this device.</p><a class="hub2-btn" href="/login">SIGN IN OR CREATE ACCOUNT</a></div>':''}
+function roleNotice(){return !member?'<div class="hub2-panel"><h2>JOIN THE CONVERSATION</h2><p class="hub2-muted">Sign in to post, reply, or react.</p><a class="hub2-btn" href="/login">SIGN IN OR CREATE ACCOUNT</a></div>':''}
 
 async function preparePicture(file){
  if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Choose a JPG, PNG or WebP picture.');
@@ -45,6 +45,28 @@ async function preparePicture(file){
   }
   throw Error('Picture could not be compressed under 1.5 MB. Try a smaller picture.')
  }finally{picture.close()}
+}
+async function attachPicture(file,source='Image'){
+ if(!member)throw Error('Sign in to share a picture.');
+ feedback('Preparing '+source.toLowerCase()+'…');
+ const ready=await preparePicture(file);
+ clearPicture();pendingImageData=ready.imageData;pendingImageUrl=ready.imageUrl;
+ showPicturePreview();feedback(source+' attached. Add a caption or press SEND MESSAGE.')
+}
+async function attachMedia(file){
+ if(!member)throw Error('Sign in to share media.');
+ if(file.type.startsWith('image/'))return attachPicture(file,'Picture');
+ if(file.type==='video/mp4'||file.type==='video/webm'){
+  feedback('Preparing video…');const ready=await prepareVideo(file);
+  clearVideo();pendingVideoData=ready.videoData;pendingVideoUrl=ready.videoUrl;
+  showVideoPreview();feedback('Video attached. Press SEND MESSAGE.');return
+ }
+ if(file.type.startsWith('audio/')||/\.(mp3|m4a|ogg|webm)$/i.test(file.name||'')){
+  feedback('Preparing audio…');const ready=await prepareAudioFile(file);
+  clearVoice();pendingAudioData=ready.audioData;pendingAudioUrl=ready.audioUrl;
+  showVoicePreview();feedback('Voice note attached. Press SEND MESSAGE.');return
+ }
+ throw Error('Drop a JPG, PNG, WebP, MP4, WebM, MP3, or M4A file.')
 }
 function clearPicture(){
  if(pendingImageUrl)URL.revokeObjectURL(pendingImageUrl);
@@ -184,12 +206,12 @@ function stopVoice(){
 
 function composer(){
  if(!member)return roleNotice();
- return '<div class="hub2-panel"><div class="hub2-label">YOUR LIVE BROADCAST</div>'+
-  '<div class="hub2-compose-head">'+avatar({name:member.displayName,member_id:member.id})+'<div><b>'+safe(member.displayName)+'</b><small>Verified member session · Your name stays with your posts</small></div></div>'+
+ return '<div class="hub2-panel"><div class="hub2-label">NEW POST</div>'+
+  '<div class="hub2-compose-head">'+avatar({name:member.displayName,member_id:member.id})+'<div><b>'+safe(member.displayName)+'</b></div></div>'+
   '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
   '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
-  '<label>YOUR POST OR REPLY<textarea name="message" maxlength="700" placeholder="What is happening this election night? Add a photo, video, or voice note…"></textarea></label>'+ 
-  '<label class="hub2-photo-field">📷 ADD A PICTURE <input id="hubPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"></label>'+
+  '<label>YOUR POST OR REPLY<textarea name="message" maxlength="700" placeholder="Write a post or paste a picture (Ctrl+V)…"></textarea></label>'+ 
+  '<label class="hub2-photo-field">📷 UPLOAD OR PASTE A PICTURE <small>Copy an image or screenshot, then press Ctrl + V in the post box.</small><input id="hubPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"></label>'+
   '<div id="hubPhotoPreview" class="hub2-photo-preview" hidden></div>'+ 
   '<label class="hub2-photo-field pulse-video-field">🎬 ADD A VIDEO CLIP (MP4 / WEBM, MAX 12 MB) <input id="hubVideoFile" type="file" accept="video/mp4,video/webm"></label>'+ 
   '<div id="hubVideoPreview" class="hub2-video-preview" hidden></div>'+ 
@@ -217,12 +239,12 @@ function renderShell(){
  host.innerHTML='<div class="hub2">'+
  '<header class="hub2-header"><div class="hub2-kicker">THE EVENING WIRE · 2026 ELECTION NIGHT NEWSROOM</div>'+
  '<h1>THE <span>PULSE</span></h1>'+
- '<p>THE EVENING WIRE · LIVE ELECTION CONVERSATIONS. Newest messages first. Share pictures, voice notes, reactions and election-night opinions.</p>'+
+ '<p>Post · Reply · React · Share media</p>'+
  '</header>'+
  '<div class="hub2-columns"><aside class="hub2-side"><div class="hub2-panel"><div class="hub2-label">ELECTION DEBATE ROOMS</div>'+
  '<nav class="hub2-room-list" aria-label="Discussion rooms" id="hubRooms">'+rooms.map(([id,label])=>
  '<button class="hub2-room" data-hub-room="'+id+'" aria-pressed="'+(room===id?'true':'false')+'"><span>'+safe(label)+'</span><small id="hubRoomCount-'+id+'">0</small></button>').join('')+
- '</nav><p class="hub2-micro">Pick a room to follow that conversation.</p></div>'+composer()+adminPanel()+'</aside>'+
+ '</nav></div>'+composer()+adminPanel()+'</aside>'+
  '<main class="hub2-main"><section id="hubRaceWrap" class="hub2-panel" hidden><div class="hub2-label">⚡ OWNER RACE CALLS</div><div id="hubRaceCards"></div></section>'+
  '<section class="hub2-panel"><div class="hub2-tools"><div><div class="hub2-label">THE LIVE FLOOR · NEWEST FIRST ↓</div><h2 id="hubRoomTitle">ALL DISCUSSIONS</h2></div><button type="button" class="hub2-btn secondary" data-hub-refresh="1">↻ REFRESH</button></div>'+
  '<div class="hub2-tools"><input class="hub2-search" id="hubSearch" type="search" placeholder="Search messages or members..." aria-label="Search messages">'+
@@ -230,7 +252,7 @@ function renderShell(){
  '<div id="hubFeed" class="hub2-feed" aria-live="off" aria-label="Election discussion feed"></div>'+
  '<button type="button" class="hub2-btn hub2-new" id="hubNewMessages" hidden>↑ NEW MESSAGES</button></section></main>'+
  '<aside class="hub2-polls-col"><div class="hub2-panel"><div class="hub2-label">🗳 MEMBER PREDICTIONS</div><h2>LIVE RACE POLLS</h2>'+
- '<p class="hub2-muted">One vote per member. Results are community opinion, not scientific polling or official election results.</p>'+
+ '<p class="hub2-muted">Member opinions · Not election results</p>'+
  '<div id="hubPolls"></div></div></aside></div><div id="hubPhotoLightbox" class="hub2-photo-lightbox" hidden role="dialog" aria-label="View conversation photo"><button type="button" data-hub-close-photo="1">✕ CLOSE</button><img id="hubLightboxImg" alt="Larger message picture"></div></div>';
  q('hubSearch').value=search;
  if(member){q('hubComposer').elements.namedItem('topic').value=room==='all'?'general':room}
@@ -410,14 +432,36 @@ function wireEvents(){
   if(e.target.id==='hubSearch'){search=e.target.value.trim().slice(0,120);lastSignature='';renderFeed()}
   if(e.target.name==='message'&&e.target.closest('#hubComposer')){const x=q('hubCharCount');if(x)x.textContent=e.target.value.length+' / 700'}
  };
+ // Pasted screenshots and images become normal photo attachments.
+ // When there is no image in the clipboard, keep ordinary text paste behavior.
+ host.onpaste=async e=>{
+  if(!shown()||!member||!e.target.closest('#hubComposer'))return;
+  const images=Array.from(e.clipboardData?.items||[])
+   .filter(item=>item.kind==='file'&&item.type.startsWith('image/'))
+   .map(item=>item.getAsFile()).filter(Boolean);
+  if(!images.length)return;
+  e.preventDefault();
+  try{await attachPicture(images[0],'Pasted picture')}
+  catch(err){feedback(err.message||'Could not paste picture.')}
+ };
+ host.ondragover=e=>{
+  if(!shown()||!member||!e.target.closest('#hubComposer'))return;
+  if(Array.from(e.dataTransfer?.types||[]).includes('Files'))e.preventDefault()
+ };
+ host.ondrop=async e=>{
+  if(!shown()||!member||!e.target.closest('#hubComposer'))return;
+  const files=Array.from(e.dataTransfer?.files||[]);
+  if(!files.length)return;
+  e.preventDefault();
+  try{await attachMedia(files[0])}
+  catch(err){feedback(err.message||'Could not attach file.')}
+ };
  host.onchange=async e=>{
   if(!shown())return;
   const type=e.target.id,file=e.target.files?.[0];if(!file)return;
   try{
    if(type==='hubPhotoFile'){
-    feedback('Preparing picture…');const ready=await preparePicture(file);
-    clearPicture();pendingImageData=ready.imageData;pendingImageUrl=ready.imageUrl;
-    showPicturePreview();feedback('Picture attached and ready to post.')
+    await attachPicture(file,'Picture')
    }else if(type==='hubVideoFile'){
     feedback('Preparing video (up to 12 MB)…');const ready=await prepareVideo(file);
     clearVideo();pendingVideoData=ready.videoData;pendingVideoUrl=ready.videoUrl;
