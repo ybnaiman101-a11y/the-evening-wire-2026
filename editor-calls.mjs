@@ -87,7 +87,7 @@ export async function editorRoute(req,res,path){
   const k=(String(req.headers.cookie||'').match(/ew_editor_session=([a-f0-9]{64})/)||[])[1];
   if(k&&store==='postgresql')await pool.query('DELETE FROM ew_editor_sessions WHERE token_hash=$1',[createHash('sha256').update(k).digest('hex')]);
   if(k)sessions.delete(k);
-  send(res,200,{authenticated:false},{'Set-Cookie':'ew_editor_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'});return true}
+  send(res,200,{authenticated:false},{'Set-Cookie':'ew_editor_session=; HttpOnly'+cookieSecure+'; SameSite=Strict; Path=/; Max-Age=0'});return true}
  if(!authed){send(res,403,{error:'Admin login required'});return true}
  if(route==='backup'&&req.method==='GET'){send(res,200,{...snapshot(),exportedAt:new Date().toISOString(),...meta()},{'Content-Disposition':'attachment; filename="evening-wire-race-calls.json"'});return true}
  if(store==='unavailable'){send(res,503,{error:'Database unavailable. Publishing disabled to prevent data loss.'});return true}
