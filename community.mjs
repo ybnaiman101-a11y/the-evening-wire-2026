@@ -2,7 +2,7 @@ import {Pool} from './local-db-pool.mjs';
 import {postgresTLS,postgresConnectionString} from './postgres-tls.mjs';
 import {temporaryCommunityRoute} from './community-temp.mjs';
 import {authenticatedMember} from './members.mjs';
-import {setupCommunityV2,addHubPostDetails,communityV2Route,announceHubUpdate,decodeCommunityImage} from './community-v2.mjs';
+import {setupCommunityV2,addHubPostDetails,communityV2Route,announceHubUpdate,decodeCommunityImage,decodeCommunityAudio} from './community-v2.mjs';
 import {randomUUID,createHash,timingSafeEqual} from 'node:crypto';
 const connection=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
 const adminSecret=process.env.REACTION_ADMIN_TOKEN||'';
@@ -36,7 +36,7 @@ export async function communityRoute(req,res,path){
  const route=path.slice('/api/community/'.length);
  const member=await authenticatedMember(req);
  if(route==='health'&&req.method==='GET'&&connection){respond(res,200,{ready,configured:true,postingEnabled:ready,storage:'postgresql'});return true}
- const publicReading=req.method==='GET'&&(['posts','polls','presence','stream'].includes(route)||/^images\/[0-9a-f-]{36}$/.test(route));
+ const publicReading=req.method==='GET'&&(['posts','polls','presence','stream'].includes(route)||/^(images|audio)\/[0-9a-f-]{36}$/.test(route));
  const ownerAction=route.startsWith('admin/');
  if(!member&&!publicReading&&!ownerAction){respond(res,401,{error:'Sign in to participate in discussions.'});return true}
  if(req.method==='POST'&&req.headers.origin&&!['https://'+req.headers.host,'http://'+req.headers.host].includes(req.headers.origin)){respond(res,403,{error:'Origin not allowed'});return true}
@@ -46,21 +46,21 @@ export async function communityRoute(req,res,path){
   if(await communityV2Route(req,res,route,pool,member))return true;
   if(route==='posts'&&req.method==='GET'){
    const topic=new URL(req.url,'http://localhost').searchParams.get('topic');
-   const q=await pool.query("SELECT p.id,COALESCE(m.display_name,p.name) AS name,p.topic,p.message,p.created_at,p.edited_at,p.likes,p.parent_id,p.member_id,p.image_id,p.pinned,p.official,COALESCE((SELECT count(*)::int FROM community_posts replies WHERE replies.parent_id=p.id AND replies.status='visible'),0) AS reply_count FROM community_posts p LEFT JOIN ew_members m ON p.member_id=m.id WHERE p.status='visible' AND ($1::text IS NULL OR p.topic=$1) ORDER BY p.pinned DESC,p.created_at DESC LIMIT 350",[topics.has(topic)?topic:null]);
+   const q=await pool.query("SELECT p.id,COALESCE(m.display_name,p.name) AS name,p.topic,p.message,p.created_at,p.edited_at,p.likes,p.parent_id,p.member_id,p.image_id,p.audio_id,p.pinned,p.official,COALESCE((SELECT count(*)::int FROM community_posts replies WHERE replies.parent_id=p.id AND replies.status='visible'),0) AS reply_count FROM community_posts p LEFT JOIN ew_members m ON p.member_id=m.id WHERE p.status='visible' AND ($1::text IS NULL OR p.topic=$1) ORDER BY p.pinned DESC,p.created_at DESC LIMIT 350",[topics.has(topic)?topic:null]);
    const detailed=await addHubPostDetails(pool,q.rows,member);
    respond(res,200,{ready:true,posts:detailed.map(p=>({...p,member_id:member?p.member_id:null}))});return true
   }
   if(route==='posts'&&req.method==='POST'){
    if(!rate(req,3,600000)){respond(res,429,{error:'Limit: three posts per ten minutes'});return true}
-   const x=await input(req,2100000),name=member.displayName.slice(0,30),message=String(x.message||'').trim(),topic=String(x.topic||'general'),parent=typeof x.parentId==='string'&&/^[0-9a-f-]{36}$/.test(x.parentId)?x.parentId:null;
-   let image;try{image=decodeCommunityImage(x.imageData)}catch(err){respond(res,400,{error:err.message});return true}
-   if(message.length>700||(!image&&message.length<8)||!topics.has(topic)||/https?:\/\/|www\./i.test(message)){respond(res,400,{error:'Write 8–700 characters, or attach a picture with an optional caption. No external links.'});return true}
+   const x=await input(req,4750000),name=member.displayName.slice(0,30),message=String(x.message||'').trim(),topic=String(x.topic||'general'),parent=typeof x.parentId==='string'&&/^[0-9a-f-]{36}$/.test(x.parentId)?x.parentId:null;
+   let image,audio;try{image=decodeCommunityImage(x.imageData);audio=decodeCommunityAudio(x.audioData)}catch(err){respond(res,400,{error:err.message});return true}
+   if(message.length>700||(!image&&!audio&&message.length<8)||!topics.has(topic)||/https?:\/\/|www\./i.test(message)){respond(res,400,{error:'Write 8–700 characters, or attach a picture or voice note with an optional caption. No external links.'});return true}
    if(parent){
     const q=await pool.query("SELECT id,topic,parent_id FROM community_posts WHERE id=$1 AND status='visible'",[parent]);
     if(!q.rowCount||q.rows[0].topic!==topic||q.rows[0].parent_id){respond(res,400,{error:'Replies must be to an existing top-level message in the same category.'});return true}
    }
    // Atomic transaction: no orphaned picture if posting fails.
-   const id=randomUUID(),imageId=image?randomUUID():null,dbClient=await pool.connect();
+   const id=randomUUID(),imageId=image?randomUUID():null,audioId=audio?randomUUID():null,dbClient=await pool.connect();
    try{
     await dbClient.query('BEGIN');
     if(image){
@@ -68,10 +68,15 @@ export async function communityRoute(req,res,path){
      if(Number(recent.rows[0]?.used||0)+image.bytes.length>12000000){await dbClient.query('ROLLBACK');respond(res,429,{error:'Daily photo limit reached (12 MB). Try again tomorrow.'});return true}
      await dbClient.query('INSERT INTO community_images(id,member_id,media_type,image_data) VALUES($1,$2,$3,$4)',[imageId,member.id,image.mediaType,image.bytes]);
     }
-    await dbClient.query('INSERT INTO community_posts(id,name,topic,message,member_id,parent_id,image_id) VALUES($1,$2,$3,$4,$5,$6,$7)',[id,name,topic,message,member.id,parent,imageId]);
+    if(audio){
+     const recentAudio=await dbClient.query("SELECT COALESCE(sum(octet_length(audio_data)),0)::bigint AS used FROM community_audio WHERE member_id=$1 AND created_at>now()-interval '24 hours'",[member.id]);
+     if(Number(recentAudio.rows[0]?.used||0)+audio.bytes.length>10000000){await dbClient.query('ROLLBACK');respond(res,429,{error:'Daily voice-note limit reached (10 MB). Try again tomorrow.'});return true}
+     await dbClient.query('INSERT INTO community_audio(id,member_id,media_type,audio_data) VALUES($1,$2,$3,$4)',[audioId,member.id,audio.mediaType,audio.bytes]);
+    }
+    await dbClient.query('INSERT INTO community_posts(id,name,topic,message,member_id,parent_id,image_id,audio_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[id,name,topic,message,member.id,parent,imageId,audioId]);
     await dbClient.query('COMMIT');
    }catch(err){await dbClient.query('ROLLBACK').catch(()=>{});throw err}finally{dbClient.release()}
-   announceHubUpdate('messages');respond(res,201,{ok:true,id,imageId});return true
+   announceHubUpdate('messages');respond(res,201,{ok:true,id,imageId,audioId});return true
   }
   const edit=route.match(/^([a-f0-9-]{36})\/edit$/);
   if(edit&&req.method==='POST'){
