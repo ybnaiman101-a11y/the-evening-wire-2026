@@ -209,7 +209,7 @@ export function createLiveResultsHub({fetcher=fetch,now=()=>new Date(),apProvide
     raceCallsControlledBy:'THE EVENING WIRE OWNER ONLY',winnerFlagsIgnored:true,resultsUncertified:true};
  }
  function start(){
-  if(timer)return;
+  if(timer||process.env.EW_LIVE_RESULTS_DISABLE==='1')return;
   poll().catch(e=>console.warn('EW_LIVE_RESULTS_INIT_ERROR',String(e.message||e)));
   timer=setInterval(()=>poll().catch(e=>console.warn('EW_LIVE_RESULTS_POLL_ERROR',String(e.message||e))),60000);
   timer.unref?.();
