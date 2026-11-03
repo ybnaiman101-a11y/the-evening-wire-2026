@@ -443,7 +443,7 @@ function wireEvents(){
    if(form.id==='hubComposer'){
     const message=String(d.get('message')||'').trim(),topic=replyId?posts.find(x=>x.id===replyId)?.topic||'general':d.get('topic')||'general';
     if(voiceRecorder)throw Error('Finish your microphone recording before publishing.');
-    if(!editId&&!pendingImageData&&!pendingAudioData&&!pendingVideoData&&message.length<8)throw Error('Write at least eight characters or attach a picture, video, or voice note.');
+    if(!editId&&!pendingImageData&&!pendingAudioData&&!pendingVideoData&&!message.length)throw Error('Write a message, or attach a picture, video, or voice note.');
     if(editId){if(pendingImageData||pendingAudioData||pendingVideoData)throw Error('Media attachments can be added when creating a message.');await action(editId+'/edit',{message})}
     else await action('posts',{topic,message,parentId:replyId,imageData:pendingImageData,audioData:pendingAudioData,videoData:pendingVideoData});
     clearPicture();clearVideo();clearVoice();form.reset();q('hubCharCount').textContent='0 / 700';q('hubPostSubmit').textContent='SEND MESSAGE';replyId=null;editId=null;updateReply();feedback('Message published successfully.')
