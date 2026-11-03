@@ -360,7 +360,10 @@ const server=http.createServer(async (req,res)=>{
  const publicAsset=['/','/index.html','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/election-maps.js','/election-maps.css'].includes(u.pathname);
  // The admin API implements its own administrator password checks.
  const adminEndpoint=u.pathname.startsWith('/api/admin/');
- if(!visitor && !(publicRead||publicAsset||adminEndpoint)){
+ // Routes which validate their own owner session must be reachable without a
+ // separate ordinary member login. The route still checks its authorization.
+ const delegatedAuth=u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')||u.pathname.startsWith('/api/challenge');
+ if(!visitor && !(publicRead||publicAsset||adminEndpoint||delegatedAuth)){
   return json({error:'Sign in or register to use this feature',login:'/login'},401);
  }
  if(u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')){
