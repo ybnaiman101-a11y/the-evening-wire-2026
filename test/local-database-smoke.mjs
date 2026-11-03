@@ -20,7 +20,7 @@ async function runOwnerSetup(){
  });
 }
 const output=await runOwnerSetup();
-const password=output.match(/\bEW-[A-Za-z0-9_-]{24}\b/)?.[0];
+const password=output.match(/\bEW-[A-Za-z0-9_-]{24}(?=\s|$)/)?.[0];
 assert.ok(password,'A strong owner password should be generated without typing');
 assert.equal((await readFile(join(dataDir,'owner-admin.sha256'),'utf8')).trim(),createHash('sha256').update(password).digest('hex'));
 const again=await runOwnerSetup();
