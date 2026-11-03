@@ -4,6 +4,11 @@
 <title>THE EVENING WIRE — 2026 Election Night LIVE</title>
 <link rel="stylesheet" href="/reaction-hub-v2.css?v=6">
 <style>
+/* Give the main conversation more space without creating a short scroll box. */
+body[data-ew-view="reactions"] #commandDesk{max-width:1850px;width:100%;padding:20px clamp(12px,2vw,30px) 40px}
+</style>
+
+<style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&display=swap');
 :root{color-scheme:dark;--bg:#090f19;--panel:#131e2d;--line:#2b3950;--text:#f1f6ff;--muted:#8da1bc;--red:#ec3d51;--cyan:#21cff3;--green:#3be0a0;font-family:'DM Sans',system-ui,sans-serif}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse 500px 420px at 85% 15%,#18335b55,transparent),var(--bg);color:var(--text)}
@@ -665,7 +670,7 @@ refresh();setInterval(refresh,30000);setInterval(rotateHeadline,8500);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 })();
 </script>
-<script src="/reactions.js?v=5"></script>
+<script src="/reactions.js?v=6"></script>
 <script src="/race-catalog.js"></script>
 <script src="/editor-calls.js?v=5"></script>
 <script src="/members.js"></script>
