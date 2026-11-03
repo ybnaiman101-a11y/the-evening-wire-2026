@@ -9,7 +9,7 @@ const emojis=[['like','👍'],['love','❤️'],['laugh','😂'],['wow','😮'],
 const roomName=id=>rooms.find(x=>x[0]===id)?.[1]||'National Discussion';
 const clock=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Recently'};
 const tone=(x)=>{let h=0;const s=String(x||'');for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))>>>0;return h%8};
-let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false;
+let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null;
 function avatar(p){const number=tone(p.member_id||p.name||p.id);return '<span class="hub2-avatar a'+number+'">'+safe(String(p.name||'?').slice(0,1).toUpperCase())+'</span>'}
 function requireMember(){if(member)return true;location.href='/login';return false}
 async function api(path,method='GET',body){
@@ -19,13 +19,56 @@ async function api(path,method='GET',body){
 }
 function feedback(text){const node=q('hubFeedback');if(node)node.textContent=text||''}
 function roleNotice(){return !member?'<div class="hub2-panel"><h2>JOIN THE CONVERSATION</h2><p class="hub2-muted">Explore the discussion and polls without signing in. Sign in once, then stay remembered on this device.</p><a class="hub2-btn" href="/login">SIGN IN OR CREATE ACCOUNT</a></div>':''}
+
+async function preparePicture(file){
+ if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Choose a JPG, PNG or WebP picture.');
+ if(file.size>12000000)throw Error('Picture too big. Choose a file under 12 MB.');
+ const picture=await createImageBitmap(file);
+ if(!picture.width||!picture.height||picture.width>20000||picture.height>20000){picture.close();throw Error('Invalid picture dimensions.')}
+ try{
+  // Resize in browser; images are never sent to a third-party service.
+  for(const maxSide of [1600,1280,1024]){
+   const scale=Math.min(1,maxSide/Math.max(picture.width,picture.height));
+   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(picture.width*scale));canvas.height=Math.max(1,Math.round(picture.height*scale));
+   const ctx=canvas.getContext('2d');if(!ctx)throw Error('Your browser cannot prepare this picture.');
+   ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+   ctx.drawImage(picture,0,0,canvas.width,canvas.height);
+   for(const quality of [.8,.65,.5]){
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+    if(blob&&blob.size<=1400000){
+     const imageData=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('Could not read picture'));reader.readAsDataURL(blob);
+     });
+     return {imageData,imageUrl:URL.createObjectURL(blob),size:blob.size}
+    }
+   }
+  }
+  throw Error('Picture could not be compressed under 1.5 MB. Try a smaller picture.')
+ }finally{picture.close()}
+}
+function clearPicture(){
+ if(pendingImageUrl)URL.revokeObjectURL(pendingImageUrl);
+ pendingImageData=null;pendingImageUrl=null;
+ const field=q('hubPhotoFile');if(field)field.value='';
+ const box=q('hubPhotoPreview');if(box){box.hidden=true;box.innerHTML=''}
+}
+function showPicturePreview(){
+ const box=q('hubPhotoPreview');if(!box)return;
+ box.hidden=!pendingImageUrl;
+ if(!pendingImageUrl){box.replaceChildren();return}
+ box.innerHTML='<img id="hubPhotoPreviewImg" alt="Your photo ready to post"><span>📷 Photo attached · Ready to publish</span><button type="button" class="hub2-btn secondary" data-hub-remove-photo="1">REMOVE</button>';
+ q('hubPhotoPreviewImg').src=pendingImageUrl
+}
+
 function composer(){
  if(!member)return roleNotice();
  return '<div class="hub2-panel"><div class="hub2-label">YOUR LIVE BROADCAST</div>'+
   '<div class="hub2-compose-head">'+avatar({name:member.displayName,member_id:member.id})+'<div><b>'+safe(member.displayName)+'</b><small>Verified member session · Your name stays with your posts</small></div></div>'+
   '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
   '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
-  '<label>YOUR MESSAGE<textarea name="message" minlength="8" maxlength="700" required placeholder="Share your election take — the conversation is live."></textarea></label>'+
+  '<label>YOUR MESSAGE OR PHOTO CAPTION<textarea name="message" maxlength="700" placeholder="Share your election take, add a photo, or both."></textarea></label>'+ 
+  '<label class="hub2-photo-field">📷 ADD A PICTURE <input id="hubPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"></label>'+
+  '<div id="hubPhotoPreview" class="hub2-photo-preview" hidden></div>'+
   '<div class="hub2-tools"><span class="hub2-micro" id="hubCharCount">0 / 700</span><button class="hub2-btn" type="submit" id="hubPostSubmit">SEND MESSAGE</button></div></form>'+
   '<p id="hubFeedback" class="hub2-feedback" role="status" aria-live="polite"></p></div>'
 }
@@ -64,7 +107,7 @@ function renderShell(){
  '<button type="button" class="hub2-btn hub2-new" id="hubNewMessages" hidden>↓ NEW MESSAGES</button></section></main>'+
  '<aside class="hub2-polls-col"><div class="hub2-panel"><div class="hub2-label">🗳 MEMBER PREDICTIONS</div><h2>LIVE RACE POLLS</h2>'+
  '<p class="hub2-muted">One vote per member. Results are community opinion, not scientific polling or official election results.</p>'+
- '<div id="hubPolls"></div></div></aside></div></div>';
+ '<div id="hubPolls"></div></div></aside></div><div id="hubPhotoLightbox" class="hub2-photo-lightbox" hidden role="dialog" aria-label="View conversation photo"><button type="button" data-hub-close-photo="1">✕ CLOSE</button><img id="hubLightboxImg" alt="Larger message picture"></div></div>';
  q('hubSearch').value=search;
  if(member){q('hubComposer').elements.namedItem('topic').value=room==='all'?'general':room}
  wireEvents();renderAll()
@@ -84,7 +127,8 @@ function messageCard(p,children=[]){
  return '<article class="hub2-message'+(p.official?' official':'')+(p.pinned?' pinned':'')+'" id="hub-message-'+safe(p.id)+'" data-post-id="'+safe(p.id)+'">'+
  '<div class="hub2-message-header">'+avatar(p)+'<div class="hub2-author"><b>'+safe(p.name||'Member')+'</b><small>'+safe(roomName(p.topic))+' · '+safe(clock(p.created_at))+(p.edited_at?' · edited':'')+'</small></div>'+
  (p.official?'<span class="hub2-tag">OFFICIAL EVENING WIRE</span>':p.pinned?'<span class="hub2-tag">📌 PINNED</span>':'')+'</div>'+
- '<p class="hub2-message-body">'+safe(p.message)+'</p>'+
+ (p.message?'<p class="hub2-message-body">'+safe(p.message)+'</p>':'')+
+ (p.image_id?'<button type="button" class="hub2-photo-card" data-hub-photo="'+safe(p.image_id)+'" aria-label="View picture shared by '+safe(p.name||'member')+'"><img loading="lazy" src="/api/community/images/'+safe(p.image_id)+'" alt="Picture shared by '+safe(p.name||'member')+'"></button>':'')+
  '<div class="hub2-emojis">'+btns+'</div>'+
  '<div class="hub2-actions"><button type="button" data-hub-reply="'+safe(p.id)+'">↪ REPLY</button>'+
  (mine?'<button type="button" data-hub-edit="'+safe(p.id)+'">✎ EDIT</button>':'')+
@@ -96,7 +140,7 @@ function messageCard(p,children=[]){
 function renderFeed(){
  const feed=q('hubFeed');if(!feed||!shown())return;
  const visible=posts.filter(p=>(room==='all'||p.topic===room)&&(!search||(p.name+' '+p.message).toLowerCase().includes(search.toLowerCase())));
- const sig=JSON.stringify(visible.map(p=>[p.id,p.message,p.edited_at,p.likes,p.reactions,p.myReactions,p.pinned,p.official]))+'|'+room+'|'+search;
+ const sig=JSON.stringify(visible.map(p=>[p.id,p.message,p.edited_at,p.likes,p.reactions,p.myReactions,p.pinned,p.official,p.image_id]))+'|'+room+'|'+search;
  if(sig===lastSignature)return;
  lastSignature=sig;
  const bottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<105;
