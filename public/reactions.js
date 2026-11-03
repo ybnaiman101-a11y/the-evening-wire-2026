@@ -9,7 +9,7 @@ const emojis=[['like','👍'],['love','❤️'],['laugh','😂'],['wow','😮'],
 const roomName=id=>rooms.find(x=>x[0]===id)?.[1]||'National Discussion';
 const clock=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Recently'};
 const tone=(x)=>{let h=0;const s=String(x||'');for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))>>>0;return h%8};
-let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null;
+let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null,pendingAudioData=null,pendingAudioUrl=null,voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceLimit=null,discardVoiceOnStop=false;
 function avatar(p){const number=tone(p.member_id||p.name||p.id);return '<span class="hub2-avatar a'+number+'">'+safe(String(p.name||'?').slice(0,1).toUpperCase())+'</span>'}
 function requireMember(){if(member)return true;location.href='/login';return false}
 async function api(path,method='GET',body){
@@ -60,15 +60,91 @@ function showPicturePreview(){
  q('hubPhotoPreviewImg').src=pendingImageUrl
 }
 
+
+function voiceButtons(){
+ const start=q('hubVoiceStart'),stop=q('hubVoiceStop'),elapsed=q('hubVoiceElapsed');
+ if(start)start.hidden=!!voiceRecorder;
+ if(stop)stop.hidden=!voiceRecorder;
+ if(elapsed)elapsed.textContent=voiceRecorder?'🔴 RECORDING · '+Math.min(60,Math.floor((Date.now()-voiceStartedAt)/1000))+'s / 60s':'Tap microphone to record up to 60 seconds';
+}
+let voiceStartedAt=0;
+function endVoiceTracks(){
+ if(voiceTimer){clearInterval(voiceTimer);voiceTimer=null}
+ if(voiceLimit){clearTimeout(voiceLimit);voiceLimit=null}
+ if(voiceStream){for(const track of voiceStream.getTracks())track.stop();voiceStream=null}
+}
+function clearVoice(){
+ discardVoiceOnStop=true;
+ if(voiceRecorder&&voiceRecorder.state!=='inactive'){try{voiceRecorder.stop()}catch{}}
+ voiceRecorder=null;endVoiceTracks();
+ if(pendingAudioUrl)URL.revokeObjectURL(pendingAudioUrl);
+ pendingAudioData=null;pendingAudioUrl=null;
+ const preview=q('hubVoicePreview');if(preview){preview.replaceChildren();preview.hidden=true}
+ voiceButtons()
+}
+function showVoicePreview(){
+ const preview=q('hubVoicePreview');if(!preview)return;
+ preview.hidden=!pendingAudioUrl;
+ if(!pendingAudioUrl){preview.replaceChildren();return}
+ preview.innerHTML='<div class="hub2-voice-caption"><b>🎤 VOICE NOTE READY</b><small>Listen before posting. The recording uploads only when you send the message.</small></div><audio id="hubVoicePreviewPlayer" controls preload="metadata"></audio><button class="hub2-btn secondary" type="button" data-hub-remove-voice="1">REMOVE RECORDING</button>';
+ q('hubVoicePreviewPlayer').src=pendingAudioUrl
+}
+async function beginVoice(){
+ if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined')throw Error('Microphone recording needs an updated browser and HTTPS.');
+ if(voiceRecorder)return;
+ clearVoice();discardVoiceOnStop=false;
+ const candidates=['audio/webm;codecs=opus','audio/mp4','audio/ogg;codecs=opus','audio/webm'];
+ const mime=candidates.find(x=>MediaRecorder.isTypeSupported?.(x));
+ if(!mime)throw Error('This browser cannot record a supported voice-note format.');
+ let stream;
+ try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}
+ catch{throw Error('Microphone permission was denied or the microphone is unavailable.')}
+ try{
+  const recorder=new MediaRecorder(stream,{mimeType:mime,audioBitsPerSecond:64000});
+  voiceStream=stream;voiceRecorder=recorder;
+  let chunks=[];
+  recorder.ondataavailable=event=>{if(event.data?.size)chunks.push(event.data)};
+  recorder.onerror=()=>{feedback('Microphone recording failed. Please try again.');clearVoice()};
+  recorder.onstop=async()=>{
+   endVoiceTracks();
+   if(voiceRecorder===recorder)voiceRecorder=null;
+   voiceButtons();
+   if(discardVoiceOnStop){chunks=[];return}
+   const blob=new Blob(chunks,{type:recorder.mimeType||mime});chunks=[];
+   if(blob.size<30){feedback('Voice note was empty. Please record again.');return}
+   if(blob.size>1600000){feedback('Voice note was too large. Record a shorter one.');return}
+   try{
+    const audioData=await new Promise((resolve,reject)=>{
+     const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('Unable to read recording'));reader.readAsDataURL(blob);
+    });
+    if(pendingAudioUrl)URL.revokeObjectURL(pendingAudioUrl);
+    pendingAudioData=audioData;pendingAudioUrl=URL.createObjectURL(blob);
+    showVoicePreview();feedback('Voice note recorded. Play it back or send it with your message.')
+   }catch(err){feedback(err.message)}
+  };
+  recorder.start(250);voiceStartedAt=Date.now();voiceButtons();
+  voiceTimer=setInterval(voiceButtons,1000);
+  voiceLimit=setTimeout(stopVoice,60000);
+  feedback('Recording… click STOP RECORDING when finished.')
+ }catch(err){for(const track of stream.getTracks())track.stop();voiceStream=null;voiceRecorder=null;voiceButtons();throw err}
+}
+function stopVoice(){
+ if(!voiceRecorder)return;
+ if(voiceRecorder.state==='recording')try{voiceRecorder.stop()}catch{}
+ endVoiceTracks();voiceButtons()
+}
+
 function composer(){
  if(!member)return roleNotice();
  return '<div class="hub2-panel"><div class="hub2-label">YOUR LIVE BROADCAST</div>'+
   '<div class="hub2-compose-head">'+avatar({name:member.displayName,member_id:member.id})+'<div><b>'+safe(member.displayName)+'</b><small>Verified member session · Your name stays with your posts</small></div></div>'+
   '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
   '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
-  '<label>YOUR MESSAGE OR PHOTO CAPTION<textarea name="message" maxlength="700" placeholder="Share your election take, add a photo, or both."></textarea></label>'+ 
+  '<label>YOUR MESSAGE OR MEDIA CAPTION<textarea name="message" maxlength="700" placeholder="Share an election take, a picture, a voice note, or all three."></textarea></label>'+ 
   '<label class="hub2-photo-field">📷 ADD A PICTURE <input id="hubPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"></label>'+
-  '<div id="hubPhotoPreview" class="hub2-photo-preview" hidden></div>'+
+  '<div id="hubPhotoPreview" class="hub2-photo-preview" hidden></div>'+ 
+  '<div class="hub2-voice-controls"><button type="button" class="hub2-btn hub2-mic-start" id="hubVoiceStart" data-hub-record-start="1">🎤 RECORD VOICE NOTE</button><button type="button" class="hub2-btn danger" id="hubVoiceStop" data-hub-record-stop="1" hidden>■ STOP RECORDING</button><span id="hubVoiceElapsed" class="hub2-micro">Tap microphone to record up to 60 seconds</span></div>'+ 
+  '<div id="hubVoicePreview" class="hub2-voice-preview" hidden></div>'+
   '<div class="hub2-tools"><span class="hub2-micro" id="hubCharCount">0 / 700</span><button class="hub2-btn" type="submit" id="hubPostSubmit">SEND MESSAGE</button></div></form>'+
   '<p id="hubFeedback" class="hub2-feedback" role="status" aria-live="polite"></p></div>'
 }
