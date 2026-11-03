@@ -92,11 +92,26 @@ function showVideoPreview(){
  q('hubVideoPreviewPlayer').src=pendingVideoUrl
 }
 
+
+async function prepareAudioFile(file){
+ const types={'audio/webm':'audio/webm','audio/mp4':'audio/mp4','audio/x-m4a':'audio/mp4','audio/ogg':'audio/ogg','audio/mpeg':'audio/mpeg','audio/mp3':'audio/mpeg'};
+ const typ=types[file?.type]||(/\.(m4a|mp4)$/i.test(file?.name||'')?'audio/mp4':/\.(mp3)$/i.test(file?.name||'')?'audio/mpeg':null);
+ if(!typ)throw Error('Choose an MP3, M4A, Ogg, or WebM voice recording.');
+ if(file.size<30||file.size>1600000)throw Error('Voice notes must be under 1.6 MB.');
+ const source=new Blob([file],{type:typ}),audioUrl=URL.createObjectURL(source);
+ try{
+  const audioData=await new Promise((resolve,reject)=>{
+   const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('Could not read this voice note'));reader.readAsDataURL(source)
+  });
+  return {audioData,audioUrl}
+ }catch(err){URL.revokeObjectURL(audioUrl);throw err}
+}
+
 function voiceButtons(){
  const start=q('hubVoiceStart'),stop=q('hubVoiceStop'),elapsed=q('hubVoiceElapsed');
  if(start)start.hidden=!!voiceRecorder;
- if(stop)stop.hidden=!voiceRecorder;
- if(elapsed)elapsed.textContent=voiceRecorder?'🔴 RECORDING · '+Math.min(60,Math.floor((Date.now()-voiceStartedAt)/1000))+'s / 60s':'Tap microphone to record up to 60 seconds';
+ if(stop){stop.hidden=!voiceRecorder;stop.disabled=!!voiceRecorder&&voiceRecorder.state!=='recording';stop.textContent=voiceRecorder&&voiceRecorder.state!=='recording'?'● FINISHING…':'■ STOP RECORDING'}
+ if(elapsed)elapsed.textContent=voiceRecorder?(voiceRecorder.state==='recording'?'🔴 RECORDING · '+Math.min(60,Math.floor((Date.now()-voiceStartedAt)/1000))+'s / 60s':'Finalizing audio…'):'Tap microphone to record up to 60 seconds';
 }
 let voiceStartedAt=0;
 function endVoiceTracks(){
@@ -111,6 +126,7 @@ function clearVoice(){
  if(pendingAudioUrl)URL.revokeObjectURL(pendingAudioUrl);
  pendingAudioData=null;pendingAudioUrl=null;
  const preview=q('hubVoicePreview');if(preview){preview.replaceChildren();preview.hidden=true}
+ const file=q('hubAudioFile');if(file)file.value='';
  voiceButtons()
 }
 function showVoicePreview(){
@@ -131,7 +147,7 @@ async function beginVoice(){
  try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}
  catch{throw Error('Microphone permission was denied or the microphone is unavailable.')}
  try{
-  const recorder=new MediaRecorder(stream,{mimeType:mime,audioBitsPerSecond:64000});
+  let recorder;try{recorder=new MediaRecorder(stream,{mimeType:mime,audioBitsPerSecond:64000})}catch{recorder=new MediaRecorder(stream,{mimeType:mime})}
   voiceStream=stream;voiceRecorder=recorder;
   let chunks=[];
   recorder.ondataavailable=event=>{if(event.data?.size)chunks.push(event.data)};
@@ -153,7 +169,7 @@ async function beginVoice(){
     showVoicePreview();feedback('Voice note recorded. Play it back or send it with your message.')
    }catch(err){feedback(err.message)}
   };
-  recorder.start(250);voiceStartedAt=Date.now();voiceButtons();
+  recorder.start();voiceStartedAt=Date.now();voiceButtons();
   voiceTimer=setInterval(voiceButtons,1000);
   voiceLimit=setTimeout(stopVoice,60000);
   feedback('Recording… click STOP RECORDING when finished.')
@@ -161,8 +177,9 @@ async function beginVoice(){
 }
 function stopVoice(){
  if(!voiceRecorder)return;
- if(voiceRecorder.state==='recording')try{voiceRecorder.stop()}catch{}
- endVoiceTracks();voiceButtons()
+ if(voiceRecorder.state==='recording')try{voiceRecorder.stop()}catch(err){feedback('Could not finish recording: '+err.message);clearVoice();return}
+ // Wait for the final dataavailable and stop events before stopping tracks.
+ voiceButtons()
 }
 
 function composer(){
@@ -177,7 +194,8 @@ function composer(){
   '<label class="hub2-photo-field pulse-video-field">🎬 ADD A VIDEO CLIP (MP4 / WEBM, MAX 12 MB) <input id="hubVideoFile" type="file" accept="video/mp4,video/webm"></label>'+ 
   '<div id="hubVideoPreview" class="hub2-video-preview" hidden></div>'+ 
   '<div class="hub2-voice-controls"><button type="button" class="hub2-btn hub2-mic-start" id="hubVoiceStart" data-hub-record-start="1">🎤 RECORD VOICE NOTE</button><button type="button" class="hub2-btn danger" id="hubVoiceStop" data-hub-record-stop="1" hidden>■ STOP RECORDING</button><span id="hubVoiceElapsed" class="hub2-micro">Tap microphone to record up to 60 seconds</span></div>'+ 
-  '<div id="hubVoicePreview" class="hub2-voice-preview" hidden></div>'+
+  '<div id="hubVoicePreview" class="hub2-voice-preview" hidden></div>'+ 
+  '<label class="hub2-audio-field">OR UPLOAD AN AUDIO NOTE <input id="hubAudioFile" type="file" accept="audio/webm,audio/mp4,audio/x-m4a,audio/ogg,audio/mpeg,.mp3,.m4a"></label>'+
   '<div class="hub2-tools"><span class="hub2-micro" id="hubCharCount">0 / 700</span><button class="hub2-btn" type="submit" id="hubPostSubmit">SEND MESSAGE</button></div></form>'+
   '<p id="hubFeedback" class="hub2-feedback" role="status" aria-live="polite"></p></div>'
 }
