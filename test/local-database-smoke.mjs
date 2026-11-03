@@ -61,7 +61,7 @@ async function call(path,{method='GET',body,cookie}={}){
  if(method!=='GET')headers.Origin=base;
  const r=await fetch(base+path,{method,headers,body:body?JSON.stringify(body):undefined});
  let data=null;try{data=await r.json()}catch{}
- return {code:r.status,data,cookie:(r.headers.get('set-cookie')||'').split(';')[0]};
+ return {code:r.status,data,cookie:(r.headers.get('set-cookie')||'').split(';')[0],setCookie:r.headers.get('set-cookie')||''};
 }
 try{
  start();
@@ -82,6 +82,7 @@ try{
  }});
  assert.equal(member.code,200,'Member registration: '+JSON.stringify(member.data));
  assert.equal(member.data.user.displayName,'Test Election Reader');
+ assert.match(member.setCookie,/Max-Age=7776000/,'Remembered devices use 90-day cookies');
  const memberCookie=member.cookie;
  const session=await call('/api/members/session',{cookie:memberCookie});
  assert.equal(session.data.user.displayName,'Test Election Reader','Member cookie should work on localhost');
@@ -99,6 +100,46 @@ try{
  const readReactions=await call('/api/community/posts',{cookie:memberCookie});
  assert.equal(readReactions.code,200,'Reaction reading: '+JSON.stringify(readReactions.data));
  assert.equal(readReactions.data.posts.some(p=>p.id===reaction.data.id),true);
+ // New rooms are readable without membership; member actions remain protected.
+ const publicPosts=await call('/api/community/posts');
+ assert.equal(publicPosts.code,200,'Guest can read the public conversation');
+ const react=await call('/api/community/'+reaction.data.id+'/react',{method:'POST',cookie:memberCookie,body:{emoji:'fire'}});
+ assert.equal(react.code,200,'Member can react with an emoji');
+ const reacted=await call('/api/community/posts',{cookie:memberCookie});
+ assert.equal(reacted.data.posts.find(p=>p.id===reaction.data.id)?.reactions?.fire,1);
+ const memberPresence=await call('/api/community/presence',{method:'POST',cookie:memberCookie});
+ assert.equal(memberPresence.code,200);
+ const online=await call('/api/community/presence');
+ assert.ok(online.data.online>=1,'Active member count is server-side');
+ const deniedPoll=await call('/api/community/admin/polls',{method:'POST',cookie:memberCookie,body:{question:'Which party will win this mock race?',options:['Republican','Democrat']}});
+ assert.equal(deniedPoll.code,403,'Only owner can create polls');
+ const poll=await call('/api/community/admin/polls',{method:'POST',cookie:ownerCookie,body:{question:'Which party wins this example race?',options:['Republican','Democrat'],durationHours:1}});
+ assert.equal(poll.code,201,'Owner can create polls: '+JSON.stringify(poll.data));
+ const vote=await call('/api/community/polls/'+poll.data.id+'/vote',{method:'POST',cookie:memberCookie,body:{choice:0}});
+ assert.equal(vote.code,200,'Member can vote');
+ const duplicateVote=await call('/api/community/polls/'+poll.data.id+'/vote',{method:'POST',cookie:memberCookie,body:{choice:1}});
+ assert.equal(duplicateVote.code,409,'Members can vote only once per poll');
+ const pollResults=await call('/api/community/polls',{cookie:memberCookie});
+ assert.equal(pollResults.data.polls.find(p=>p.id===poll.data.id)?.counts?.[0],1);
+ const announcement=await call('/api/community/admin/announcement',{method:'POST',cookie:ownerCookie,body:{topic:'general',message:'This is an official Evening Wire test alert.'}});
+ assert.equal(announcement.code,201,'Owner can publish an official announcement');
+ const publicNews=await call('/api/community/posts');
+ assert.equal(publicNews.data.posts.find(p=>p.id===announcement.data.id)?.official,true);
+ const hide=await call('/api/community/admin/posts/'+reaction.data.id+'/hide',{method:'POST',cookie:ownerCookie});
+ assert.equal(hide.code,200,'Owner can moderate messages');
+ const afterHide=await call('/api/community/posts');
+ assert.equal(afterHide.data.posts.some(p=>p.id===reaction.data.id),false);
+ const optionalSource=await call('/api/admin/calls',{method:'POST',cookie:ownerCookie,body:{
+  office:'senate',state:'TX',candidate:'Example Election Test Candidate',party:'R',sourceName:'',sourceUrl:'',confirm:true
+ }});
+ assert.equal(optionalSource.code,200,'Owner editorial call can omit source: '+JSON.stringify(optionalSource.data));
+ assert.equal(optionalSource.data.call.sourceUrl,'');
+ const publicCalls=await call('/api/editor/calls');
+ assert.equal(publicCalls.data.calls.some(c=>c.id==='senate-TX'&&!c.sourceName&&!c.sourceUrl),true);
+ const invalidSource=await call('/api/admin/restore',{method:'POST',cookie:ownerCookie,body:{
+  version:1,calls:[{office:'senate',state:'TX',candidate:'Example',party:'R',sourceUrl:'javascript:alert(1)',sourceName:'Not safe'}]
+ }});
+ assert.equal(invalidSource.code,400,'Unsafe source URL must still be rejected');
  const deniedUpdate=await call('/api/updates',{method:'POST',cookie:memberCookie,body:{
   category:'important',message:'Ordinary members should never publish owner alerts.'
  }});
@@ -119,6 +160,10 @@ try{
  }});
  assert.equal(login.code,200,'Member persisted over restart: '+JSON.stringify(login.data));
  assert.equal(login.data.user.displayName,'Test Election Reader');
+ const allLogout=await call('/api/members/logout-all',{method:'POST',cookie:login.cookie});
+ assert.equal(allLogout.code,200,'Remembered sessions can be revoked');
+ const revoked=await call('/api/members/session',{cookie:login.cookie});
+ assert.equal(revoked.data.user,null,'Revoked device no longer signed in');
  const oldOwner=await call('/api/admin/session',{cookie:ownerCookie});
  assert.equal(oldOwner.data.authenticated,true,'Owner session persisted over restart');
  console.log('Persistent member and owner sessions survive restart PASS');
