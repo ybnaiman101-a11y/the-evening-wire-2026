@@ -101,6 +101,31 @@ try{
  const readReactions=await call('/api/community/posts',{cookie:memberCookie});
  assert.equal(readReactions.code,200,'Reaction reading: '+JSON.stringify(readReactions.data));
  assert.equal(readReactions.data.posts.some(p=>p.id===reaction.data.id),true);
+
+ // Profile photos are account-owned and permanently attached to all historical posts.
+ const jpeg=Buffer.concat([Buffer.from([255,216,255,224]),Buffer.alloc(160,3)]);
+ const unauthAvatar=await call('/api/members/avatar',{method:'POST',body:{imageData:'data:image/jpeg;base64,'+jpeg.toString('base64')}});
+ assert.equal(unauthAvatar.code,401,'Guests cannot set a member profile photo');
+ const badAvatar=await call('/api/members/avatar',{method:'POST',cookie:memberCookie,body:{imageData:'data:image/jpeg;base64,'+Buffer.alloc(160,0).toString('base64')}});
+ assert.equal(badAvatar.code,400,'Reject profile pictures that do not match their declared format');
+ const avatarUpload=await call('/api/members/avatar',{method:'POST',cookie:memberCookie,body:{imageData:'data:image/jpeg;base64,'+jpeg.toString('base64')}});
+ assert.equal(avatarUpload.code,200,'Member may upload own profile photo');
+ assert.match(avatarUpload.data.avatarUrl,/^\/api\/members\/avatar\/[0-9a-f-]{36}\?v=\d+$/);
+ const avatarSession=await call('/api/members/session',{cookie:memberCookie});
+ assert.equal(avatarSession.data.user.avatarUrl,avatarUpload.data.avatarUrl,'Member session carries photo');
+ const avatarImage=await fetch(base+avatarUpload.data.avatarUrl);
+ assert.equal(avatarImage.status,200,'Public X-style profile photo can load');
+ assert.equal(avatarImage.headers.get('content-type'),'image/jpeg');
+ assert.deepEqual(Buffer.from(await avatarImage.arrayBuffer()),jpeg);
+ const oldPostWithPhoto=await call('/api/community/posts');
+ assert.equal(oldPostWithPhoto.data.posts.find(p=>p.id===reaction.data.id)?.avatar_url,avatarUpload.data.avatarUrl,'Old posts show the current member photo');
+ const removedPhoto=await call('/api/members/avatar/remove',{method:'POST',cookie:memberCookie});
+ assert.equal(removedPhoto.code,200,'Member may remove their photo');
+ const clearedPost=await call('/api/community/posts');
+ assert.equal(clearedPost.data.posts.find(p=>p.id===reaction.data.id)?.avatar_url,null,'Old posts revert to initials when photo removed');
+ const reuploadedPhoto=await call('/api/members/avatar',{method:'POST',cookie:memberCookie,body:{imageData:'data:image/jpeg;base64,'+jpeg.toString('base64')}});
+ assert.equal(reuploadedPhoto.code,200,'Member can replace their profile photo');
+
  const imgBytes=Buffer.concat([Buffer.from([0xff,0xd8,0xff,0xe0]),Buffer.alloc(36)]);
  const audBytes=Buffer.concat([Buffer.from([0x1a,0x45,0xdf,0xa3]),Buffer.alloc(40)]);
  const vidBytes=Buffer.concat([Buffer.from([0,0,0,32,102,116,121,112]),Buffer.alloc(44)]);
@@ -230,6 +255,7 @@ try{
  }});
  assert.equal(login.code,200,'Member persisted over restart: '+JSON.stringify(login.data));
  assert.equal(login.data.user.displayName,'Test Election Reader');
+ assert.match(login.data.user.avatarUrl,/^\/api\/members\/avatar\/[0-9a-f-]{36}\?v=\d+$/,'Profile photos survive restart');
  const allLogout=await call('/api/members/logout-all',{method:'POST',cookie:login.cookie});
  assert.equal(allLogout.code,200,'Remembered sessions can be revoked');
  const revoked=await call('/api/members/session',{cookie:login.cookie});

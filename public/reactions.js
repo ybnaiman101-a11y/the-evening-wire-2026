@@ -10,7 +10,13 @@ const roomName=id=>rooms.find(x=>x[0]===id)?.[1]||'National Discussion';
 const clock=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Recently'};
 const tone=(x)=>{let h=0;const s=String(x||'');for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))>>>0;return h%8};
 let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null,pendingVideoData=null,pendingVideoUrl=null,pendingAudioData=null,pendingAudioUrl=null,voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceLimit=null,discardVoiceOnStop=false,voiceProcessing=false;
-function avatar(p){const number=tone(p.member_id||p.name||p.id);return '<span class="hub2-avatar a'+number+'">'+safe(String(p.name||'?').slice(0,1).toUpperCase())+'</span>'}
+function avatar(p){
+ const color=tone(p.member_id||p.name||p.id),name=String(p.name||'Member');
+ const url=p.avatar_url||(member&&p.member_id===member.id?member.avatarUrl:null);
+ const hasPhoto=typeof url==='string'&&/^\/api\/members\/avatar\/[0-9a-f-]{36}\?v=\d+$/.test(url);
+ return '<span class="hub2-avatar hub4-member-avatar a'+color+'" title="'+safe(name)+'">'+
+  (hasPhoto?'<img class="hub4-member-photo" src="'+safe(url)+'" alt="'+safe(name)+' profile photo" loading="lazy" referrerpolicy="no-referrer">':safe(name.slice(0,1).toUpperCase()))+'</span>'
+}
 function requireMember(){if(member)return true;location.href='/login';return false}
 async function api(path,method='GET',body){
  const opts={method,credentials:'same-origin',cache:'no-store',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined};
@@ -212,7 +218,7 @@ function stopVoice(){
 
 function composer(){
  if(!member)return '<section class="hub2-panel hub4-guest"><h3>Join THE PULSE</h3><p class="hub2-muted">Sign in to post or react.</p><a class="hub2-btn" href="/login">SIGN IN</a></section>';
- return '<section class="hub2-panel hub4-composer"><div class="hub4-compose-top">'+avatar({name:member.displayName,member_id:member.id})+'<div><strong>'+safe(member.displayName)+'</strong><small>CREATE POST</small></div></div>'+
+ return '<section class="hub2-panel hub4-composer"><div class="hub4-compose-top">'+avatar({name:member.displayName,member_id:member.id,avatar_url:member.avatarUrl})+'<div><strong>'+safe(member.displayName)+'</strong><small>CREATE POST · <a class="hub4-edit-profile" href="/#members">EDIT PHOTO</a></small></div></div>'+
  '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
  '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
  '<label><textarea name="message" maxlength="700" placeholder="What’s happening? Paste pictures with Ctrl+V…"></textarea></label>'+
@@ -326,7 +332,7 @@ function renderFeed(){
   }
   visible=all.filter(p=>included.has(p.id))
  }
- const sig=JSON.stringify(visible.map(p=>[p.id,p.parent_id,p.message,p.edited_at,p.reactions,p.myReactions,p.pinned,p.official,p.image_id,p.audio_id,p.video_id]))+'|'+room+'|'+search;
+ const sig=JSON.stringify(visible.map(p=>[p.id,p.parent_id,p.message,p.edited_at,p.reactions,p.myReactions,p.pinned,p.official,p.image_id,p.audio_id,p.video_id,p.avatar_url]))+'|'+room+'|'+search;
  if(sig===lastSignature)return;
  lastSignature=sig;
  const atTop=feed.scrollTop<85,oldTop=feed.scrollTop,oldHeight=feed.scrollHeight;

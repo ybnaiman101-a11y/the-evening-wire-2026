@@ -78,9 +78,37 @@
    '<label class="ew-member-check"><input type="checkbox" name="rememberDevice" checked><span>Remember this device for 90 days — no repeat PIN.</span></label>'+ 
    '<button class="cmd-primary" type="submit" '+(!dbReady?'disabled':'')+'>SIGN IN</button></form>';
  }
+
+ function profilePhoto(){
+  const url=member?.avatarUrl,valid=typeof url==='string'&&/^\/api\/members\/avatar\/[0-9a-f-]{36}\?v=\d+$/.test(url);
+  return '<span class="ew-profile-avatar">'+(valid?'<img src="'+safe(url)+'" alt="Your profile photo">':safe(String(member?.displayName||'?').slice(0,1).toUpperCase()))+'</span>'
+ }
+ async function prepareAvatar(file){
+  if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Choose a JPG, PNG, or WebP image.');
+  if(file.size>12000000)throw Error('Choose a picture smaller than 12 MB.');
+  const picture=await createImageBitmap(file);
+  try{
+   if(!picture.width||!picture.height||picture.width>20000||picture.height>20000)throw Error('Invalid picture dimensions.');
+   const side=320,canvas=document.createElement('canvas');canvas.width=side;canvas.height=side;
+   const context=canvas.getContext('2d');if(!context)throw Error('Your browser cannot process this image.');
+   const crop=Math.min(picture.width,picture.height),x=(picture.width-crop)/2,y=(picture.height-crop)/2;
+   context.fillStyle='#ffffff';context.fillRect(0,0,side,side);
+   context.drawImage(picture,x,y,crop,crop,0,0,side,side);
+   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.84));
+   if(!blob||blob.size>500000)throw Error('Profile image is too large after resizing.');
+   const imageData=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('Could not read the profile image.'));
+    reader.readAsDataURL(blob)
+   });
+   return imageData
+  }finally{picture.close()}
+ }
+
  function signedIn(){
-  return '<h2>YOUR MEMBER PROFILE</h2><div class="ew-member-profile">'+
-   '<strong>'+safe(member.displayName)+'</strong><span>'+safe(member.email)+'</span><span>Joined '+when(member.joinedAt)+'</span></div>'+
+  return '<h2>YOUR MEMBER PROFILE</h2><div class="ew-member-profile ew-profile-with-photo">'+profilePhoto()+'<div class="ew-profile-identity"><strong>'+safe(member.displayName)+'</strong><span>'+safe(member.email)+'</span><span>Joined '+when(member.joinedAt)+'</span></div></div>'+ 
+   '<section class="ew-avatar-settings"><h3>PROFILE PICTURE</h3><p>Shown beside your posts and replies in THE PULSE.</p>'+ 
+   '<label class="cmd-primary ew-avatar-upload-label" for="ewAvatarFile">📷 UPLOAD PROFILE PHOTO</label><input id="ewAvatarFile" type="file" accept="image/jpeg,image/png,image/webp">'+ 
+   (member.avatarUrl?'<button type="button" class="cmd-minibtn" id="ewAvatarRemove">REMOVE PHOTO</button>':'')+'</section>'+
    '<section class="ew-profile-edit"><h3><span>✎</span> EDIT YOUR DISPLAY NAME</h3>'+
    '<p>This is the name attached to your messages and replies in the Reaction Hub. Updating it also changes the displayed name on earlier messages linked to your account.</p>'+
    '<form id="ewProfileForm" class="ew-member-form">'+
@@ -168,6 +196,24 @@
    const d=new FormData(adminForm),data=await request('/api/admin/login','POST',{password:d.get('password'),rememberDevice:d.get('rememberDevice')==='on'});
    admin=data.authenticated===true;status='Owner access confirmed.';await fetchMembers();render()
   })};
+  const photoInput=host.querySelector('#ewAvatarFile');
+  if(photoInput)photoInput.onchange=async e=>{
+   const file=e.target.files?.[0];if(!file)return;
+   await perform(async()=>{
+    status='Preparing profile photo…';const el=feedback();if(el)el.textContent=status;
+    const imageData=await prepareAvatar(file);
+    const result=await request('/api/members/avatar','POST',{imageData});
+    member.avatarUrl=result.avatarUrl;
+    status='Profile photo saved. Your existing posts and replies now use it.';
+    render();window.dispatchEvent(new CustomEvent('ew-member-photo-updated',{detail:{avatarUrl:member.avatarUrl}}))
+   });
+  };
+  const removePhoto=host.querySelector('#ewAvatarRemove');
+  if(removePhoto)removePhoto.onclick=()=>perform(async()=>{
+   const result=await request('/api/members/avatar/remove','POST');
+   member.avatarUrl=result.avatarUrl;status='Profile photo removed.';render();
+   window.dispatchEvent(new CustomEvent('ew-member-photo-updated',{detail:{avatarUrl:null}}))
+  });
   const profile=host.querySelector('#ewProfileForm');
   if(profile)profile.onsubmit=e=>{e.preventDefault();perform(async()=>{
    const displayName=new FormData(profile).get('displayName');
