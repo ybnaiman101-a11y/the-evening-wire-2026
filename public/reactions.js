@@ -211,21 +211,26 @@ function stopVoice(){
 }
 
 function composer(){
- if(!member)return roleNotice();
- return '<div class="hub2-panel hub2-composer"><div class="hub2-label">NEW POST</div>'+
-  '<div class="hub2-compose-head">'+avatar({name:member.displayName,member_id:member.id})+'<div><b>'+safe(member.displayName)+'</b></div></div>'+
-  '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
-  '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
-  '<label>YOUR POST OR REPLY<textarea name="message" maxlength="700" placeholder="Write a post or paste a picture (Ctrl+V)…"></textarea></label>'+ 
-  '<label class="hub2-photo-field">📷 UPLOAD OR PASTE A PICTURE <small>Copy an image or screenshot, then press Ctrl + V in the post box.</small><input id="hubPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"></label>'+
-  '<div id="hubPhotoPreview" class="hub2-photo-preview" hidden></div>'+ 
-  '<label class="hub2-photo-field pulse-video-field">🎬 ADD A VIDEO CLIP (MP4 / WEBM, MAX 12 MB) <input id="hubVideoFile" type="file" accept="video/mp4,video/webm"></label>'+ 
-  '<div id="hubVideoPreview" class="hub2-video-preview" hidden></div>'+ 
-  '<div class="hub2-voice-controls"><button type="button" class="hub2-btn hub2-mic-start" id="hubVoiceStart" data-hub-record-start="1">🎤 RECORD VOICE NOTE</button><button type="button" class="hub2-btn danger" id="hubVoiceStop" data-hub-record-stop="1" hidden>■ STOP RECORDING</button><span id="hubVoiceElapsed" class="hub2-micro">Tap microphone to record up to 60 seconds</span></div>'+ 
-  '<div id="hubVoicePreview" class="hub2-voice-preview" hidden></div>'+ 
-  '<label class="hub2-audio-field">OR UPLOAD AN AUDIO NOTE <input id="hubAudioFile" type="file" accept="audio/webm,audio/mp4,audio/x-m4a,audio/ogg,audio/mpeg,.mp3,.m4a"></label>'+
-  '<div class="hub2-tools"><span class="hub2-micro" id="hubCharCount">0 / 700</span><button class="hub2-btn" type="submit" id="hubPostSubmit">SEND MESSAGE</button></div></form>'+
-  '<p id="hubFeedback" class="hub2-feedback" role="status" aria-live="polite"></p></div>'
+ if(!member)return '<section class="hub2-panel hub4-guest"><h3>Join THE PULSE</h3><p class="hub2-muted">Sign in to post or react.</p><a class="hub2-btn" href="/login">SIGN IN</a></section>';
+ return '<section class="hub2-panel hub4-composer"><div class="hub4-compose-top">'+avatar({name:member.displayName,member_id:member.id})+'<div><strong>'+safe(member.displayName)+'</strong><small>CREATE POST</small></div></div>'+
+ '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
+ '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
+ '<label><textarea name="message" maxlength="700" placeholder="What’s happening? Paste pictures with Ctrl+V…"></textarea></label>'+
+ '<div class="hub4-media-actions">'+
+ '<button type="button" data-hub-pick="photo">📷 <span>Photo</span></button>'+
+ '<button type="button" data-hub-pick="video">🎬 <span>Video</span></button>'+
+ '<button type="button" data-hub-record-start="1" id="hubVoiceStart">🎤 <span>Voice</span></button>'+
+ '<button type="button" data-hub-record-stop="1" id="hubVoiceStop" hidden>■ <span>STOP</span></button>'+
+ '<button type="button" data-hub-pick="audio">📎 <span>Audio</span></button></div>'+
+ '<span class="hub2-micro" id="hubVoiceElapsed">Record up to 60 seconds</span>'+
+ '<input type="file" id="hubPhotoFile" accept="image/jpeg,image/png,image/webp" hidden>'+
+ '<input type="file" id="hubVideoFile" accept="video/mp4,video/webm" hidden>'+
+ '<input type="file" id="hubAudioFile" accept="audio/webm,audio/mp4,audio/x-m4a,audio/ogg,audio/mpeg,.mp3,.m4a" hidden>'+
+ '<div id="hubPhotoPreview" class="hub2-photo-preview" hidden></div>'+
+ '<div id="hubVideoPreview" class="hub2-video-preview" hidden></div>'+
+ '<div id="hubVoicePreview" class="hub2-voice-preview" hidden></div>'+
+ '<div class="hub4-compose-footer"><span class="hub2-micro" id="hubCharCount">0 / 700</span><button class="hub2-btn" type="submit" id="hubPostSubmit">POST</button></div></form>'+
+ '<p id="hubFeedback" class="hub2-feedback" role="status" aria-live="polite"></p></section>'
 }
 function adminPanel(){
  if(!owner)return '';
