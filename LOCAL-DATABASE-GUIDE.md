@@ -7,14 +7,15 @@ This is a **new** database, not a recovery of Render's historical accounts. Your
 2. Download the `windows-local-database` branch from GitHub as a ZIP and **Extract All**.
 3. In the extracted folder, double-click `START-NEW-DATABASE.cmd`.
 4. First run installs the embedded PGlite PostgreSQL-compatible engine. An internet connection is needed for this initial software installation.
-5. When prompted, choose a unique owner password of 16+ characters. Your typing will be hidden. Do not send this password to anyone, including a chat.
-6. Keep the black window open and visit **http://127.0.0.1:3000** in Chrome.
+5. On first run, the launcher automatically generates a strong, unique owner password **on your computer**. No typing is necessary. It shows the password only once and pauses so you can copy it into a trusted password manager or write it down in a secure place. **Do not screenshot or share it.**
+6. When you have saved that password, press any key in the black window to start the site.
+7. Keep the black window open and visit **http://127.0.0.1:3000** in Chrome.
 
-This creates the database at `private-data/pglite` in the website folder. Your owner password is stored only as its SHA-256 digest at `private-data/owner-admin.sha256`. If the database is empty, registration starts with zero members. The new database persists when you close and restart the application.
+This creates the database at `private-data/pglite` in the website folder. Your owner password is saved only as its SHA-256 digest at `private-data/owner-admin.sha256`; the actual password is shown only once. If you lose it, do not delete your database—recover access with a separate, explicit owner credential rotation process. If the database is empty, registration starts with zero members. The new database persists when you close and restart the application.
 
 ## Your administrator access
 - Go to **Races Called** or **Members / Login → Owner Admin**.
-- Enter the **owner password** you created in Step 5.
+- Enter the unique **owner password** that Step 5 generated on your computer.
 - Only this separately authenticated owner session can publish or retract editorial race calls, send election updates, view the private member directory, or enter official final results.
 - To participate as a normal reader, you may separately create a member account in **Members / Login**.
 - Never share the owner password. Your friends should register as ordinary members, not administrators.
