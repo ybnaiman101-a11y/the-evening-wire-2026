@@ -778,7 +778,7 @@ function hq(){
  const lead=news[0];const calledList=(results.calls||[]).slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt));
  const countTo=new Date('2026-11-03T00:00:00-05:00').getTime()-Date.now();
  const days=Math.max(0,Math.ceil(countTo/86400000)),onElection=Date.now()>=new Date('2026-11-03T00:00:00-05:00').getTime();
- return '<div class="ew-hq"><div class="ew-hq-live-label"><i></i> THE EVENING WIRE · ELECTION HEADQUARTERS <b>2026</b></div><div class="cmd-banner"><div class="cmd-hero"><span class="cmd-kicker">NATIONAL MIDTERM COMMAND CENTER</span><h1>ELECTION <em>HEADQUARTERS.</em></h1><p>The national election newsroom: 35 Senate seats, 435 House contests, 36 governor elections, trusted publisher headlines and your attributed race calls.</p><div class="ew-hq-image-label">WASHINGTON, D.C. · ACTUAL CAPITOL PHOTOGRAPH</div><div class="cmd-toolbar"><button class="cmd-primary" data-tab="news">LIVE NEWSROOM ↗</button><button class="cmd-minibtn" data-tab="calls">RACE CALL DESK</button><button class="cmd-minibtn" data-tab="senate">SENATE RACES ↗</button></div></div><div class="cmd-mini"><img class="ew-hq-flag-photo" src="https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Waving_Flag_American.jpg/960px-Waving_Flag_American.jpg" alt="Photograph of a waving American flag" loading="lazy"><strong>'+esc(onElection?'ELECTION DESK':'COUNTDOWN TO ELECTION DAY')+'</strong><span class="main-number">'+(onElection?'ON AIR':days+' DAYS')+'</span><small>TUESDAY · NOVEMBER 3, 2026<br>Reporting and race calls require a verified provider.</small></div></div>'
+ return '<div class="ew-hq"><div class="ew-hq-live-label"><i></i> THE EVENING WIRE · ELECTION HEADQUARTERS <b>2026</b></div><div class="cmd-banner"><div class="cmd-hero"><span class="cmd-kicker">NATIONAL MIDTERM COMMAND CENTER</span><h1>ELECTION <em>HEADQUARTERS.</em></h1><p>The national election newsroom: 35 Senate seats, 435 House contests, 36 governor elections, trusted publisher headlines and your attributed race calls.</p><div class="ew-hq-image-label">WASHINGTON, D.C. · ACTUAL CAPITOL PHOTOGRAPH</div><div class="cmd-toolbar"><button class="cmd-primary" data-tab="news">LIVE NEWSROOM ↗</button><button class="cmd-minibtn" data-tab="calls">RACE CALL DESK</button><button class="cmd-minibtn" data-tab="senate">SENATE RACES ↗</button><button class="cmd-primary" data-tab="reactions">💬 REACTION HUB 2.1 · PHOTOS & VOICE</button></div></div><div class="cmd-mini"><img class="ew-hq-flag-photo" src="https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Waving_Flag_American.jpg/960px-Waving_Flag_American.jpg" alt="Photograph of a waving American flag" loading="lazy"><strong>'+esc(onElection?'ELECTION DESK':'COUNTDOWN TO ELECTION DAY')+'</strong><span class="main-number">'+(onElection?'ON AIR':days+' DAYS')+'</span><small>TUESDAY · NOVEMBER 3, 2026<br>Reporting and race calls require a verified provider.</small></div></div>'
  +'<p class="ew-hq-photo-credits">Real photographs: <a href="https://commons.wikimedia.org/wiki/File:United_States_Capitol_Building_at_night.jpg" target="_blank" rel="noopener noreferrer">Capitol © AnthonyTPope, CC BY-SA 4.0</a> · <a href="https://commons.wikimedia.org/wiki/File:Waving_Flag_American.jpg" target="_blank" rel="noopener noreferrer">American flag, Scrumshus, public domain</a>. Archival imagery, not live pictures.</p>'
  +'<section class="ew-hq-metrics"><div class="cyan"><span>LIVE NEWS STORIES</span><strong>'+news.length+'</strong><small>Publisher feed</small></div><div class="gold"><span>RACES CALLED</span><strong>'+calledList.length+'</strong><small>Owner projections</small></div><div class="red"><span>GOP CALLS</span><strong>'+calledList.filter(x=>x.party==='R').length+'</strong><small>Source-linked</small></div><div class="blue"><span>DEMOCRAT CALLS</span><strong>'+calledList.filter(x=>x.party==='D').length+'</strong><small>Source-linked</small></div></section>'+
  '<div class="ew-hq-section-heading"><small>01 / YOUR ELECTION RACE CENTER</small><h2>THE BATTLEGROUND BOARD</h2></div><div class="cmd-grid ew-hq-race-grid">'+infoCard('senate',SENATE)+infoCard('governor',GOVERNOR)+infoCard('house',HOUSE)+'</div>'
@@ -999,7 +999,7 @@ go(active);sync();setInterval(sync,30000);document.addEventListener('visibilityc
  const note=document.createElement('div');
  note.className='ew-guest-note';
  note.hidden=true;
- note.innerHTML='You are browsing as a guest. <a href="/login">Sign in or join</a> to use the newsroom tools.';
+ note.innerHTML='You can browse freely. <a href="/login">Sign in</a> only when you want to participate.';note.hidden=true;
  document.body.append(note);
  if(localDatabaseMode){
   // Local visitors may browse all newsroom tabs; the server authenticates writes.
@@ -1014,7 +1014,7 @@ go(active);sync();setInterval(sync,30000);document.addEventListener('visibilityc
  const refresh=async()=>{
   try{const r=await fetch('/api/members/session',{credentials:'same-origin',cache:'no-store'});const data=await r.json();signedIn=!!data.user}
   catch{signedIn=false}
-  finally{checked=true;note.hidden=signedIn}
+  finally{checked=true;note.hidden=true}
  };
  refresh();
  window.addEventListener('focus',refresh);
