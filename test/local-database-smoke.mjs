@@ -103,17 +103,20 @@ try{
  assert.equal(readReactions.data.posts.some(p=>p.id===reaction.data.id),true);
  const imgBytes=Buffer.concat([Buffer.from([0xff,0xd8,0xff,0xe0]),Buffer.alloc(36)]);
  const audBytes=Buffer.concat([Buffer.from([0x1a,0x45,0xdf,0xa3]),Buffer.alloc(40)]);
+ const vidBytes=Buffer.concat([Buffer.from([0,0,0,32,102,116,121,112]),Buffer.alloc(44)]);
  const media=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
   topic:'general',message:'',imageData:'data:image/jpeg;base64,'+imgBytes.toString('base64'),
-  audioData:'data:audio/webm;codecs=opus;base64,'+audBytes.toString('base64')
+  audioData:'data:audio/webm;codecs=opus;base64,'+audBytes.toString('base64'),videoData:'data:video/mp4;base64,'+vidBytes.toString('base64')
  }});
  assert.equal(media.code,201,'Member can post a photo and voice note without text: '+JSON.stringify(media.data));
  assert.match(media.data.imageId,/^[0-9a-f-]{36}$/);
  assert.match(media.data.audioId,/^[0-9a-f-]{36}$/);
+ assert.match(media.data.videoId,/^[0-9a-f-]{36}$/);
  const mediaFeed=await call('/api/community/posts');
  const visibleMedia=mediaFeed.data.posts.find(p=>p.id===media.data.id);
  assert.equal(visibleMedia?.image_id,media.data.imageId,'Image attached to permanent post');
  assert.equal(visibleMedia?.audio_id,media.data.audioId,'Voice note attached to permanent post');
+ assert.equal(visibleMedia?.video_id,media.data.videoId,'Video attached to permanent post');
  const photoResponse=await fetch(base+'/api/community/images/'+media.data.imageId);
  assert.equal(photoResponse.status,200,'Public photo served from Postgres');
  assert.equal(photoResponse.headers.get('content-type'),'image/jpeg');
@@ -164,7 +167,7 @@ try{
  const hiddenAudio=await fetch(base+'/api/community/audio/'+media.data.audioId);
  assert.equal(hiddenAudio.status,404,'Hidden voice notes no longer served');
  const optionalSource=await call('/api/admin/calls',{method:'POST',cookie:ownerCookie,body:{
-  office:'senate',state:'TX',candidate:'Example Election Test Candidate',party:'R',sourceName:'',sourceUrl:'',confirm:true
+  office:'senate',state:'TX',candidate:'Example Election Test Candidate',party:'R',confirm:true
  }});
  assert.equal(optionalSource.code,200,'Owner editorial call can omit source: '+JSON.stringify(optionalSource.data));
  assert.equal(optionalSource.data.call.sourceUrl,'');
