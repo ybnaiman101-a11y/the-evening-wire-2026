@@ -192,3 +192,18 @@
 @media(max-width:540px){
  .hub2-main #hubFeed{min-height:850px}
 }
+
+
+
+/* Large, X-style composer at the top of THE PULSE timeline, not hidden in sidebar. */
+.hub2-main>.hub2-composer{padding:19px 22px;border:1px solid #436788;background:linear-gradient(120deg,#102b43,#0b1b2e);border-radius:16px;box-shadow:0 8px 35px #0006}
+.hub2-composer .hub2-compose-head{margin:0 0 8px}
+.hub2-composer .hub2-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.hub2-composer .hub2-form>label:first-of-type,.hub2-composer .hub2-form>label:nth-of-type(2),.hub2-composer .hub2-form>#hubReply,.hub2-composer .hub2-form>#hubVoicePreview,.hub2-composer .hub2-form>.hub2-voice-controls,.hub2-composer .hub2-form>.hub2-audio-field,.hub2-composer .hub2-form>.hub2-tools{grid-column:1/-1}
+.hub2-composer .hub2-form textarea{min-height:80px}
+.hub2-composer .hub2-photo-field{padding:11px;font-size:11px!important}
+.hub2-composer .hub2-photo-field small{font-size:10px;color:#c9e9f1;font-weight:500}
+.hub2-composer .hub2-form>.hub2-photo-preview,.hub2-composer .hub2-form>.hub2-video-preview{grid-column:1/-1}
+.hub2-composer .hub2-btn[type=submit]{background:linear-gradient(110deg,#5a37be,#a735a8);border-color:#9a6bd8;font-size:12px;padding:11px 22px;border-radius:99px}
+.hub2-composer .hub2-btn[type=submit]:hover{background:linear-gradient(110deg,#7149d2,#bc3dc0)}
+@media(max-width:580px){.hub2-main>.hub2-composer{padding:14px}.hub2-composer .hub2-form{grid-template-columns:1fr}.hub2-composer .hub2-form>*{grid-column:1/-1}}
