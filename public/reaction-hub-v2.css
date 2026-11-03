@@ -164,3 +164,46 @@
  .pulse-post>.pulse-bubble>.hub2-photo-card,.pulse-post>.pulse-bubble>.pulse-video,.pulse-post>.pulse-bubble>.hub2-post-audio{margin-left:39px;max-width:calc(100% - 39px)}
  .pulse-action-row button span{display:none}
 }
+
+
+/* THE PULSE — full-length newsroom conversation.
+   Use the page's natural scroll instead of trapping the timeline in a short box. */
+.hub2{max-width:none;width:100%}
+.hub2-columns{align-items:start}
+@media(min-width:1250px){
+ .hub2-columns{grid-template-columns:minmax(200px,235px) minmax(0,1fr) minmax(200px,230px);gap:16px}
+ .hub2-main{min-width:0}
+}
+.hub2-main .hub2-panel:has(#hubFeed){overflow:visible}
+.hub2-main #hubFeed{
+ max-height:none!important;
+ height:auto;
+ min-height:clamp(1250px,175vh,2400px);
+ overflow-y:visible!important;
+ overscroll-behavior:auto;
+ scroll-behavior:auto;
+}
+@media(max-width:1249px){
+ .hub2-main #hubFeed{min-height:1250px}
+}
+@media(max-width:800px){
+ .hub2-main #hubFeed{min-height:1050px;max-height:none!important;overflow-y:visible!important}
+}
+@media(max-width:540px){
+ .hub2-main #hubFeed{min-height:850px}
+}
+
+
+
+/* Large, X-style composer at the top of THE PULSE timeline, not hidden in sidebar. */
+.hub2-main>.hub2-composer{padding:19px 22px;border:1px solid #436788;background:linear-gradient(120deg,#102b43,#0b1b2e);border-radius:16px;box-shadow:0 8px 35px #0006}
+.hub2-composer .hub2-compose-head{margin:0 0 8px}
+.hub2-composer .hub2-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.hub2-composer .hub2-form>label:first-of-type,.hub2-composer .hub2-form>label:nth-of-type(2),.hub2-composer .hub2-form>#hubReply,.hub2-composer .hub2-form>#hubVoicePreview,.hub2-composer .hub2-form>.hub2-voice-controls,.hub2-composer .hub2-form>.hub2-audio-field,.hub2-composer .hub2-form>.hub2-tools{grid-column:1/-1}
+.hub2-composer .hub2-form textarea{min-height:80px}
+.hub2-composer .hub2-photo-field{padding:11px;font-size:11px!important}
+.hub2-composer .hub2-photo-field small{font-size:10px;color:#c9e9f1;font-weight:500}
+.hub2-composer .hub2-form>.hub2-photo-preview,.hub2-composer .hub2-form>.hub2-video-preview{grid-column:1/-1}
+.hub2-composer .hub2-btn[type=submit]{background:linear-gradient(110deg,#5a37be,#a735a8);border-color:#9a6bd8;font-size:12px;padding:11px 22px;border-radius:99px}
+.hub2-composer .hub2-btn[type=submit]:hover{background:linear-gradient(110deg,#7149d2,#bc3dc0)}
+@media(max-width:580px){.hub2-main>.hub2-composer{padding:14px}.hub2-composer .hub2-form{grid-template-columns:1fr}.hub2-composer .hub2-form>*{grid-column:1/-1}}
