@@ -164,3 +164,31 @@
  .pulse-post>.pulse-bubble>.hub2-photo-card,.pulse-post>.pulse-bubble>.pulse-video,.pulse-post>.pulse-bubble>.hub2-post-audio{margin-left:39px;max-width:calc(100% - 39px)}
  .pulse-action-row button span{display:none}
 }
+
+
+/* THE PULSE — full-length newsroom conversation.
+   Use the page's natural scroll instead of trapping the timeline in a short box. */
+.hub2{max-width:none;width:100%}
+.hub2-columns{align-items:start}
+@media(min-width:1250px){
+ .hub2-columns{grid-template-columns:minmax(200px,235px) minmax(0,1fr) minmax(200px,230px);gap:16px}
+ .hub2-main{min-width:0}
+}
+.hub2-main .hub2-panel:has(#hubFeed){overflow:visible}
+.hub2-main #hubFeed{
+ max-height:none!important;
+ height:auto;
+ min-height:clamp(1250px,175vh,2400px);
+ overflow-y:visible!important;
+ overscroll-behavior:auto;
+ scroll-behavior:auto;
+}
+@media(max-width:1249px){
+ .hub2-main #hubFeed{min-height:1250px}
+}
+@media(max-width:800px){
+ .hub2-main #hubFeed{min-height:1050px;max-height:none!important;overflow-y:visible!important}
+}
+@media(max-width:540px){
+ .hub2-main #hubFeed{min-height:850px}
+}
