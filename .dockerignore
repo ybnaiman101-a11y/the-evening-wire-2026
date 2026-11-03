@@ -1,0 +1,11 @@
+.git
+.github
+*.log
+node_modules
+.env
+.env.*
+*.backup
+*.dump
+*.sql
+DIGITALOCEAN-RECOVERY.md
+KOYEB-RECOVERY.md
