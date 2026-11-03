@@ -34,7 +34,10 @@ jobs:
             sleep 1
           done
           if [ "$ok" != "1" ]; then cat /tmp/ew-local-preview.log; exit 1; fi
-          curl -fsS http://127.0.0.1:3999/ | grep -qi 'EVENING WIRE'
+          curl -fsS http://127.0.0.1:3999/ > /tmp/ew-home.html
+          grep -qi 'EVENING WIRE' /tmp/ew-home.html
+          grep -q 'data-ew-readonly-preview="true"' /tmp/ew-home.html
+          grep -q 'LOCAL PREVIEW · Browsing is enabled' /tmp/ew-home.html
           curl --max-time 5 -fsS http://127.0.0.1:3999/about-security > /dev/null
           status=$(curl --max-time 5 -s -o /tmp/ew-post-response -w "%{http_code}" -X POST http://127.0.0.1:3999/api/members/login)
           [ "$status" = "403" ] || { echo "Expected login to be disabled, got HTTP $status"; exit 1; }
