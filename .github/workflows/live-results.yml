@@ -1,0 +1,31 @@
+name: Verify live election results connectors
+on:
+  push:
+    branches: [live-results-2026]
+  pull_request:
+    branches: [live-results-2026]
+permissions:
+  contents: read
+jobs:
+  live-results:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: 'true'
+      EW_LIVE_RESULTS_DISABLE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install website dependencies
+        run: npm install --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Check JavaScript syntax
+        run: |
+          for source in *.mjs public/*.js test/*.mjs; do node --check "$source"; done
+      - name: Test live sources and anti-false-call guarantees
+        run: node --test test/live-results.test.mjs
+      - name: Test local members, owner access, reactions and database persistence
+        run: node test/local-database-smoke.mjs
+      - name: Check dependency security
+        run: npm audit --omit=dev --audit-level=high
