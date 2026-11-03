@@ -69,7 +69,7 @@ function populateCandidates(){
   '<p>Choose the winner below. The candidate name and party are entered automatically.</p>'+
   (choices||'<p>No candidates confirmed for this election.</p>')+
   (race.note?'<p class="ew-candidate-provenance">'+safe(race.note)+'</p>':'')+
-  '<p class="ew-candidate-provenance">Curated candidates: <a href="https://github.com/ElectIndex/26_us_forecast_data/blob/main/races.csv" target="_blank" rel="noopener noreferrer">ElectIndex roster</a> (not an official certified ballot). Verify the actual winner and an original source before publishing.</p></div>';
+  '<p class="ew-candidate-provenance">Curated candidates: <a href="https://github.com/ElectIndex/26_us_forecast_data/blob/main/races.csv" target="_blank" rel="noopener noreferrer">ElectIndex roster</a> (not an official certified ballot). Verify the actual winner before publishing. Citing a source is optional.</p></div>';
 }
 function wireForm(){
  const form=q('ewCallForm');if(!form)return;
@@ -141,7 +141,7 @@ function view(){
  }
  const warning=meta.storage==='temporary'?'<div class="cmd-notice">Database unavailable for permanent calls: export backups.</div>':'';
  const locked=calls.map(c=>'<div class="ew-managed-row"><div><b>'+safe(title(c))+'</b>'+
-   '<small>'+safe(c.candidate)+' · '+safe(c.sourceName)+' · '+safe(parties[c.party]||c.party)+'</small></div>'+
+   '<small>'+safe(c.candidate)+' · '+(c.sourceName?safe(c.sourceName)+' · ':'OWNER EDITORIAL CALL · ')+safe(parties[c.party]||c.party)+'</small></div>'+
    '<span class="cmd-pill good">CALLED · LOCKED</span>'+
    '<button class="ew-retract" type="button" data-retract-call="'+safe(c.id)+'">RETRACT</button></div>').join('');
  panel.innerHTML='<section class="ew-editor-console"><div class="ew-editor-head"><div><span class="cmd-eyebrow">ADMIN ONLY · THE EVENING WIRE</span>'+
@@ -155,10 +155,10 @@ function view(){
   '<label>2. STATE<select name="state"></select></label>'+
   '<label>3. CHOOSE RACE<select name="raceKey" required></select></label></div>'+
   '<div id="ewCandidateChoices" aria-live="polite"></div>'+
-  '<div class="ew-form-grid"><label>ORIGINAL SOURCE / NETWORK<input name="sourceName" maxlength="100" required placeholder="Name the reporting outlet or election authority"></label>'+
-  '<label>LINK TO VERIFIED ORIGINAL SOURCE<input name="sourceUrl" type="url" pattern="https://.*" required placeholder="https://example.com/original-race-call"></label></div>'+
+  '<div class="ew-form-grid"><label>ORIGINAL SOURCE / NETWORK (OPTIONAL)<input name="sourceName" maxlength="100" placeholder="Name the reporting outlet, if available"></label>'+
+  '<label>LINK TO SOURCE (OPTIONAL)<input name="sourceUrl" type="url" pattern="https://.*" placeholder="https://example.com/race-call"></label></div>'+
   '<label>EDITORIAL NOTE (OPTIONAL)<textarea name="note" maxlength="400" rows="2"></textarea></label>'+
-  '<label class="ew-check-inline"><input name="confirm" type="checkbox" required> I checked the original source and confirm that it calls this exact race for this candidate.</label>'+
+  '<label class="ew-check-inline"><input name="confirm" type="checkbox" required> I reviewed the election outcome and confirm this is my editorial race call. A source is optional.</label>'+
   '<div class="ew-editor-actions"><button type="submit" class="cmd-primary" id="ewPublishCall">PUBLISH WINNER · LOCK RACE</button>'+
   '<button type="button" id="ewExportCalls">⬇ BACKUP CALLS</button>'+
   '<label class="ew-import-label">RESTORE BACKUP <input id="ewRestoreCalls" type="file" accept=".json,application/json"></label>'+
