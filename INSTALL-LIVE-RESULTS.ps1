@@ -6,7 +6,8 @@ try {
   $changes = @(
     @{Source=(Join-Path $source "server.mjs"); Relative="server.mjs"},
     @{Source=(Join-Path $source "public\index.html"); Relative="public\index.html"},
-    @{Source=(Join-Path $source "live-results.mjs"); Relative="live-results.mjs"}
+    @{Source=(Join-Path $source "live-results.mjs"); Relative="live-results.mjs"},
+    @{Source=(Join-Path $source "start-local.mjs"); Relative="start-local.mjs"}
   )
   foreach ($f in $changes) {
     if (-not (Test-Path -LiteralPath $f.Source -PathType Leaf)) {
@@ -66,7 +67,7 @@ try {
   $timestamp=Get-Date -Format "yyyyMMdd-HHmmss"
   $backup=Join-Path $target ("backups\live-results-before-update-"+$timestamp)
   New-Item -ItemType Directory -Path (Join-Path $backup "public") -Force | Out-Null
-  foreach($name in @("server.mjs","public\index.html","live-results.mjs")) {
+  foreach($name in @("server.mjs","public\index.html","live-results.mjs","start-local.mjs")) {
     $old=Join-Path $target $name
     if(Test-Path -LiteralPath $old -PathType Leaf) {
       $dst=Join-Path $backup $name
