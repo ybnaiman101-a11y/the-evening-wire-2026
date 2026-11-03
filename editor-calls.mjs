@@ -41,8 +41,8 @@ function valid(x){
  if(office==='house'&&(!Number.isInteger(district)||district<1||district>districts[state]))throw Error('Invalid House district');
  const candidate=String(x.candidate||'').trim().slice(0,130),sourceName=String(x.sourceName||'').trim().slice(0,100),sourceUrl=String(x.sourceUrl||'').trim();
  const party=String(x.party||'').toUpperCase(),note=String(x.note||'').trim().slice(0,400);
- if(candidate.length<2||sourceName.length<2||!['R','D','I','OTHER'].includes(party))throw Error('Winner, party and the named reporting source are required');
- try{const u=new URL(sourceUrl);if(u.protocol!=='https:'||u.username||u.password||!u.hostname.includes('.'))throw Error()}catch{throw Error('Provide an HTTPS link to the original call source')}
+ if(candidate.length<2||!['R','D','I','OTHER'].includes(party))throw Error('Winner and party are required');
+ if(sourceUrl){try{const u=new URL(sourceUrl);if(u.protocol!=='https:'||u.username||u.password||!u.hostname.includes('.'))throw Error()}catch{throw Error('If supplied, the source must be a valid HTTPS URL')}}
  const id=office+'-'+state+(office==='house'?'-'+district:special?'-special':'');
  return {id,office,state,district,special,candidate,party,sourceName,sourceUrl,note,editorial:true,callType:'Evening Wire editorial call',calledAt:new Date().toISOString()};
 }
@@ -92,7 +92,7 @@ export async function editorRoute(req,res,path){
  if(route==='backup'&&req.method==='GET'){send(res,200,{...snapshot(),exportedAt:new Date().toISOString(),...meta()},{'Content-Disposition':'attachment; filename="evening-wire-race-calls.json"'});return true}
  if(store==='unavailable'){send(res,503,{error:'Database unavailable. Publishing disabled to prevent data loss.'});return true}
  if(route==='calls'&&req.method==='POST'){
-  let x,row;try{x=await input(req,5000);row=valid(x);if(x.confirm!==true)throw Error('Confirm you verified the source calls this race')}catch(e){send(res,400,{error:e.message});return true}
+  let x,row;try{x=await input(req,5000);row=valid(x);if(x.confirm!==true)throw Error('Confirm you reviewed the reported election outcome before publishing')}catch(e){send(res,400,{error:e.message});return true}
   // A race can receive only its FIRST editorial call. Changing or retracting a call
   // never unlocks another first-call action for that race.
   if(calls.some(c=>c.id===row.id)||audit.some(e=>e.id===row.id&&['published','corrected','retracted'].includes(e.event))){send(res,409,{error:'THIS RACE HAS ALREADY BEEN CALLED. Duplicate calls are blocked. Use retraction if a published call was wrong.'});return true}
