@@ -224,8 +224,8 @@ function renderFeed(){
  const before=feed.scrollTop,oldHeight=feed.scrollHeight;
  const children=new Map();
  for(const p of visible)if(p.parent_id){const row=children.get(p.parent_id)||[];row.push(p);children.set(p.parent_id,row)}
- const roots=visible.filter(p=>!p.parent_id).sort((a,b)=>(Number(b.pinned)-Number(a.pinned))||(Date.parse(b.created_at)-Date.parse(a.created_at)));
- feed.innerHTML=roots.length?roots.map(p=>messageCard(p,(children.get(p.id)||[]).sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at)))).join(''):'<div class="hub2-empty">No messages in this room yet. Be the first to start a discussion.</div>';
+ const roots=visible.filter(p=>!p.parent_id).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
+ feed.innerHTML=roots.length?roots.map(p=>messageCard(p,(children.get(p.id)||[]).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)))).join(''):'<div class="hub2-empty">No messages in this room yet. Be the first to start a discussion.</div>';
  if(atTop||!previousLatest){feed.scrollTop=0;unread=0}else{feed.scrollTop=before+Math.max(0,feed.scrollHeight-oldHeight)}
  const fresh=roots.filter(p=>!p.pinned)[0]?.id||'';
  if(previousLatest&&fresh&&fresh!==previousLatest&&!atTop){unread+=1}
