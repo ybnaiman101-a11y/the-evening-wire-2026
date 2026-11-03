@@ -58,3 +58,20 @@
 @media(max-width:800px){.hub2-columns{grid-template-columns:1fr}.hub2-side{grid-template-columns:1fr 1fr}.hub2-main,.hub2-polls-col{grid-column:1}.hub2-feed{max-height:65vh}}
 @media(max-width:540px){.hub2-header{padding:23px}.hub2-side{grid-template-columns:1fr}.hub2-panel{padding:16px}.hub2-message{padding:13px}.hub2-replies{margin-left:10px;padding-left:8px}.hub2-race{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){.hub2 *{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* Reaction Hub 2.1: real photo uploads and media-safe previews */
+.hub2-photo-field{display:grid;gap:10px;background:linear-gradient(115deg,#143e58,#1c4966);border:1px dashed #70d6ed;border-radius:13px;padding:16px;color:#e8fbff!important;font-weight:900!important;font-size:12px!important;cursor:pointer}
+.hub2-photo-field input[type="file"]{padding:8px 0;border:0;background:transparent;color:#e8faff;font-size:12px}
+.hub2-photo-field input::file-selector-button{margin-right:10px;border:1px solid #70cfe4;background:#0e6586;color:#fff;border-radius:8px;padding:9px 12px;font-size:11px;font-weight:900;cursor:pointer}
+.hub2-photo-preview{padding:12px;border-radius:13px;background:#0c2b40;border:1px solid #4996b2;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:11px;color:#cef7ff;font-weight:800}
+.hub2-photo-preview[hidden]{display:none!important}
+.hub2-photo-preview img{width:92px;max-height:100px;object-fit:cover;border:1px solid #568da4;border-radius:9px}
+.hub2-photo-card{display:block;width:min(100%,600px);border:1px solid #426c8c;border-radius:13px;background:#091e30;padding:4px;margin:10px 0;color:#fff;cursor:zoom-in;overflow:hidden;text-align:left}
+.hub2-photo-card:hover{border-color:#72d8ed}
+.hub2-photo-card img{display:block;width:100%;max-height:460px;object-fit:contain;border-radius:9px}
+.hub2-photo-lightbox{position:fixed;z-index:50000;inset:0;background:#030b16ee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;backdrop-filter:blur(9px)}
+.hub2-photo-lightbox[hidden]{display:none!important}
+.hub2-photo-lightbox img{max-width:95vw;max-height:83vh;object-fit:contain;border-radius:12px;box-shadow:0 16px 50px #000a}
+.hub2-photo-lightbox button{align-self:flex-end;border-radius:9px;border:1px solid #82d8ec;background:#15425f;color:#fff;padding:12px 16px;font-size:12px;font-weight:900;cursor:pointer}
+@media(max-width:600px){.hub2-photo-card img{max-height:330px}.hub2-photo-lightbox{padding:9px}.hub2-photo-preview img{width:74px}}
