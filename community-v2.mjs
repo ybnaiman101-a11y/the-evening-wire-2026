@@ -34,14 +34,15 @@ export function decodeCommunityImage(value){
 export function decodeCommunityAudio(value){
  if(value===undefined||value===null||value==='')return null;
  if(typeof value!=='string'||value.length>2450000)throw Error('Voice note is too large (1.6 MB maximum).');
- const m=value.match(/^data:(audio\/(?:webm|mp4|ogg))(?:;codecs=[a-z0-9.,-]+)?;base64,([A-Za-z0-9+/]+={0,2})$/i);
- if(!m)throw Error('Voice note must be recorded as WebM, MP4 or Ogg audio.');
+ const m=value.match(/^data:(audio\/(?:webm|mp4|ogg|mpeg))(?:;codecs=[a-z0-9.,-]+)?;base64,([A-Za-z0-9+/]+={0,2})$/i);
+ if(!m)throw Error('Voice note must be recorded as WebM, M4A, Ogg or MP3 audio.');
  const bytes=Buffer.from(m[2],'base64');
  if(bytes.length<30||bytes.length>1600000||m[2].length!==Math.ceil(bytes.length/3)*4)throw Error('Voice note is too large or invalid.');
  const typ=m[1].toLowerCase();
  const matches=typ==='audio/webm'?bytes.subarray(0,4).equals(Buffer.from([26,69,223,163])):
   typ==='audio/mp4'?bytes.subarray(4,8).toString('ascii')==='ftyp':
-  bytes.subarray(0,4).toString('ascii')==='OggS';
+  typ==='audio/ogg'?bytes.subarray(0,4).toString('ascii')==='OggS':
+  bytes.subarray(0,3).toString('ascii')==='ID3'||(bytes[0]===255&&(bytes[1]&224)===224);
  if(!matches)throw Error('The audio file does not match the expected recording type.');
  return {bytes,mediaType:typ}
 }
