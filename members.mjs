@@ -51,7 +51,7 @@ async function input(req,max=5000){let data='';for await(const part of req){data
 const name=x=>String(x||'').normalize('NFKC').replace(/[\x00-\x1f\x7f]/g,' ').trim().slice(0,40);
 const email=x=>String(x||'').normalize('NFKC').trim().toLowerCase();
 function checkEmail(x){return x.length>=5&&x.length<=254&&/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(x)}
-function publicUser(r){return r?{id:r.id,displayName:r.display_name,email:r.email,joinedAt:r.joined_at,lastLoginAt:r.last_login_at,avatarUrl:r.avatar_updated_at?'/api/members/avatar/'+r.id+'?v='+Math.floor(new Date(r.avatar_updated_at).getTime()/1000):null}:null}
+function publicUser(r){return r?{id:r.id,displayName:r.display_name,email:r.email,joinedAt:r.joined_at,lastLoginAt:r.last_login_at,avatarUrl:r.avatar_updated_at?'/api/members/avatar/'+r.id+'?v='+Math.floor(new Date(r.avatar_updated_at).getTime()):null}:null}
 async function hashPassword(secret){const salt=randomBytes(24).toString('hex');const out=await scrypt(secret,salt,64,{maxmem:32*1024*1024});return 'scrypt:'+salt+':'+Buffer.from(out).toString('hex')}
 async function verifyPassword(secret,stored){
  const parts=String(stored||'').split(':');
@@ -158,7 +158,7 @@ export async function memberRoute(req,res,path){
     buffer.subarray(0,4).toString('ascii')==='RIFF'&&buffer.subarray(8,12).toString('ascii')==='WEBP';
   if(!matches){send(res,400,{error:'Picture contents do not match its format.'});return true}
   const saved=await db.query("INSERT INTO ew_member_avatars(member_id,media_type,image_data) VALUES($1,$2,$3) ON CONFLICT(member_id) DO UPDATE SET media_type=EXCLUDED.media_type,image_data=EXCLUDED.image_data,updated_at=now() RETURNING updated_at",[account.id,typ,buffer]);
-  const version=Math.floor(new Date(saved.rows[0].updated_at).getTime()/1000);
+  const version=Math.floor(new Date(saved.rows[0].updated_at).getTime());
   send(res,200,{ok:true,avatarUrl:'/api/members/avatar/'+account.id+'?v='+version,message:'Profile picture saved.'});return true
  }
  if(route==='avatar/remove'&&req.method==='POST'){
