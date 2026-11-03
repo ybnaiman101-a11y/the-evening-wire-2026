@@ -192,41 +192,69 @@ function renderRooms(){
  q('hubRoomTitle').textContent=room==='all'?'ALL DISCUSSIONS':roomName(room).replace(/^[^\s]+\s/,'').toUpperCase();
 
 }
-function messageCard(p,children=[]){
- const mine=member&&p.member_id===member.id,active=p.myReactions||[];
- const btns=emojis.map(([id,label])=>'<button type="button" data-hub-react="'+safe(p.id)+'" data-emoji="'+id+'" aria-pressed="'+(active.includes(id)?'true':'false')+'" title="'+id+'">'+label+' '+Number(p.reactions?.[id]||0)+'</button>').join('');
- return '<article class="hub2-message'+(p.official?' official':'')+(p.pinned?' pinned':'')+'" id="hub-message-'+safe(p.id)+'" data-post-id="'+safe(p.id)+'">'+
- '<div class="hub2-message-header">'+avatar(p)+'<div class="hub2-author"><b>'+safe(p.name||'Member')+'</b><small>'+safe(roomName(p.topic))+' · '+safe(clock(p.created_at))+(p.edited_at?' · edited':'')+'</small></div>'+
- (p.official?'<span class="hub2-tag">OFFICIAL EVENING WIRE</span>':p.pinned?'<span class="hub2-tag">📌 PINNED</span>':'')+'</div>'+
- (p.message?'<p class="hub2-message-body">'+safe(p.message)+'</p>':'')+
- (p.image_id?'<button type="button" class="hub2-photo-card" data-hub-photo="'+safe(p.image_id)+'" aria-label="View picture shared by '+safe(p.name||'member')+'"><img loading="lazy" src="/api/community/images/'+safe(p.image_id)+'" alt="Picture shared by '+safe(p.name||'member')+'"></button>':'')+
- (p.audio_id?'<div class="hub2-post-audio"><b>🎤 VOICE NOTE</b><audio controls preload="none" src="/api/community/audio/'+safe(p.audio_id)+'"></audio></div>':'')+
- '<div class="hub2-emojis">'+btns+'</div>'+
- '<div class="hub2-actions"><button type="button" data-hub-reply="'+safe(p.id)+'">↪ REPLY</button>'+
- (mine?'<button type="button" data-hub-edit="'+safe(p.id)+'">✎ EDIT</button>':'')+
- (mine&&Date.now()-Date.parse(p.created_at)<15*60000?'<button type="button" data-hub-delete="'+safe(p.id)+'">DELETE</button>':'')+
- '<button type="button" data-hub-report="'+safe(p.id)+'">⚑ REPORT</button>'+
- (owner?'<button type="button" data-hub-pin="'+safe(p.id)+'">'+(p.pinned?'UNPIN':'📌 PIN')+'</button><button type="button" data-hub-hide="'+safe(p.id)+'">HIDE</button>':'')+
- '</div>'+ (children.length?'<div class="hub2-replies">'+children.map(x=>messageCard(x)).join('')+'</div>':'')+'</article>'
+// X-style election timeline: each reply is a compact bubble nested inside
+// the message it responds to, and every level supports further replies/reactions.
+function messageCard(p,childrenById,depth=0){
+ const mine=member&&p.member_id===member.id,active=p.myReactions||[],nested=depth>0;
+ const children=childrenById.get(p.id)||[];
+ const replyCount=children.length;
+ const btns=emojis.map(([id,label])=>
+  '<button class="pulse-emoji" type="button" data-hub-react="'+safe(p.id)+'" data-emoji="'+id+'" aria-pressed="'+(active.includes(id)?'true':'false')+'" title="React: '+id+'">'+label+
+  '<span>'+Number(p.reactions?.[id]||0)+'</span></button>').join('');
+ const controls='<div class="pulse-action-row">'+
+  '<button type="button" class="pulse-reply-action" data-hub-reply="'+safe(p.id)+'" title="Reply to this message">↩ <span>REPLY'+(replyCount?' · '+replyCount:'')+'</span></button>'+
+  (mine?'<button type="button" data-hub-edit="'+safe(p.id)+'" title="Edit your message">✎ <span>EDIT</span></button>':'')+
+  (mine&&Date.now()-Date.parse(p.created_at)<15*60000?'<button type="button" data-hub-delete="'+safe(p.id)+'">DELETE</button>':'')+
+  '<button type="button" data-hub-report="'+safe(p.id)+'" title="Report this message">⚑ <span>REPORT</span></button>'+
+  (owner?'<button type="button" data-hub-pin="'+safe(p.id)+'">'+(p.pinned?'UNPIN':'📌 PIN')+'</button><button type="button" data-hub-hide="'+safe(p.id)+'">HIDE</button>':'')+'</div>';
+ const media=(p.image_id?'<button type="button" class="hub2-photo-card" data-hub-photo="'+safe(p.image_id)+'" aria-label="View picture shared by '+safe(p.name||'member')+'"><img loading="lazy" src="/api/community/images/'+safe(p.image_id)+'" alt="Picture shared by '+safe(p.name||'member')+'"></button>':'')+
+  (p.video_id?'<div class="pulse-video"><video controls preload="metadata" playsinline src="/api/community/videos/'+safe(p.video_id)+'" aria-label="Video shared by '+safe(p.name||'member')+'"></video></div>':'')+
+  (p.audio_id?'<div class="hub2-post-audio"><b>🎤 VOICE NOTE</b><audio controls preload="metadata" src="/api/community/audio/'+safe(p.audio_id)+'"></audio></div>':'');
+ const bubble='<div class="pulse-bubble">'+
+   '<div class="pulse-author-line">'+avatar(p)+'<div class="pulse-author-meta"><strong>'+safe(p.name||'Member')+'</strong>'+
+   '<small> · '+safe(clock(p.created_at))+(p.edited_at?' · edited':'')+(nested?' · REPLY':'')+'</small></div>'+
+   (p.official?'<span class="hub2-tag">OFFICIAL EVENING WIRE</span>':p.pinned?'<span class="hub2-tag">📌 PINNED</span>':'')+'</div>'+
+   (p.message?'<p class="pulse-message-text">'+safe(p.message)+'</p>':'')+
+   media+controls+'<div class="pulse-emoji-strip" aria-label="Reactions to this message">'+btns+'</div></div>';
+ const nestedChildren=children.length?'<div class="pulse-branch">'+children.slice().sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)).map(child=>messageCard(child,childrenById,depth+1)).join('')+'</div>':'';
+ const inner=bubble+nestedChildren;
+ return nested?'<div class="pulse-reply-bubble" id="hub-message-'+safe(p.id)+'" data-post-id="'+safe(p.id)+'">'+inner+'</div>':
+  '<article class="pulse-post'+(p.official?' pulse-official':'')+'" id="hub-message-'+safe(p.id)+'" data-post-id="'+safe(p.id)+'">'+
+  '<div class="pulse-post-room">'+safe(roomName(p.topic))+'</div>'+inner+'</article>'
 }
 function renderFeed(){
  const feed=q('hubFeed');if(!feed||!shown())return;
- const visible=posts.filter(p=>(room==='all'||p.topic===room)&&(!search||(p.name+' '+p.message).toLowerCase().includes(search.toLowerCase())));
- const sig=JSON.stringify(visible.map(p=>[p.id,p.message,p.edited_at,p.likes,p.reactions,p.myReactions,p.pinned,p.official,p.image_id,p.audio_id]))+'|'+room+'|'+search;
+ const all=posts.filter(p=>room==='all'||p.topic===room);
+ const byId=new Map(all.map(p=>[p.id,p]));
+ let visible=all;
+ if(search){
+  const needle=search.toLowerCase();
+  const included=new Set();
+  for(const p of all){
+   if(!((p.name||'')+' '+(p.message||'')).toLowerCase().includes(needle))continue;
+   let ancestor=p;
+   for(let depth=0;ancestor&&depth<15;depth++){
+    included.add(ancestor.id);ancestor=byId.get(ancestor.parent_id)
+   }
+  }
+  visible=all.filter(p=>included.has(p.id))
+ }
+ const sig=JSON.stringify(visible.map(p=>[p.id,p.parent_id,p.message,p.edited_at,p.reactions,p.myReactions,p.pinned,p.official,p.image_id,p.audio_id,p.video_id]))+'|'+room+'|'+search;
  if(sig===lastSignature)return;
  lastSignature=sig;
- const atTop=feed.scrollTop<85;
- const before=feed.scrollTop,oldHeight=feed.scrollHeight;
- const children=new Map();
- for(const p of visible)if(p.parent_id){const row=children.get(p.parent_id)||[];row.push(p);children.set(p.parent_id,row)}
- const roots=visible.filter(p=>!p.parent_id).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
- feed.innerHTML=roots.length?roots.map(p=>messageCard(p,(children.get(p.id)||[]).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)))).join(''):'<div class="hub2-empty">No messages in this room yet. Be the first to start a discussion.</div>';
- if(atTop||!previousLatest){feed.scrollTop=0;unread=0}else{feed.scrollTop=before+Math.max(0,feed.scrollHeight-oldHeight)}
- const fresh=roots.filter(p=>!p.pinned)[0]?.id||'';
- if(previousLatest&&fresh&&fresh!==previousLatest&&!atTop){unread+=1}
+ const atTop=feed.scrollTop<85,oldTop=feed.scrollTop,oldHeight=feed.scrollHeight;
+ const listed=new Set(visible.map(p=>p.id)),children=new Map();
+ for(const p of visible)if(p.parent_id&&listed.has(p.parent_id)){
+  const row=children.get(p.parent_id)||[];row.push(p);children.set(p.parent_id,row)
+ }
+ const roots=visible.filter(p=>!p.parent_id||!listed.has(p.parent_id)).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
+ feed.innerHTML=roots.length?roots.map(p=>messageCard(p,children)).join(''):'<div class="hub2-empty">No conversations here yet. Start the first election-night discussion.</div>';
+ if(atTop||!previousLatest){feed.scrollTop=0;unread=0}else feed.scrollTop=oldTop+Math.max(0,feed.scrollHeight-oldHeight);
+ const fresh=roots[0]?.id||'';
+ if(previousLatest&&fresh&&fresh!==previousLatest&&!atTop)unread+=1;
  previousLatest=fresh||previousLatest;
- const btn=q('hubNewMessages');btn.hidden=unread===0;btn.textContent=unread?'↑ '+unread+' NEW MESSAGE'+(unread===1?'':'S'):'';
- q('hubUpdates').textContent=visible.length+' posts displayed';
+ const btn=q('hubNewMessages');btn.hidden=unread===0;btn.textContent=unread?'↑ '+unread+' NEW CONVERSATION'+(unread===1?'':'S'):'';
+ q('hubUpdates').textContent=visible.length+' messages · newest first';
 }
 function renderPolls(){
  const target=q('hubPolls');if(!target)return;
@@ -314,7 +342,7 @@ function wireEvents(){
   if(node.dataset.hubCancel){replyId=null;editId=null;clearPicture();clearVoice();updateReply();q('hubComposer').elements.namedItem('message').value='';q('hubPostSubmit').textContent='SEND MESSAGE';return}
   const id=node.dataset.hubReply||node.dataset.hubEdit||node.dataset.hubDelete||node.dataset.hubReport||node.dataset.hubPin||node.dataset.hubHide||node.dataset.hubReact;
   try{
-   if(node.dataset.hubReply){if(!requireMember())return;const p=posts.find(x=>x.id===id);if(!p)return;replyId=p.parent_id||p.id;editId=null;updateReply();focusComposer();return}
+   if(node.dataset.hubReply){if(!requireMember())return;const p=posts.find(x=>x.id===id);if(!p)return;replyId=p.id;editId=null;updateReply();focusComposer();return}
    if(node.dataset.hubEdit){clearPicture();clearVoice();const p=posts.find(x=>x.id===id);if(!p||!member||p.member_id!==member.id)return;editId=id;replyId=null;updateReply();const form=q('hubComposer');form.elements.namedItem('message').value=p.message;form.elements.namedItem('topic').value=p.topic;q('hubPostSubmit').textContent='SAVE EDIT';focusComposer();return}
    if(node.dataset.hubReact){if(!requireMember())return;await action(id+'/react',{emoji:node.dataset.emoji});return}
    if(node.dataset.hubDelete){if(!confirm('Delete your message?'))return;await action(id+'/delete');return}
