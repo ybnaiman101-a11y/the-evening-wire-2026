@@ -1,6 +1,7 @@
 import http from 'node:http';
 import {editorRoute,publicCalls,publicMeta} from './editor-calls.mjs';
 import {apSnapshot} from './ap-election-results.mjs';
+import {liveResultsHub} from './live-results.mjs';
 import {communityRoute} from './community.mjs';
 import {memberRoute,authenticatedMember} from './members.mjs';
 import {trafficRoute} from './traffic.mjs';
@@ -292,6 +293,7 @@ const page=process.env.EW_READ_ONLY_PREVIEW==='1'
    ? originalPage.replace('<body>','<body data-ew-local-database="true">')
    : originalPage;
 const loginPage=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/login.html',import.meta.url),'utf8'));
+liveResultsHub.start();
 const server=http.createServer(async (req,res)=>{
  const u=new URL(req.url,'http://localhost');
  // Security headers on all routes, including authentication, API and errors.
@@ -351,7 +353,7 @@ const server=http.createServer(async (req,res)=>{
 
  const visitor=await authenticatedMember(req).catch(()=>null);
  const publicRead = req.method==='GET' && (
-  ['/api/stories','/api/status','/api/stream','/api/election','/api/historical','/api/historical/counties','/api/race-catalog','/api/editor/calls'].includes(u.pathname) ||
+  ['/api/stories','/api/status','/api/stream','/api/election','/api/live-results','/api/historical','/api/historical/counties','/api/race-catalog','/api/editor/calls'].includes(u.pathname) ||
   u.pathname.startsWith('/api/geo/') ||
   u.pathname.startsWith('/api/community/') ||
   u.pathname.startsWith('/api/challenge') ||
@@ -376,15 +378,17 @@ const server=http.createServer(async (req,res)=>{
 
  if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname).catch(err=>{console.error('Community API request error:',String(err?.message||err));if(!res.headersSent)json({error:'Community service temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname==='/api/editor/calls'||u.pathname.startsWith('/api/admin/')){editorRoute(req,res,u.pathname).catch(err=>{console.error('Editor route error',err);if(!res.headersSent)json({error:'Editorial desk unavailable'},503);else res.end()});return;}
+ if(u.pathname==='/api/live-results')return json(liveResultsHub.snapshot());
  if(u.pathname==='/api/election'){
-  const ap=apSnapshot(),ownerCalls=publicCalls(),editor=publicMeta();
+  const ap=apSnapshot(),live=liveResultsHub.snapshot(),ownerCalls=publicCalls(),editor=publicMeta();
   return json({
-   configured:ap.configured||editor.configured,
-   updatedAt:ap.updatedAt,checkedAt:ap.checkedAt,
-   error:ap.error,races:ap.races,
-   // AP's published winner signals never enter this payload. Only owner calls.
+   configured:live.sourceCount>0||ap.configured||editor.configured,
+   updatedAt:live.checkedAt,checkedAt:live.checkedAt,
+   error:null,races:live.races,liveSources:live.sources,
+   reportingRaces:live.reportingRaces,
+   // Feed winner flags never enter this payload. Only owner-authenticated calls.
    calls:ownerCalls,
-   turnout:[],source:ap.connected?'Associated Press (AP)':null,
+   turnout:[],source:'Official state election counts and credited aggregators',
    ap:{configured:ap.configured,connected:ap.connected,checkedAt:ap.checkedAt,updatedAt:ap.updatedAt,error:ap.error,pollIntervalMs:ap.pollIntervalMs},
    editor,
    raceCallsControlledBy:'Evening Wire administrator'
