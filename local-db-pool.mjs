@@ -32,7 +32,7 @@ async function acquire(){
  return unlock;
 }
 function normalize(result){
- return {...result,rowCount:typeof result.affectedRows==='number'?result.affectedRows:(result.rows?.length||0)};
+ return {...result,rowCount:result.rows?.length>0?result.rows.length:(typeof result.affectedRows==='number'?result.affectedRows:0)};
 }
 export class Pool {
  constructor(config={}){
