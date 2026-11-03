@@ -9,7 +9,7 @@ const emojis=[['like','👍'],['love','❤️'],['laugh','😂'],['wow','😮'],
 const roomName=id=>rooms.find(x=>x[0]===id)?.[1]||'National Discussion';
 const clock=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Recently'};
 const tone=(x)=>{let h=0;const s=String(x||'');for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))>>>0;return h%8};
-let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null,pendingAudioData=null,pendingAudioUrl=null,voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceLimit=null,discardVoiceOnStop=false;
+let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null,pendingVideoData=null,pendingVideoUrl=null,pendingAudioData=null,pendingAudioUrl=null,voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceLimit=null,discardVoiceOnStop=false;
 function avatar(p){const number=tone(p.member_id||p.name||p.id);return '<span class="hub2-avatar a'+number+'">'+safe(String(p.name||'?').slice(0,1).toUpperCase())+'</span>'}
 function requireMember(){if(member)return true;location.href='/login';return false}
 async function api(path,method='GET',body){
@@ -60,6 +60,37 @@ function showPicturePreview(){
  q('hubPhotoPreviewImg').src=pendingImageUrl
 }
 
+
+
+async function prepareVideo(file){
+ if(!file||!['video/mp4','video/webm'].includes(file.type))throw Error('Please choose an MP4 or WebM video clip.');
+ if(file.size<32||file.size>12000000)throw Error('Video clips must be smaller than 12 MB. Shorter clips work best.');
+ const videoUrl=URL.createObjectURL(file);
+ try{
+  // Preserve the original clip for playback; do not strip its audio track.
+  const videoData=await new Promise((resolve,reject)=>{
+   const reader=new FileReader();
+   reader.onload=()=>resolve(reader.result);
+   reader.onerror=()=>reject(Error('Could not read video file.'));
+   reader.readAsDataURL(file)
+  });
+  if(!videoData.startsWith('data:'+file.type+';base64,'))throw Error('Browser video format was not recognized.');
+  return {videoUrl,videoData}
+ }catch(err){URL.revokeObjectURL(videoUrl);throw err}
+}
+function clearVideo(){
+ if(pendingVideoUrl)URL.revokeObjectURL(pendingVideoUrl);
+ pendingVideoData=null;pendingVideoUrl=null;
+ const field=q('hubVideoFile');if(field)field.value='';
+ const box=q('hubVideoPreview');if(box){box.hidden=true;box.replaceChildren()}
+}
+function showVideoPreview(){
+ const box=q('hubVideoPreview');if(!box)return;
+ box.hidden=!pendingVideoUrl;
+ if(!pendingVideoUrl){box.replaceChildren();return}
+ box.innerHTML='<div class="hub2-voice-caption"><b>🎬 VIDEO READY</b><small>Video uploads must be under 12 MB.</small></div><video id="hubVideoPreviewPlayer" controls playsinline preload="metadata"></video><button type="button" class="hub2-btn secondary" data-hub-remove-video="1">REMOVE VIDEO</button>';
+ q('hubVideoPreviewPlayer').src=pendingVideoUrl
+}
 
 function voiceButtons(){
  const start=q('hubVoiceStart'),stop=q('hubVoiceStop'),elapsed=q('hubVoiceElapsed');
@@ -143,6 +174,8 @@ function composer(){
   '<label>YOUR MESSAGE OR MEDIA CAPTION<textarea name="message" maxlength="700" placeholder="Share an election take, a picture, a voice note, or all three."></textarea></label>'+ 
   '<label class="hub2-photo-field">📷 ADD A PICTURE <input id="hubPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"></label>'+
   '<div id="hubPhotoPreview" class="hub2-photo-preview" hidden></div>'+ 
+  '<label class="hub2-photo-field pulse-video-field">🎬 ADD A VIDEO CLIP (MP4 / WEBM, MAX 12 MB) <input id="hubVideoFile" type="file" accept="video/mp4,video/webm"></label>'+ 
+  '<div id="hubVideoPreview" class="hub2-video-preview" hidden></div>'+ 
   '<div class="hub2-voice-controls"><button type="button" class="hub2-btn hub2-mic-start" id="hubVoiceStart" data-hub-record-start="1">🎤 RECORD VOICE NOTE</button><button type="button" class="hub2-btn danger" id="hubVoiceStop" data-hub-record-stop="1" hidden>■ STOP RECORDING</button><span id="hubVoiceElapsed" class="hub2-micro">Tap microphone to record up to 60 seconds</span></div>'+ 
   '<div id="hubVoicePreview" class="hub2-voice-preview" hidden></div>'+
   '<div class="hub2-tools"><span class="hub2-micro" id="hubCharCount">0 / 700</span><button class="hub2-btn" type="submit" id="hubPostSubmit">SEND MESSAGE</button></div></form>'+
