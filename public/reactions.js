@@ -165,12 +165,9 @@ function renderShell(){
  if(!shown())return;
  host.innerHTML='<div class="hub2">'+
  '<header class="hub2-header"><div class="hub2-kicker">THE EVENING WIRE · 2026 ELECTION NIGHT NEWSROOM</div>'+
- '<h1>REACTION <span>HUB 2.1</span></h1>'+
- '<p>THE LIVE ELECTION FLOOR · Newest messages first. Post pictures and 60-second voice notes, respond with emoji, debate races and vote in member polls.</p>'+
- '<div class="hub2-stats"><span class="hub2-stat live" id="hubLiveStatus">CONNECTING LIVE</span>'+
- '<span class="hub2-stat"><strong id="hubOnline">0</strong> ACTIVE MEMBERS</span>'+
- '<span class="hub2-stat"><strong id="hubMessages">0</strong> MESSAGES</span>'+
- '<span class="hub2-stat"><strong>6</strong> DISCUSSION ROOMS</span></div></header>'+
+ '<h1>THE <span>PULSE</span></h1>'+
+ '<p>THE EVENING WIRE · LIVE ELECTION CONVERSATIONS. Newest messages first. Share pictures, voice notes, reactions and election-night opinions.</p>'+
+ '</header>'+
  '<div class="hub2-columns"><aside class="hub2-side"><div class="hub2-panel"><div class="hub2-label">ELECTION DEBATE ROOMS</div>'+
  '<nav class="hub2-room-list" aria-label="Discussion rooms" id="hubRooms">'+rooms.map(([id,label])=>
  '<button class="hub2-room" data-hub-room="'+id+'" aria-pressed="'+(room===id?'true':'false')+'"><span>'+safe(label)+'</span><small id="hubRoomCount-'+id+'">0</small></button>').join('')+
@@ -193,9 +190,7 @@ function renderRooms(){
  if(!shown())return;
  for(const [id] of rooms){const node=q('hubRoomCount-'+id);if(node)node.textContent=posts.filter(p=>!p.parent_id&&(id==='all'||p.topic===id)).length}
  q('hubRoomTitle').textContent=room==='all'?'ALL DISCUSSIONS':roomName(room).replace(/^[^\s]+\s/,'').toUpperCase();
- q('hubMessages').textContent=posts.length;
- q('hubLiveStatus').textContent=liveConnected?'● LIVE CONNECTED':'● AUTO REFRESH';
- q('hubOnline').textContent=online;
+
 }
 function messageCard(p,children=[]){
  const mine=member&&p.member_id===member.id,active=p.myReactions||[];
@@ -256,7 +251,7 @@ function renderRaceCards(){
  '<small>'+safe(c.party==='R'?'REPUBLICAN':c.party==='D'?'DEMOCRAT':'OTHER')+' · OWNER EDITORIAL CALL · NOT OFFICIAL CERTIFICATION</small></div>'+
  '<a href="/#calls">RACE DETAILS ↗</a></div>').join('')
 }
-function renderPresence(){if(!shown())return;q('hubOnline').textContent=online}
+function renderPresence(){/* Presence still works privately; no counter shown in the header. */}
 function updateReply(){
  const area=q('hubReply'),form=q('hubComposer');if(!area||!form)return;
  const p=posts.find(x=>x.id===replyId);
