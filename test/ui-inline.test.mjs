@@ -86,3 +86,20 @@ test('Source-free editorial race calls still work on maps',()=>{
  assert.match(map,/Owner editorial call/);
  assert.doesNotMatch(map,/sourceName\.trim\(\)&&typeof c\.sourceUrl/);
 });
+
+
+test('Pulse members can set a persistent X-style profile photo for posts and replies',()=>{
+ const app=readFileSync(new URL('../public/reactions.js',import.meta.url),'utf8');
+ const members=readFileSync(new URL('../public/members.js',import.meta.url),'utf8');
+ const css=readFileSync(new URL('../public/reaction-hub-v2.css',import.meta.url),'utf8');
+ assert.match(app,/function avatar\(p\)/);
+ assert.match(app,/hub4-member-photo/);
+ assert.match(app,/p\.avatar_url/);
+ assert.match(app,/p\.avatar_url\]/);
+ assert.match(members,/ewAvatarFile/);
+ assert.match(members,/prepareAvatar\(file\)/);
+ assert.match(members,/api\/members\/avatar/);
+ assert.match(members,/ewAvatarRemove/);
+ assert.match(css,/\.hub4-member-photo/);
+ assert.match(css,/\.ew-profile-avatar/);
+});
