@@ -322,3 +322,15 @@
 @media(prefers-reduced-motion:reduce){
  .hub4-left,.hub4-right{transition:none}
 }
+
+
+/* Small-screen action remains visible while browsing long conversations. */
+@media(max-width:900px){
+ .hub4-mobile-controls{grid-template-columns:repeat(2,minmax(0,1fr));padding-bottom:10px}
+ .hub4-mobile-controls button:first-child{
+  position:fixed;bottom:max(16px,env(safe-area-inset-bottom));right:16px;z-index:90;
+  min-height:47px;padding:12px 18px;border-radius:999px;
+  box-shadow:0 9px 28px #000c,0 0 0 1px #a55ddd44;
+  font-size:12px;font-weight:900
+ }
+}
