@@ -9,7 +9,7 @@ const emojis=[['like','👍'],['love','❤️'],['laugh','😂'],['wow','😮'],
 const roomName=id=>rooms.find(x=>x[0]===id)?.[1]||'National Discussion';
 const clock=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Recently'};
 const tone=(x)=>{let h=0;const s=String(x||'');for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))>>>0;return h%8};
-let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null,pendingAudioData=null,pendingAudioUrl=null,voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceLimit=null,discardVoiceOnStop=false;
+let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null,pendingVideoData=null,pendingVideoUrl=null,pendingAudioData=null,pendingAudioUrl=null,voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceLimit=null,discardVoiceOnStop=false;
 function avatar(p){const number=tone(p.member_id||p.name||p.id);return '<span class="hub2-avatar a'+number+'">'+safe(String(p.name||'?').slice(0,1).toUpperCase())+'</span>'}
 function requireMember(){if(member)return true;location.href='/login';return false}
 async function api(path,method='GET',body){
@@ -61,11 +61,57 @@ function showPicturePreview(){
 }
 
 
+
+async function prepareVideo(file){
+ if(!file||!['video/mp4','video/webm'].includes(file.type))throw Error('Please choose an MP4 or WebM video clip.');
+ if(file.size<32||file.size>12000000)throw Error('Video clips must be smaller than 12 MB. Shorter clips work best.');
+ const videoUrl=URL.createObjectURL(file);
+ try{
+  // Preserve the original clip for playback; do not strip its audio track.
+  const videoData=await new Promise((resolve,reject)=>{
+   const reader=new FileReader();
+   reader.onload=()=>resolve(reader.result);
+   reader.onerror=()=>reject(Error('Could not read video file.'));
+   reader.readAsDataURL(file)
+  });
+  if(!videoData.startsWith('data:'+file.type+';base64,'))throw Error('Browser video format was not recognized.');
+  return {videoUrl,videoData}
+ }catch(err){URL.revokeObjectURL(videoUrl);throw err}
+}
+function clearVideo(){
+ if(pendingVideoUrl)URL.revokeObjectURL(pendingVideoUrl);
+ pendingVideoData=null;pendingVideoUrl=null;
+ const field=q('hubVideoFile');if(field)field.value='';
+ const box=q('hubVideoPreview');if(box){box.hidden=true;box.replaceChildren()}
+}
+function showVideoPreview(){
+ const box=q('hubVideoPreview');if(!box)return;
+ box.hidden=!pendingVideoUrl;
+ if(!pendingVideoUrl){box.replaceChildren();return}
+ box.innerHTML='<div class="hub2-voice-caption"><b>🎬 VIDEO READY</b><small>Video uploads must be under 12 MB.</small></div><video id="hubVideoPreviewPlayer" controls playsinline preload="metadata"></video><button type="button" class="hub2-btn secondary" data-hub-remove-video="1">REMOVE VIDEO</button>';
+ q('hubVideoPreviewPlayer').src=pendingVideoUrl
+}
+
+
+async function prepareAudioFile(file){
+ const types={'audio/webm':'audio/webm','audio/mp4':'audio/mp4','audio/x-m4a':'audio/mp4','audio/ogg':'audio/ogg','audio/mpeg':'audio/mpeg','audio/mp3':'audio/mpeg'};
+ const typ=types[file?.type]||(/\.(m4a|mp4)$/i.test(file?.name||'')?'audio/mp4':/\.(mp3)$/i.test(file?.name||'')?'audio/mpeg':null);
+ if(!typ)throw Error('Choose an MP3, M4A, Ogg, or WebM voice recording.');
+ if(file.size<30||file.size>1600000)throw Error('Voice notes must be under 1.6 MB.');
+ const source=new Blob([file],{type:typ}),audioUrl=URL.createObjectURL(source);
+ try{
+  const audioData=await new Promise((resolve,reject)=>{
+   const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('Could not read this voice note'));reader.readAsDataURL(source)
+  });
+  return {audioData,audioUrl}
+ }catch(err){URL.revokeObjectURL(audioUrl);throw err}
+}
+
 function voiceButtons(){
  const start=q('hubVoiceStart'),stop=q('hubVoiceStop'),elapsed=q('hubVoiceElapsed');
  if(start)start.hidden=!!voiceRecorder;
- if(stop)stop.hidden=!voiceRecorder;
- if(elapsed)elapsed.textContent=voiceRecorder?'🔴 RECORDING · '+Math.min(60,Math.floor((Date.now()-voiceStartedAt)/1000))+'s / 60s':'Tap microphone to record up to 60 seconds';
+ if(stop){stop.hidden=!voiceRecorder;stop.disabled=!!voiceRecorder&&voiceRecorder.state!=='recording';stop.textContent=voiceRecorder&&voiceRecorder.state!=='recording'?'● FINISHING…':'■ STOP RECORDING'}
+ if(elapsed)elapsed.textContent=voiceRecorder?(voiceRecorder.state==='recording'?'🔴 RECORDING · '+Math.min(60,Math.floor((Date.now()-voiceStartedAt)/1000))+'s / 60s':'Finalizing audio…'):'Tap microphone to record up to 60 seconds';
 }
 let voiceStartedAt=0;
 function endVoiceTracks(){
@@ -80,6 +126,7 @@ function clearVoice(){
  if(pendingAudioUrl)URL.revokeObjectURL(pendingAudioUrl);
  pendingAudioData=null;pendingAudioUrl=null;
  const preview=q('hubVoicePreview');if(preview){preview.replaceChildren();preview.hidden=true}
+ const file=q('hubAudioFile');if(file)file.value='';
  voiceButtons()
 }
 function showVoicePreview(){
@@ -100,7 +147,7 @@ async function beginVoice(){
  try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}
  catch{throw Error('Microphone permission was denied or the microphone is unavailable.')}
  try{
-  const recorder=new MediaRecorder(stream,{mimeType:mime,audioBitsPerSecond:64000});
+  let recorder;try{recorder=new MediaRecorder(stream,{mimeType:mime,audioBitsPerSecond:64000})}catch{recorder=new MediaRecorder(stream,{mimeType:mime})}
   voiceStream=stream;voiceRecorder=recorder;
   let chunks=[];
   recorder.ondataavailable=event=>{if(event.data?.size)chunks.push(event.data)};
@@ -122,7 +169,7 @@ async function beginVoice(){
     showVoicePreview();feedback('Voice note recorded. Play it back or send it with your message.')
    }catch(err){feedback(err.message)}
   };
-  recorder.start(250);voiceStartedAt=Date.now();voiceButtons();
+  recorder.start();voiceStartedAt=Date.now();voiceButtons();
   voiceTimer=setInterval(voiceButtons,1000);
   voiceLimit=setTimeout(stopVoice,60000);
   feedback('Recording… click STOP RECORDING when finished.')
@@ -130,8 +177,9 @@ async function beginVoice(){
 }
 function stopVoice(){
  if(!voiceRecorder)return;
- if(voiceRecorder.state==='recording')try{voiceRecorder.stop()}catch{}
- endVoiceTracks();voiceButtons()
+ if(voiceRecorder.state==='recording')try{voiceRecorder.stop()}catch(err){feedback('Could not finish recording: '+err.message);clearVoice();return}
+ // Wait for the final dataavailable and stop events before stopping tracks.
+ voiceButtons()
 }
 
 function composer(){
@@ -140,11 +188,14 @@ function composer(){
   '<div class="hub2-compose-head">'+avatar({name:member.displayName,member_id:member.id})+'<div><b>'+safe(member.displayName)+'</b><small>Verified member session · Your name stays with your posts</small></div></div>'+
   '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
   '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
-  '<label>YOUR MESSAGE OR MEDIA CAPTION<textarea name="message" maxlength="700" placeholder="Share an election take, a picture, a voice note, or all three."></textarea></label>'+ 
+  '<label>YOUR POST OR REPLY<textarea name="message" maxlength="700" placeholder="What is happening this election night? Add a photo, video, or voice note…"></textarea></label>'+ 
   '<label class="hub2-photo-field">📷 ADD A PICTURE <input id="hubPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"></label>'+
   '<div id="hubPhotoPreview" class="hub2-photo-preview" hidden></div>'+ 
+  '<label class="hub2-photo-field pulse-video-field">🎬 ADD A VIDEO CLIP (MP4 / WEBM, MAX 12 MB) <input id="hubVideoFile" type="file" accept="video/mp4,video/webm"></label>'+ 
+  '<div id="hubVideoPreview" class="hub2-video-preview" hidden></div>'+ 
   '<div class="hub2-voice-controls"><button type="button" class="hub2-btn hub2-mic-start" id="hubVoiceStart" data-hub-record-start="1">🎤 RECORD VOICE NOTE</button><button type="button" class="hub2-btn danger" id="hubVoiceStop" data-hub-record-stop="1" hidden>■ STOP RECORDING</button><span id="hubVoiceElapsed" class="hub2-micro">Tap microphone to record up to 60 seconds</span></div>'+ 
-  '<div id="hubVoicePreview" class="hub2-voice-preview" hidden></div>'+
+  '<div id="hubVoicePreview" class="hub2-voice-preview" hidden></div>'+ 
+  '<label class="hub2-audio-field">OR UPLOAD AN AUDIO NOTE <input id="hubAudioFile" type="file" accept="audio/webm,audio/mp4,audio/x-m4a,audio/ogg,audio/mpeg,.mp3,.m4a"></label>'+
   '<div class="hub2-tools"><span class="hub2-micro" id="hubCharCount">0 / 700</span><button class="hub2-btn" type="submit" id="hubPostSubmit">SEND MESSAGE</button></div></form>'+
   '<p id="hubFeedback" class="hub2-feedback" role="status" aria-live="polite"></p></div>'
 }
@@ -192,41 +243,69 @@ function renderRooms(){
  q('hubRoomTitle').textContent=room==='all'?'ALL DISCUSSIONS':roomName(room).replace(/^[^\s]+\s/,'').toUpperCase();
 
 }
-function messageCard(p,children=[]){
- const mine=member&&p.member_id===member.id,active=p.myReactions||[];
- const btns=emojis.map(([id,label])=>'<button type="button" data-hub-react="'+safe(p.id)+'" data-emoji="'+id+'" aria-pressed="'+(active.includes(id)?'true':'false')+'" title="'+id+'">'+label+' '+Number(p.reactions?.[id]||0)+'</button>').join('');
- return '<article class="hub2-message'+(p.official?' official':'')+(p.pinned?' pinned':'')+'" id="hub-message-'+safe(p.id)+'" data-post-id="'+safe(p.id)+'">'+
- '<div class="hub2-message-header">'+avatar(p)+'<div class="hub2-author"><b>'+safe(p.name||'Member')+'</b><small>'+safe(roomName(p.topic))+' · '+safe(clock(p.created_at))+(p.edited_at?' · edited':'')+'</small></div>'+
- (p.official?'<span class="hub2-tag">OFFICIAL EVENING WIRE</span>':p.pinned?'<span class="hub2-tag">📌 PINNED</span>':'')+'</div>'+
- (p.message?'<p class="hub2-message-body">'+safe(p.message)+'</p>':'')+
- (p.image_id?'<button type="button" class="hub2-photo-card" data-hub-photo="'+safe(p.image_id)+'" aria-label="View picture shared by '+safe(p.name||'member')+'"><img loading="lazy" src="/api/community/images/'+safe(p.image_id)+'" alt="Picture shared by '+safe(p.name||'member')+'"></button>':'')+
- (p.audio_id?'<div class="hub2-post-audio"><b>🎤 VOICE NOTE</b><audio controls preload="none" src="/api/community/audio/'+safe(p.audio_id)+'"></audio></div>':'')+
- '<div class="hub2-emojis">'+btns+'</div>'+
- '<div class="hub2-actions"><button type="button" data-hub-reply="'+safe(p.id)+'">↪ REPLY</button>'+
- (mine?'<button type="button" data-hub-edit="'+safe(p.id)+'">✎ EDIT</button>':'')+
- (mine&&Date.now()-Date.parse(p.created_at)<15*60000?'<button type="button" data-hub-delete="'+safe(p.id)+'">DELETE</button>':'')+
- '<button type="button" data-hub-report="'+safe(p.id)+'">⚑ REPORT</button>'+
- (owner?'<button type="button" data-hub-pin="'+safe(p.id)+'">'+(p.pinned?'UNPIN':'📌 PIN')+'</button><button type="button" data-hub-hide="'+safe(p.id)+'">HIDE</button>':'')+
- '</div>'+ (children.length?'<div class="hub2-replies">'+children.map(x=>messageCard(x)).join('')+'</div>':'')+'</article>'
+// X-style election timeline: each reply is a compact bubble nested inside
+// the message it responds to, and every level supports further replies/reactions.
+function messageCard(p,childrenById,depth=0){
+ const mine=member&&p.member_id===member.id,active=p.myReactions||[],nested=depth>0;
+ const children=childrenById.get(p.id)||[];
+ const replyCount=children.length;
+ const btns=emojis.map(([id,label])=>
+  '<button class="pulse-emoji" type="button" data-hub-react="'+safe(p.id)+'" data-emoji="'+id+'" aria-pressed="'+(active.includes(id)?'true':'false')+'" title="React: '+id+'">'+label+
+  '<span>'+Number(p.reactions?.[id]||0)+'</span></button>').join('');
+ const controls='<div class="pulse-action-row">'+
+  '<button type="button" class="pulse-reply-action" data-hub-reply="'+safe(p.id)+'" title="Reply to this message">↩ <span>REPLY'+(replyCount?' · '+replyCount:'')+'</span></button>'+
+  (mine?'<button type="button" data-hub-edit="'+safe(p.id)+'" title="Edit your message">✎ <span>EDIT</span></button>':'')+
+  (mine&&Date.now()-Date.parse(p.created_at)<15*60000?'<button type="button" data-hub-delete="'+safe(p.id)+'">DELETE</button>':'')+
+  '<button type="button" data-hub-report="'+safe(p.id)+'" title="Report this message">⚑ <span>REPORT</span></button>'+
+  (owner?'<button type="button" data-hub-pin="'+safe(p.id)+'">'+(p.pinned?'UNPIN':'📌 PIN')+'</button><button type="button" data-hub-hide="'+safe(p.id)+'">HIDE</button>':'')+'</div>';
+ const media=(p.image_id?'<button type="button" class="hub2-photo-card" data-hub-photo="'+safe(p.image_id)+'" aria-label="View picture shared by '+safe(p.name||'member')+'"><img loading="lazy" src="/api/community/images/'+safe(p.image_id)+'" alt="Picture shared by '+safe(p.name||'member')+'"></button>':'')+
+  (p.video_id?'<div class="pulse-video"><video controls preload="metadata" playsinline src="/api/community/videos/'+safe(p.video_id)+'" aria-label="Video shared by '+safe(p.name||'member')+'"></video></div>':'')+
+  (p.audio_id?'<div class="hub2-post-audio"><b>🎤 VOICE NOTE</b><audio controls preload="metadata" src="/api/community/audio/'+safe(p.audio_id)+'"></audio></div>':'');
+ const bubble='<div class="pulse-bubble">'+
+   '<div class="pulse-author-line">'+avatar(p)+'<div class="pulse-author-meta"><strong>'+safe(p.name||'Member')+'</strong>'+
+   '<small> · '+safe(clock(p.created_at))+(p.edited_at?' · edited':'')+(nested?' · REPLY':'')+'</small></div>'+
+   (p.official?'<span class="hub2-tag">OFFICIAL EVENING WIRE</span>':p.pinned?'<span class="hub2-tag">📌 PINNED</span>':'')+'</div>'+
+   (p.message?'<p class="pulse-message-text">'+safe(p.message)+'</p>':'')+
+   media+controls+'<div class="pulse-emoji-strip" aria-label="Reactions to this message">'+btns+'</div></div>';
+ const nestedChildren=children.length?'<div class="pulse-branch">'+children.slice().sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)).map(child=>messageCard(child,childrenById,depth+1)).join('')+'</div>':'';
+ const inner=bubble+nestedChildren;
+ return nested?'<div class="pulse-reply-bubble" id="hub-message-'+safe(p.id)+'" data-post-id="'+safe(p.id)+'">'+inner+'</div>':
+  '<article class="pulse-post'+(p.official?' pulse-official':'')+'" id="hub-message-'+safe(p.id)+'" data-post-id="'+safe(p.id)+'">'+
+  '<div class="pulse-post-room">'+safe(roomName(p.topic))+'</div>'+inner+'</article>'
 }
 function renderFeed(){
  const feed=q('hubFeed');if(!feed||!shown())return;
- const visible=posts.filter(p=>(room==='all'||p.topic===room)&&(!search||(p.name+' '+p.message).toLowerCase().includes(search.toLowerCase())));
- const sig=JSON.stringify(visible.map(p=>[p.id,p.message,p.edited_at,p.likes,p.reactions,p.myReactions,p.pinned,p.official,p.image_id,p.audio_id]))+'|'+room+'|'+search;
+ const all=posts.filter(p=>room==='all'||p.topic===room);
+ const byId=new Map(all.map(p=>[p.id,p]));
+ let visible=all;
+ if(search){
+  const needle=search.toLowerCase();
+  const included=new Set();
+  for(const p of all){
+   if(!((p.name||'')+' '+(p.message||'')).toLowerCase().includes(needle))continue;
+   let ancestor=p;
+   for(let depth=0;ancestor&&depth<15;depth++){
+    included.add(ancestor.id);ancestor=byId.get(ancestor.parent_id)
+   }
+  }
+  visible=all.filter(p=>included.has(p.id))
+ }
+ const sig=JSON.stringify(visible.map(p=>[p.id,p.parent_id,p.message,p.edited_at,p.reactions,p.myReactions,p.pinned,p.official,p.image_id,p.audio_id,p.video_id]))+'|'+room+'|'+search;
  if(sig===lastSignature)return;
  lastSignature=sig;
- const atTop=feed.scrollTop<85;
- const before=feed.scrollTop,oldHeight=feed.scrollHeight;
- const children=new Map();
- for(const p of visible)if(p.parent_id){const row=children.get(p.parent_id)||[];row.push(p);children.set(p.parent_id,row)}
- const roots=visible.filter(p=>!p.parent_id).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
- feed.innerHTML=roots.length?roots.map(p=>messageCard(p,(children.get(p.id)||[]).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)))).join(''):'<div class="hub2-empty">No messages in this room yet. Be the first to start a discussion.</div>';
- if(atTop||!previousLatest){feed.scrollTop=0;unread=0}else{feed.scrollTop=before+Math.max(0,feed.scrollHeight-oldHeight)}
- const fresh=roots.filter(p=>!p.pinned)[0]?.id||'';
- if(previousLatest&&fresh&&fresh!==previousLatest&&!atTop){unread+=1}
+ const atTop=feed.scrollTop<85,oldTop=feed.scrollTop,oldHeight=feed.scrollHeight;
+ const listed=new Set(visible.map(p=>p.id)),children=new Map();
+ for(const p of visible)if(p.parent_id&&listed.has(p.parent_id)){
+  const row=children.get(p.parent_id)||[];row.push(p);children.set(p.parent_id,row)
+ }
+ const roots=visible.filter(p=>!p.parent_id||!listed.has(p.parent_id)).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
+ feed.innerHTML=roots.length?roots.map(p=>messageCard(p,children)).join(''):'<div class="hub2-empty">No conversations here yet. Start the first election-night discussion.</div>';
+ if(atTop||!previousLatest){feed.scrollTop=0;unread=0}else feed.scrollTop=oldTop+Math.max(0,feed.scrollHeight-oldHeight);
+ const fresh=roots[0]?.id||'';
+ if(previousLatest&&fresh&&fresh!==previousLatest&&!atTop)unread+=1;
  previousLatest=fresh||previousLatest;
- const btn=q('hubNewMessages');btn.hidden=unread===0;btn.textContent=unread?'↑ '+unread+' NEW MESSAGE'+(unread===1?'':'S'):'';
- q('hubUpdates').textContent=visible.length+' posts displayed';
+ const btn=q('hubNewMessages');btn.hidden=unread===0;btn.textContent=unread?'↑ '+unread+' NEW CONVERSATION'+(unread===1?'':'S'):'';
+ q('hubUpdates').textContent=visible.length+' messages · newest first';
 }
 function renderPolls(){
  const target=q('hubPolls');if(!target)return;
@@ -305,17 +384,18 @@ function wireEvents(){
   }
   if(node.dataset.hubRefresh){refresh();return}
   if(node.dataset.hubRemovePhoto){clearPicture();return}
+  if(node.dataset.hubRemoveVideo){clearVideo();return}
   if(node.dataset.hubRecordStart){try{await beginVoice()}catch(err){feedback(err.message)}return}
   if(node.dataset.hubRecordStop){stopVoice();return}
   if(node.dataset.hubRemoveVoice){clearVoice();return}
   if(node.dataset.hubPhoto){q('hubLightboxImg').src='/api/community/images/'+encodeURIComponent(node.dataset.hubPhoto);q('hubPhotoLightbox').hidden=false;return}
   if(node.dataset.hubClosePhoto){q('hubPhotoLightbox').hidden=true;q('hubLightboxImg').removeAttribute('src');return}
   if(node.id==='hubNewMessages'){q('hubFeed').scrollTo({top:0,behavior:'smooth'});unread=0;node.hidden=true;return}
-  if(node.dataset.hubCancel){replyId=null;editId=null;clearPicture();clearVoice();updateReply();q('hubComposer').elements.namedItem('message').value='';q('hubPostSubmit').textContent='SEND MESSAGE';return}
+  if(node.dataset.hubCancel){replyId=null;editId=null;clearPicture();clearVideo();clearVoice();updateReply();q('hubComposer').elements.namedItem('message').value='';q('hubPostSubmit').textContent='SEND MESSAGE';return}
   const id=node.dataset.hubReply||node.dataset.hubEdit||node.dataset.hubDelete||node.dataset.hubReport||node.dataset.hubPin||node.dataset.hubHide||node.dataset.hubReact;
   try{
-   if(node.dataset.hubReply){if(!requireMember())return;const p=posts.find(x=>x.id===id);if(!p)return;replyId=p.parent_id||p.id;editId=null;updateReply();focusComposer();return}
-   if(node.dataset.hubEdit){clearPicture();clearVoice();const p=posts.find(x=>x.id===id);if(!p||!member||p.member_id!==member.id)return;editId=id;replyId=null;updateReply();const form=q('hubComposer');form.elements.namedItem('message').value=p.message;form.elements.namedItem('topic').value=p.topic;q('hubPostSubmit').textContent='SAVE EDIT';focusComposer();return}
+   if(node.dataset.hubReply){if(!requireMember())return;const p=posts.find(x=>x.id===id);if(!p)return;replyId=p.id;editId=null;updateReply();focusComposer();return}
+   if(node.dataset.hubEdit){clearPicture();clearVideo();clearVoice();const p=posts.find(x=>x.id===id);if(!p||!member||p.member_id!==member.id)return;editId=id;replyId=null;updateReply();const form=q('hubComposer');form.elements.namedItem('message').value=p.message;form.elements.namedItem('topic').value=p.topic;q('hubPostSubmit').textContent='SAVE EDIT';focusComposer();return}
    if(node.dataset.hubReact){if(!requireMember())return;await action(id+'/react',{emoji:node.dataset.emoji});return}
    if(node.dataset.hubDelete){if(!confirm('Delete your message?'))return;await action(id+'/delete');return}
    if(node.dataset.hubReport){if(!requireMember()||!confirm('Report this message to the moderators?'))return;await action(id+'/report');return}
@@ -331,10 +411,28 @@ function wireEvents(){
   if(e.target.name==='message'&&e.target.closest('#hubComposer')){const x=q('hubCharCount');if(x)x.textContent=e.target.value.length+' / 700'}
  };
  host.onchange=async e=>{
-  if(e.target.id!=='hubPhotoFile')return;
-  const file=e.target.files?.[0];if(!file)return;
-  try{feedback('Preparing picture…');const ready=await preparePicture(file);clearPicture();pendingImageData=ready.imageData;pendingImageUrl=ready.imageUrl;showPicturePreview();feedback('Picture attached. Add a caption if you like, then publish.')}
-  catch(err){clearPicture();feedback(String(err.message||err))}
+  if(!shown())return;
+  const type=e.target.id,file=e.target.files?.[0];if(!file)return;
+  try{
+   if(type==='hubPhotoFile'){
+    feedback('Preparing picture…');const ready=await preparePicture(file);
+    clearPicture();pendingImageData=ready.imageData;pendingImageUrl=ready.imageUrl;
+    showPicturePreview();feedback('Picture attached and ready to post.')
+   }else if(type==='hubVideoFile'){
+    feedback('Preparing video (up to 12 MB)…');const ready=await prepareVideo(file);
+    clearVideo();pendingVideoData=ready.videoData;pendingVideoUrl=ready.videoUrl;
+    showVideoPreview();feedback('Video ready. You can add a caption before posting.')
+   }else if(type==='hubAudioFile'){
+    feedback('Preparing audio file…');const ready=await prepareAudioFile(file);
+    clearVoice();pendingAudioData=ready.audioData;pendingAudioUrl=ready.audioUrl;
+    showVoicePreview();feedback('Voice note ready. Listen before posting.')
+   }
+  }catch(err){
+   if(type==='hubPhotoFile')clearPicture();
+   else if(type==='hubVideoFile')clearVideo();
+   else if(type==='hubAudioFile')clearVoice();
+   feedback(String(err.message||err))
+  }
  };
  host.onsubmit=async e=>{
   if(!shown())return;const form=e.target.closest('form');if(!form)return;
@@ -344,10 +442,11 @@ function wireEvents(){
    const d=new FormData(form);
    if(form.id==='hubComposer'){
     const message=String(d.get('message')||'').trim(),topic=replyId?posts.find(x=>x.id===replyId)?.topic||'general':d.get('topic')||'general';
-    if(!editId&&!pendingImageData&&!pendingAudioData&&message.length<8)throw Error('Write at least eight characters or attach a picture or voice note.');
-    if(editId){if(pendingImageData||pendingAudioData)throw Error('Media attachments can be added when creating a message.');await action(editId+'/edit',{message})}
-    else await action('posts',{topic,message,parentId:replyId,imageData:pendingImageData,audioData:pendingAudioData});
-    clearPicture();clearVoice();form.reset();q('hubCharCount').textContent='0 / 700';q('hubPostSubmit').textContent='SEND MESSAGE';replyId=null;editId=null;updateReply();feedback('Message published successfully.')
+    if(voiceRecorder)throw Error('Finish your microphone recording before publishing.');
+    if(!editId&&!pendingImageData&&!pendingAudioData&&!pendingVideoData&&!message.length)throw Error('Write a message, or attach a picture, video, or voice note.');
+    if(editId){if(pendingImageData||pendingAudioData||pendingVideoData)throw Error('Media attachments can be added when creating a message.');await action(editId+'/edit',{message})}
+    else await action('posts',{topic,message,parentId:replyId,imageData:pendingImageData,audioData:pendingAudioData,videoData:pendingVideoData});
+    clearPicture();clearVideo();clearVoice();form.reset();q('hubCharCount').textContent='0 / 700';q('hubPostSubmit').textContent='SEND MESSAGE';replyId=null;editId=null;updateReply();feedback('Message published successfully.')
    }else if(form.id==='hubAnnouncement'){
     await action('admin/announcement',{message:d.get('message'),topic:d.get('topic')});form.reset();feedback('Official announcement published.')
    }else{

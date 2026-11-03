@@ -96,11 +96,11 @@ function wireForm(){
   if(calls.some(c=>c.id===selected.key)){status='This race is already called and locked.';q('ewEditorStatus').textContent=status;populateCandidates();return}
   const data=new FormData(form);
   const payload={office:selected.office,state:selected.state,district:selected.district||null,special:selected.special===true,
-    candidate:winner.name,party:winner.party,sourceName:data.get('sourceName'),sourceUrl:data.get('sourceUrl'),note:data.get('note'),confirm:data.get('confirm')==='on'};
+    candidate:winner.name,party:winner.party,sourceName:String(data.get('sourceName')||'').trim(),sourceUrl:String(data.get('sourceUrl')||'').trim(),note:data.get('note'),confirm:data.get('confirm')==='on'};
   busy=true;q('ewPublishCall').disabled=true;
   try{
    await api('/api/admin/calls','POST',payload);
-   status='PUBLISHED: '+title(selected)+' called for '+winner.name+'. This race is now locked.';
+   status='PUBLISHED: '+title(selected)+' called for '+winner.name+(payload.sourceName||payload.sourceUrl?'. Source recorded.':'. No source required — published as an Evening Wire owner call.')+' This race is now locked.';
    await load();view();window.dispatchEvent(new Event('ew-calls-updated'));
   }catch(err){status=err.message;q('ewEditorStatus').textContent=status;populateCandidates()}
   finally{busy=false}
@@ -155,10 +155,12 @@ function view(){
   '<label>2. STATE<select name="state"></select></label>'+
   '<label>3. CHOOSE RACE<select name="raceKey" required></select></label></div>'+
   '<div id="ewCandidateChoices" aria-live="polite"></div>'+
-  '<div class="ew-form-grid"><label>ORIGINAL SOURCE / NETWORK (OPTIONAL)<input name="sourceName" maxlength="100" placeholder="Name the reporting outlet, if available"></label>'+
-  '<label>LINK TO SOURCE (OPTIONAL)<input name="sourceUrl" type="url" pattern="https://.*" placeholder="https://example.com/race-call"></label></div>'+
+  '<div class="ew-source-optional"><strong>✅ SOURCE IS NOT REQUIRED</strong><p>Choose the race winner and publish your Evening Wire owner call. You can leave the source completely blank.</p>'+
+  '<details><summary>+ ADD A SOURCE (OPTIONAL)</summary><div class="ew-form-grid">'+
+  '<label>SOURCE / NETWORK (OPTIONAL)<input name="sourceName" maxlength="100" placeholder="Leave blank if you have no source"></label>'+
+  '<label>SOURCE LINK (OPTIONAL)<input name="sourceUrl" type="url" placeholder="https://example.com/race-call"></label></div></details></div>'+
   '<label>EDITORIAL NOTE (OPTIONAL)<textarea name="note" maxlength="400" rows="2"></textarea></label>'+
-  '<label class="ew-check-inline"><input name="confirm" type="checkbox" required> I reviewed the election outcome and confirm this is my editorial race call. A source is optional.</label>'+
+  '<label class="ew-check-inline"><input name="confirm" type="checkbox" required> I confirm the selected winner is my Evening Wire editorial race call. I understand a source is NOT required.</label>'+
   '<div class="ew-editor-actions"><button type="submit" class="cmd-primary" id="ewPublishCall">PUBLISH WINNER · LOCK RACE</button>'+
   '<button type="button" id="ewExportCalls">⬇ BACKUP CALLS</button>'+
   '<label class="ew-import-label">RESTORE BACKUP <input id="ewRestoreCalls" type="file" accept=".json,application/json"></label>'+

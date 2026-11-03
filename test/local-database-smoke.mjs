@@ -103,17 +103,20 @@ try{
  assert.equal(readReactions.data.posts.some(p=>p.id===reaction.data.id),true);
  const imgBytes=Buffer.concat([Buffer.from([0xff,0xd8,0xff,0xe0]),Buffer.alloc(36)]);
  const audBytes=Buffer.concat([Buffer.from([0x1a,0x45,0xdf,0xa3]),Buffer.alloc(40)]);
+ const vidBytes=Buffer.concat([Buffer.from([0,0,0,32,102,116,121,112]),Buffer.alloc(44)]);
  const media=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
   topic:'general',message:'',imageData:'data:image/jpeg;base64,'+imgBytes.toString('base64'),
-  audioData:'data:audio/webm;codecs=opus;base64,'+audBytes.toString('base64')
+  audioData:'data:audio/webm;codecs=opus;base64,'+audBytes.toString('base64'),videoData:'data:video/mp4;base64,'+vidBytes.toString('base64')
  }});
  assert.equal(media.code,201,'Member can post a photo and voice note without text: '+JSON.stringify(media.data));
  assert.match(media.data.imageId,/^[0-9a-f-]{36}$/);
  assert.match(media.data.audioId,/^[0-9a-f-]{36}$/);
+ assert.match(media.data.videoId,/^[0-9a-f-]{36}$/);
  const mediaFeed=await call('/api/community/posts');
  const visibleMedia=mediaFeed.data.posts.find(p=>p.id===media.data.id);
  assert.equal(visibleMedia?.image_id,media.data.imageId,'Image attached to permanent post');
  assert.equal(visibleMedia?.audio_id,media.data.audioId,'Voice note attached to permanent post');
+ assert.equal(visibleMedia?.video_id,media.data.videoId,'Video attached to permanent post');
  const photoResponse=await fetch(base+'/api/community/images/'+media.data.imageId);
  assert.equal(photoResponse.status,200,'Public photo served from Postgres');
  assert.equal(photoResponse.headers.get('content-type'),'image/jpeg');
@@ -122,6 +125,39 @@ try{
  assert.equal(audioResponse.status,200,'Public voice note served from Postgres');
  assert.equal(audioResponse.headers.get('content-type'),'audio/webm');
  assert.deepEqual(Buffer.from(await audioResponse.arrayBuffer()),audBytes);
+
+ const clip=await fetch(base+'/api/community/videos/'+media.data.videoId);
+ assert.equal(clip.status,200,'MP4 video remains accessible');
+ assert.equal(clip.headers.get('content-type'),'video/mp4');
+ assert.deepEqual(Buffer.from(await clip.arrayBuffer()),vidBytes);
+ const partial=await fetch(base+'/api/community/videos/'+media.data.videoId,{headers:{Range:'bytes=0-7'}});
+ assert.equal(partial.status,206,'Media supports ranged video playback');
+ assert.equal(partial.headers.get('content-range'),'bytes 0-7/'+vidBytes.length);
+ assert.deepEqual(Buffer.from(await partial.arrayBuffer()),vidBytes.subarray(0,8));
+ const audioPartial=await fetch(base+'/api/community/audio/'+media.data.audioId,{headers:{Range:'bytes=0-3'}});
+ assert.equal(audioPartial.status,206,'Audio can seek with byte-range requests');
+
+ const mp3Bytes=Buffer.concat([Buffer.from('ID3'),Buffer.alloc(40)]);
+ const mp3=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
+  topic:'general',message:'',audioData:'data:audio/mpeg;base64,'+mp3Bytes.toString('base64')
+ }});
+ assert.equal(mp3.code,201,'MP3 upload is accepted as a voice-note fallback');
+ const reply1=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
+  topic:'general',message:'First reply',parentId:reaction.data.id
+ }});
+ assert.equal(reply1.code,201,'First reply works');
+ const reply2=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
+  topic:'general',message:'Nested reply',parentId:reply1.data.id
+ }});
+ assert.equal(reply2.code,201,'Reply to a reply works');
+ const reply3=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
+  topic:'general',message:'Third-level bubble',parentId:reply2.data.id
+ }});
+ assert.equal(reply3.code,201,'Deeply nested replies work');
+ const nested=await call('/api/community/posts');
+ assert.equal(nested.data.posts.find(p=>p.id===reply3.data.id)?.parent_id,reply2.data.id);
+ const nestedReact=await call('/api/community/'+reply3.data.id+'/react',{method:'POST',cookie:memberCookie,body:{emoji:'love'}});
+ assert.equal(nestedReact.code,200,'Each small reply bubble accepts reactions');
  const invalidAudio=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
   topic:'general',message:'Invalid voice note should be rejected',audioData:'data:audio/webm;base64,'+imgBytes.toString('base64')
  }});
@@ -164,7 +200,7 @@ try{
  const hiddenAudio=await fetch(base+'/api/community/audio/'+media.data.audioId);
  assert.equal(hiddenAudio.status,404,'Hidden voice notes no longer served');
  const optionalSource=await call('/api/admin/calls',{method:'POST',cookie:ownerCookie,body:{
-  office:'senate',state:'TX',candidate:'Example Election Test Candidate',party:'R',sourceName:'',sourceUrl:'',confirm:true
+  office:'senate',state:'TX',candidate:'Example Election Test Candidate',party:'R',confirm:true
  }});
  assert.equal(optionalSource.code,200,'Owner editorial call can omit source: '+JSON.stringify(optionalSource.data));
  assert.equal(optionalSource.data.call.sourceUrl,'');
