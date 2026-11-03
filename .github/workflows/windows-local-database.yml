@@ -1,0 +1,32 @@
+name: Windows local database and owner controls
+on:
+  push:
+    branches: [windows-local-database]
+  pull_request:
+    branches: [windows-local-database]
+permissions:
+  contents: read
+jobs:
+  embedded-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install database dependencies
+        run: npm install --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Validate all JavaScript
+        run: |
+          for source in *.mjs public/*.js test/*.mjs; do
+            node --check "$source"
+          done
+      - name: Verify existing TLS safeguards
+        run: node --test test/recovery.test.mjs
+      - name: Test embedded database, owner rights, member registration and persistence
+        run: node test/local-database-smoke.mjs
+      - name: Check production dependency security
+        run: npm audit --omit=dev --audit-level=high
