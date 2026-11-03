@@ -12,10 +12,31 @@ async function input(req){
  let str='';for await(const p of req){str+=p;if(str.length>5000)throw Error('Request too long')}
  try{return JSON.parse(str||'{}')}catch{throw Error('Invalid JSON')}
 }
+
+// Strict, bounded inline photo decoder: accepts only browser-displayable raster data.
+// SVG/HTML are never accepted. The client resizes pictures before transmission.
+export function decodeCommunityImage(value){
+ if(value===undefined||value===null||value==='')return null;
+ if(typeof value!=='string'||value.length>2100000)throw Error('Image is too large (1.5 MB maximum after resizing).');
+ const m=value.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/);
+ if(!m)throw Error('Choose a JPEG, PNG, or WebP picture, not an unsupported file.');
+ const bytes=Buffer.from(m[2],'base64');
+ if(bytes.length<20||bytes.length>1500000||m[2].length!==Math.ceil(bytes.length/3)*4)throw Error('Picture is too large or invalid.');
+ const typ=m[1];
+ const matches=typ==='image/jpeg'?bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff:
+  typ==='image/png'?bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])):
+  bytes.subarray(0,4).toString('ascii')==='RIFF'&&bytes.subarray(8,12).toString('ascii')==='WEBP';
+ if(!matches)throw Error('The picture file does not match its image type.');
+ return {bytes,mediaType:typ}
+}
+
 export function announceHubUpdate(type='messages'){
  for(const response of [...listeners]){try{response.write('event: change\ndata: '+JSON.stringify({type})+'\n\n')}catch{listeners.delete(response)}}
 }
 export async function setupCommunityV2(pool){
+ await pool.query("CREATE TABLE IF NOT EXISTS community_images(id uuid PRIMARY KEY,member_id uuid NOT NULL REFERENCES ew_members(id) ON DELETE CASCADE,media_type varchar(24) NOT NULL,image_data bytea NOT NULL,created_at timestamptz NOT NULL DEFAULT now())");
+ await pool.query("CREATE INDEX IF NOT EXISTS ew_community_images_member_recent ON community_images(member_id,created_at DESC)");
+ await pool.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS image_id uuid REFERENCES community_images(id) ON DELETE SET NULL");
  await pool.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS pinned boolean NOT NULL DEFAULT false");
  await pool.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS official boolean NOT NULL DEFAULT false");
  await pool.query("CREATE TABLE IF NOT EXISTS community_reactions(post_id uuid NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,member_id uuid NOT NULL REFERENCES ew_members(id) ON DELETE CASCADE,emoji varchar(12) NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(post_id,member_id,emoji))");
@@ -50,6 +71,14 @@ export async function communityV2Route(req,res,route,pool,member){
   const ping=setInterval(()=>{try{res.write(': heartbeat\n\n')}catch{cleanup()}},19000);
   function cleanup(){listeners.delete(res);clearInterval(ping)}
   req.on('close',cleanup);return true
+ }
+ if(/^images\/[0-9a-f-]{36}$/.test(route)&&req.method==='GET'){
+  const id=route.slice('images/'.length);
+  const found=await pool.query("SELECT i.media_type,i.image_data FROM community_images i JOIN community_posts p ON p.image_id=i.id WHERE i.id=$1 AND p.status='visible' LIMIT 1",[id]);
+  if(!found.rowCount){json(res,404,{error:'Photo unavailable'});return true}
+  const image=found.rows[0],data=image.image_data;
+  res.writeHead(200,{'Content-Type':image.media_type,'Content-Length':Buffer.byteLength(data),'Cache-Control':'private, max-age=120','X-Content-Type-Options':'nosniff','Cross-Origin-Resource-Policy':'same-origin','Content-Security-Policy':"default-src 'none'; sandbox"});
+  res.end(data);return true
  }
  if(route==='presence'&&req.method==='GET'){
   const r=await pool.query("SELECT count(*)::integer AS online FROM community_presence WHERE last_seen_at > now()-interval '90 seconds'");
