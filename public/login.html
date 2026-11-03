@@ -16,18 +16,21 @@ input{padding:14px;width:100%;font-size:15px;border:1px solid #3b6883;border-rad
 <p class="notice"><a href="/" style="color:#77e9ff">← Return to the newsroom without signing in</a> · <a href="/about-security" style="color:#77e9ff">About, security & privacy</a></p><div class="tabs"><button type="button" id="signInTab" class="sel">SIGN IN</button><button type="button" id="joinTab">CREATE ACCOUNT</button><button type="button" id="legacyTab">HAD AN ACCOUNT BEFORE?</button></div>
 <form id="login"><label>EMAIL<input type="email" name="email" required autocomplete="email"></label>
 <label>FOUR-DIGIT SIGN-IN PIN<input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" required autocomplete="off" placeholder="••••"></label>
+<label class="check"><input type="checkbox" name="rememberDevice" checked><span>Remember this device for 90 days — no PIN on return visits.</span></label>
 <button class="btn" type="submit">ENTER THE EVENING WIRE</button></form>
 <form id="signup" hidden><label>DISPLAY NAME — USED FOR ALL MESSAGES<input name="displayName" autocomplete="nickname" minlength="2" maxlength="40" required></label>
 <label>EMAIL<input type="email" name="email" autocomplete="email" required></label>
 <label>RECOVERY PASSWORD — 12+ CHARACTERS<input type="password" name="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
 <label>FOUR-DIGIT SIGN-IN PIN<input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" required autocomplete="off" placeholder="••••"></label>
 <label class="check"><input type="checkbox" name="agreed" required><span>I understand the site owner can view my display name, email, signup date and last login, and that my activity contributes to aggregate site traffic statistics.</span></label>
+<label class="check"><input type="checkbox" name="rememberDevice" checked><span>Keep me signed in on this device.</span></label>
 <button class="btn" type="submit">CREATE ACCOUNT & ENTER</button></form>
 <form id="activate" hidden>
 <p class="notice"><strong>Already registered before PINs were introduced?</strong> Your old account is still there. Enter the same email and original password you registered with, and choose a new four-digit PIN. You do not need to create a second account or wait for an earlier incorrect-PIN lockout to expire.</p>
 <label>YOUR EXISTING ACCOUNT EMAIL<input type="email" name="email" autocomplete="email" required></label>
 <label>ORIGINAL ACCOUNT PASSWORD<input type="password" name="password" autocomplete="current-password" minlength="12" maxlength="128" required></label>
 <label>CREATE YOUR FIRST FOUR-DIGIT PIN<input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="off" required placeholder="Choose four numbers"></label>
+<label class="check"><input type="checkbox" name="rememberDevice" checked><span>Keep me signed in on this device.</span></label>
 <button class="btn" type="submit">SET UP PIN & ENTER MY EXISTING ACCOUNT</button>
 </form>
 <p class="notice">For security, five incorrect PIN attempts trigger a 30-minute account lockout. The PIN is not emailed or texted; it is a code you choose. Email ownership is not yet verified.</p>
@@ -45,7 +48,7 @@ $('joinTab').onclick=()=>change('signup');
 $('signInTab').onclick=()=>change('login');
 $('legacyTab').onclick=()=>change('activate');
 async function submit(form,route){const button=form.querySelector('button[type=submit]');button.disabled=true;$('status').textContent='Checking account…';
-try{const d=new FormData(form),data=Object.fromEntries(d.entries());data.agreed=d.get('agreed')==='on';
+try{const d=new FormData(form),data=Object.fromEntries(d.entries());data.agreed=d.get('agreed')==='on';data.rememberDevice=d.get('rememberDevice')==='on';
 const r=await fetch('/api/members/'+route,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(data)});
 const result=await r.json();if(!r.ok)throw Error(result.error||'Unable to sign in');
 location.replace('/#hq')}catch(e){$('status').textContent=e.message}finally{button.disabled=false}}
@@ -53,4 +56,5 @@ login.onsubmit=e=>{e.preventDefault();submit(login,'login')};
 signup.onsubmit=e=>{e.preventDefault();submit(signup,'signup')};
 activate.onsubmit=e=>{e.preventDefault();submit(activate,'activate-pin')};
 if(location.hash==='#existing-account')change('activate');
+fetch('/api/members/session',{credentials:'same-origin',cache:'no-store'}).then(r=>r.json()).then(x=>{if(x.user)location.replace('/#members')}).catch(()=>{});
 </script></body></html>
