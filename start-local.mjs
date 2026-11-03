@@ -19,6 +19,15 @@ process.env.NODE_ENV='development';
 process.env.HOST='127.0.0.1';
 process.env.PORT='3000';
 process.env.EW_READ_ONLY_PREVIEW='0';
+try{
+ // Optional AP license key stored on the owner's PC, never in GitHub or client JS.
+ if(!process.env.AP_ELECTIONS_API_KEY){
+  const key=(await readFile(join(folder,'private-data','ap-api-key.txt'),'utf8')).trim();
+  if(key.length>=10&&key.length<=512&&!/\s/.test(key))process.env.AP_ELECTIONS_API_KEY=key;
+  else console.warn('AP_LICENSE_KEY_FILE_INVALID: expected a single non-empty API key');
+ }
+}catch(e){if(e.code!=='ENOENT')console.warn('AP_LICENSE_KEY_FILE_UNREADABLE')}
+
 console.log('THE EVENING WIRE — LOCAL DATABASE ENABLED');
 console.log('Owner-only access: http://127.0.0.1:3000');
 console.log('Database files: private-data/pglite');
