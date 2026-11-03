@@ -47,11 +47,11 @@ function rate(req,tag,max,windowMs){const key=client(req)+':'+tag,now=Date.now()
 function sessionCookie(token,maxAge){return cookieName+'='+token+'; Path=/; HttpOnly; '+secureCookieFlag+'SameSite=Lax; Max-Age='+maxAge}
 function cookie(req){return (String(req.headers.cookie||'').match(/(?:^|;\s*)ew_member_session=([a-f0-9]{64})(?:;|$)/)||[])[1]||''}
 const tokenHash=token=>createHash('sha256').update(token).digest('hex');
-async function input(req){let data='';for await(const part of req){data+=part;if(data.length>5000)throw Error('Request too large')}try{return JSON.parse(data||'{}')}catch{throw Error('Invalid JSON')}}
+async function input(req,max=5000){let data='';for await(const part of req){data+=part;if(data.length>max)throw Error('Request too large')}try{return JSON.parse(data||'{}')}catch{throw Error('Invalid JSON')}}
 const name=x=>String(x||'').normalize('NFKC').replace(/[\x00-\x1f\x7f]/g,' ').trim().slice(0,40);
 const email=x=>String(x||'').normalize('NFKC').trim().toLowerCase();
 function checkEmail(x){return x.length>=5&&x.length<=254&&/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(x)}
-function publicUser(r){return r?{id:r.id,displayName:r.display_name,email:r.email,joinedAt:r.joined_at,lastLoginAt:r.last_login_at}:null}
+function publicUser(r){return r?{id:r.id,displayName:r.display_name,email:r.email,joinedAt:r.joined_at,lastLoginAt:r.last_login_at,avatarUrl:r.avatar_updated_at?'/api/members/avatar/'+r.id+'?v='+Math.floor(new Date(r.avatar_updated_at).getTime()/1000):null}:null}
 async function hashPassword(secret){const salt=randomBytes(24).toString('hex');const out=await scrypt(secret,salt,64,{maxmem:32*1024*1024});return 'scrypt:'+salt+':'+Buffer.from(out).toString('hex')}
 async function verifyPassword(secret,stored){
  const parts=String(stored||'').split(':');
@@ -67,6 +67,9 @@ async function setup(){
   await db.query("CREATE TABLE IF NOT EXISTS ew_members(id uuid PRIMARY KEY,display_name varchar(40) NOT NULL,email varchar(254) UNIQUE NOT NULL,password_hash varchar(255) NOT NULL,joined_at timestamptz NOT NULL DEFAULT now(),last_login_at timestamptz)");
   await db.query("CREATE TABLE IF NOT EXISTS ew_member_sessions(token_hash varchar(64) PRIMARY KEY,member_id uuid NOT NULL REFERENCES ew_members(id) ON DELETE CASCADE,expires_at timestamptz NOT NULL)");
   await db.query("ALTER TABLE ew_members ADD COLUMN IF NOT EXISTS pin_hash varchar(255)");
+  // Optional member photos are independent, backed by the existing permanent DB.
+  // No existing member row, session or post is replaced.
+  await db.query("CREATE TABLE IF NOT EXISTS ew_member_avatars(member_id uuid PRIMARY KEY REFERENCES ew_members(id) ON DELETE CASCADE,media_type varchar(20) NOT NULL,image_data bytea NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())");
   await db.query("CREATE TABLE IF NOT EXISTS ew_member_login_attempts(email varchar(254) PRIMARY KEY,attempts integer NOT NULL DEFAULT 0,locked_until timestamptz,updated_at timestamptz DEFAULT now())");
   await db.query("ALTER TABLE ew_member_sessions ADD COLUMN IF NOT EXISTS remembered boolean NOT NULL DEFAULT false");
   await db.query("ALTER TABLE ew_member_sessions ADD COLUMN IF NOT EXISTS last_seen_at timestamptz NOT NULL DEFAULT now()");
@@ -81,7 +84,7 @@ setup();
 setInterval(()=>{if(!ready)setup();const now=Date.now();for(const [k,v] of rateLimit)if(now-v.s>3600000)rateLimit.delete(k)},120000).unref();
 async function getMember(req,res=null){
  const t=cookie(req);if(!t||!ready)return null;
- const result=await db.query("SELECT m.id,m.display_name,m.email,m.joined_at,m.last_login_at,s.remembered,s.last_seen_at FROM ew_member_sessions s JOIN ew_members m ON s.member_id=m.id WHERE s.token_hash=$1 AND s.expires_at>now() LIMIT 1",[tokenHash(t)]);
+ const result=await db.query("SELECT m.id,m.display_name,m.email,m.joined_at,m.last_login_at,av.updated_at AS avatar_updated_at,s.remembered,s.last_seen_at FROM ew_member_sessions s JOIN ew_members m ON s.member_id=m.id LEFT JOIN ew_member_avatars av ON av.member_id=m.id WHERE s.token_hash=$1 AND s.expires_at>now() LIMIT 1",[tokenHash(t)]);
  const row=result.rows[0];if(!row)return null;
  // Extend the server-side expiry and renew the secure browser cookie during a session check.
  if(res&&row.remembered&&Date.now()-new Date(row.last_seen_at).getTime()>12*3600000){
@@ -109,6 +112,17 @@ export async function memberRoute(req,res,path){
  }
  if(!path.startsWith('/api/members/'))return false;
  const route=path.slice('/api/members/'.length);
+ const avatarRoute=route.match(/^avatar\/([0-9a-f-]{36})$/);
+ if(avatarRoute&&req.method==='GET'){
+  if(!ready){send(res,503,{error:'Profile pictures temporarily unavailable'});return true}
+  const result=await db.query("SELECT media_type,image_data FROM ew_member_avatars WHERE member_id=$1",[avatarRoute[1]]);
+  if(!result.rowCount){send(res,404,{error:'No profile picture'});return true}
+  const a=result.rows[0],image=Buffer.from(a.image_data);
+  res.writeHead(200,{'Content-Type':a.media_type,'Content-Length':image.length,
+   'Cache-Control':'public, max-age=120','X-Content-Type-Options':'nosniff','Cross-Origin-Resource-Policy':'same-origin',
+   'Content-Security-Policy':"default-src 'none'; sandbox"});
+  res.end(image);return true
+ }
  if(route==='session'&&req.method==='GET'){
   if(!ready){send(res,200,{ready:false,user:null,error:'Accounts are unavailable until PostgreSQL is connected'});return true}
   send(res,200,{ready:true,user:await getMember(req,res)});return true
@@ -124,6 +138,36 @@ export async function memberRoute(req,res,path){
   await db.query('DELETE FROM ew_member_sessions WHERE member_id=$1',[account.id]);
   send(res,200,{ok:true,revokedAll:true},{'Set-Cookie':sessionCookie('',0)});return true
  }
+ if(route==='avatar'&&req.method==='POST'){
+  const account=await authenticatedMember(req);
+  if(!account){send(res,401,{error:'Sign in to update your profile picture'});return true}
+  if(!ready){send(res,503,{error:'Member database unavailable'});return true}
+  if(!rate(req,'avatar-'+account.id,10,3600000)){send(res,429,{error:'Too many picture updates. Try later.'});return true}
+  let payload;try{payload=await input(req,900000)}catch(err){send(res,400,{error:err.message});return true}
+  const data=payload?.imageData;
+  if(typeof data!=='string'||data.length>850000){send(res,400,{error:'Profile picture must be under 500 KB after resizing.'});return true}
+  const match=data.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/);
+  if(!match){send(res,400,{error:'Choose a JPG, PNG, or WebP picture.'});return true}
+  const buffer=Buffer.from(match[2],'base64');
+  if(buffer.length<100||buffer.length>500000||match[2].length!==Math.ceil(buffer.length/3)*4){
+   send(res,400,{error:'Picture must be valid and smaller than 500 KB.'});return true
+  }
+  const typ=match[1];
+  const matches=typ==='image/jpeg'?buffer[0]===255&&buffer[1]===216&&buffer[2]===255:
+    typ==='image/png'?buffer.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])):
+    buffer.subarray(0,4).toString('ascii')==='RIFF'&&buffer.subarray(8,12).toString('ascii')==='WEBP';
+  if(!matches){send(res,400,{error:'Picture contents do not match its format.'});return true}
+  const saved=await db.query("INSERT INTO ew_member_avatars(member_id,media_type,image_data) VALUES($1,$2,$3) ON CONFLICT(member_id) DO UPDATE SET media_type=EXCLUDED.media_type,image_data=EXCLUDED.image_data,updated_at=now() RETURNING updated_at",[account.id,typ,buffer]);
+  const version=Math.floor(new Date(saved.rows[0].updated_at).getTime()/1000);
+  send(res,200,{ok:true,avatarUrl:'/api/members/avatar/'+account.id+'?v='+version,message:'Profile picture saved.'});return true
+ }
+ if(route==='avatar/remove'&&req.method==='POST'){
+  const account=await authenticatedMember(req);
+  if(!account){send(res,401,{error:'Sign in to remove your profile picture'});return true}
+  if(!ready){send(res,503,{error:'Member database unavailable'});return true}
+  await db.query('DELETE FROM ew_member_avatars WHERE member_id=$1',[account.id]);
+  send(res,200,{ok:true,avatarUrl:null,message:'Profile picture removed.'});return true
+ }
  if(route==='profile'&&req.method==='POST'){
   // Display names are identity data: derive the account exclusively from the secure
   // member session, never a client-supplied user ID or email.
@@ -136,7 +180,8 @@ export async function memberRoute(req,res,path){
   if(displayName.length<2||displayName.length>40||/[<>]/.test(displayName)){
    send(res,400,{error:'Choose a display name between 2 and 40 characters, without < or >.'});return true
   }
-  const result=await db.query('UPDATE ew_members SET display_name=$1 WHERE id=$2 RETURNING id,display_name,email,joined_at,last_login_at',[displayName,account.id]);
+  await db.query('UPDATE ew_members SET display_name=$1 WHERE id=$2',[displayName,account.id]);
+  const result=await db.query('SELECT m.id,m.display_name,m.email,m.joined_at,m.last_login_at,av.updated_at AS avatar_updated_at FROM ew_members m LEFT JOIN ew_member_avatars av ON av.member_id=m.id WHERE m.id=$1',[account.id]);
   if(!result.rowCount){send(res,404,{error:'Member account not found'});return true}
   // The Reaction Hub JOINs posts to member IDs, so existing linked posts/replies
   // immediately display the updated name. Archived anonymous posts stay anonymous.
@@ -200,7 +245,7 @@ export async function memberRoute(req,res,path){
   if(attempts.rows[0]?.locked_until&&new Date(attempts.rows[0].locked_until)>new Date()){
    send(res,429,{error:'PIN locked due to incorrect attempts. Try again in 30 minutes.'});return true
   }
-  const row=await db.query('SELECT id,display_name,email,pin_hash,joined_at,last_login_at FROM ew_members WHERE email=$1 LIMIT 1',[mail]);
+  const row=await db.query('SELECT m.id,m.display_name,m.email,m.pin_hash,m.joined_at,m.last_login_at,av.updated_at AS avatar_updated_at FROM ew_members m LEFT JOIN ew_member_avatars av ON av.member_id=m.id WHERE m.email=$1 LIMIT 1',[mail]);
   const correct=!!row.rows.length&&await verifyPassword(pin,row.rows[0].pin_hash);
   if(!correct){
    await db.query("INSERT INTO ew_member_login_attempts(email,attempts,locked_until,updated_at) VALUES($1,1,NULL,now()) ON CONFLICT(email) DO UPDATE SET attempts=CASE WHEN ew_member_login_attempts.updated_at<now()-interval '30 minutes' THEN 1 ELSE ew_member_login_attempts.attempts+1 END,locked_until=CASE WHEN ew_member_login_attempts.updated_at<now()-interval '30 minutes' THEN NULL WHEN ew_member_login_attempts.attempts>=4 THEN now()+interval '30 minutes' ELSE NULL END,updated_at=now()",[mail]);
