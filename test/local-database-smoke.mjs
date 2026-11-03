@@ -9,9 +9,23 @@ const root=dirname(dirname(fileURLToPath(import.meta.url)));
 const dataDir=join(root,'private-data');
 if(process.env.CI!=='true')throw Error('Refusing test outside disposable CI');
 try{await readFile(join(dataDir,'owner-admin.sha256'));throw Error('Refusing to overwrite existing owner database!')}catch(e){if(e.code!=='ENOENT')throw e}
-const password='test-owner-password-no-secrets-here';
-await mkdir(dataDir,{recursive:true});
-await writeFile(join(dataDir,'owner-admin.sha256'),createHash('sha256').update(password).digest('hex')+'\n');
+async function runOwnerSetup(){
+ return await new Promise((resolve,reject)=>{
+  const command=spawn(process.execPath,['set-owner-password.mjs'],{cwd:root,stdio:['ignore','pipe','pipe']});
+  let output='';
+  command.stdout.on('data',part=>{output+=String(part)});
+  command.stderr.on('data',part=>{output+=String(part)});
+  command.on('error',reject);
+  command.on('exit',code=>code===0?resolve(output):reject(new Error('Owner password generation failed: '+output)));
+ });
+}
+const output=await runOwnerSetup();
+const password=output.match(/\\bEW-[A-Za-z0-9_-]{24}\\b/)?.[0];
+assert.ok(password,'A strong owner password should be generated without typing');
+assert.equal((await readFile(join(dataDir,'owner-admin.sha256'),'utf8')).trim(),createHash('sha256').update(password).digest('hex'));
+const again=await runOwnerSetup();
+assert.match(again,/already configured/,'Subsequent launches must not reset the owner password');
+console.log('Owner setup creates a secure credential without interactive input PASS');
 const base='http://127.0.0.1:3000';
 let child=null,logs='';
 const sleep=ms=>new Promise(ok=>setTimeout(ok,ms));
