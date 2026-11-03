@@ -103,9 +103,21 @@ export async function communityV2Route(req,res,route,pool,member){
   const id=route.slice('audio/'.length);
   const found=await pool.query("SELECT a.media_type,a.audio_data FROM community_audio a JOIN community_posts p ON p.audio_id=a.id WHERE a.id=$1 AND p.status='visible' LIMIT 1",[id]);
   if(!found.rowCount){json(res,404,{error:'Voice note unavailable'});return true}
-  const audio=found.rows[0],data=audio.audio_data;
-  res.writeHead(200,{'Content-Type':audio.media_type,'Content-Length':Buffer.byteLength(data),'Accept-Ranges':'none','Cache-Control':'private, max-age=120','X-Content-Type-Options':'nosniff','Cross-Origin-Resource-Policy':'same-origin','Content-Security-Policy':"default-src 'none'; sandbox"});
-  res.end(data);return true
+  const audio=found.rows[0],data=Buffer.from(audio.audio_data),total=data.length;
+  const headers={'Content-Type':audio.media_type,'Accept-Ranges':'bytes','Cache-Control':'private, max-age=120','X-Content-Type-Options':'nosniff','Cross-Origin-Resource-Policy':'same-origin','Content-Security-Policy':"default-src 'none'; sandbox"};
+  const range=String(req.headers.range||'');
+  if(range){
+   const m=range.match(/^bytes=(\d*)-(\d*)$/);
+   if(!m||(!m[1]&&!m[2])){res.writeHead(416,{...headers,'Content-Range':'bytes */'+total});res.end();return true}
+   let start=m[1]?Number(m[1]):Math.max(0,total-Number(m[2]));
+   let end=m[2]&&m[1]?Math.min(total-1,Number(m[2])):total-1;
+   if(!Number.isSafeInteger(start)||!Number.isSafeInteger(end)||start<0||end<start||start>=total){
+    res.writeHead(416,{...headers,'Content-Range':'bytes */'+total});res.end();return true
+   }
+   res.writeHead(206,{...headers,'Content-Range':'bytes '+start+'-'+end+'/'+total,'Content-Length':end-start+1});
+   res.end(data.subarray(start,end+1));return true
+  }
+  res.writeHead(200,{...headers,'Content-Length':total});res.end(data);return true
  }
  if(route==='presence'&&req.method==='GET'){
   const r=await pool.query("SELECT count(*)::integer AS online FROM community_presence WHERE last_seen_at > now()-interval '90 seconds'");
