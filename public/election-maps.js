@@ -66,7 +66,7 @@ function displayName(feature,type){
 function validCall(c,mode,st,district){
  if(!c||c.office!==mode||c.state!==st)return false;
  if(mode==='house'&&Number(c.district)!==Number(district))return false;
- return ['R','D','I','OTHER'].includes(c.party)&&typeof c.sourceName==='string'&&c.sourceName.trim()&&typeof c.sourceUrl==='string'&&c.sourceUrl.startsWith('https://')&&Number.isFinite(Date.parse(c.calledAt));
+ return ['R','D','I','OTHER'].includes(c.party)&&typeof c.candidate==='string'&&!!c.candidate.trim()&&Number.isFinite(Date.parse(c.calledAt));
 }
 function fillFor(f,mode,config){
  const state=stateOf(f),district=districtOf(f);
@@ -82,7 +82,7 @@ function callLabel(f,mode,config){
  const st=stateOf(f),num=districtOf(f);
  const calls=(config.results?.calls||[]).filter(c=>validCall(c,mode,st,num));
  if(!calls.length)return 'Not called · verified result unavailable';
- if(calls.length===1)return 'Projected: '+calls[0].candidate+' · '+calls[0].sourceName;
+ if(calls.length===1)return 'Evening Wire call: '+calls[0].candidate+(calls[0].sourceName?' · '+calls[0].sourceName:' · Owner editorial call');
  return 'Multiple race calls; see individual races';
 }
 const makeButton=(text,title,action)=>{

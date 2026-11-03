@@ -211,21 +211,26 @@ function stopVoice(){
 }
 
 function composer(){
- if(!member)return roleNotice();
- return '<div class="hub2-panel hub2-composer"><div class="hub2-label">NEW POST</div>'+
-  '<div class="hub2-compose-head">'+avatar({name:member.displayName,member_id:member.id})+'<div><b>'+safe(member.displayName)+'</b></div></div>'+
-  '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
-  '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
-  '<label>YOUR POST OR REPLY<textarea name="message" maxlength="700" placeholder="Write a post or paste a picture (Ctrl+V)…"></textarea></label>'+ 
-  '<label class="hub2-photo-field">📷 UPLOAD OR PASTE A PICTURE <small>Copy an image or screenshot, then press Ctrl + V in the post box.</small><input id="hubPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"></label>'+
-  '<div id="hubPhotoPreview" class="hub2-photo-preview" hidden></div>'+ 
-  '<label class="hub2-photo-field pulse-video-field">🎬 ADD A VIDEO CLIP (MP4 / WEBM, MAX 12 MB) <input id="hubVideoFile" type="file" accept="video/mp4,video/webm"></label>'+ 
-  '<div id="hubVideoPreview" class="hub2-video-preview" hidden></div>'+ 
-  '<div class="hub2-voice-controls"><button type="button" class="hub2-btn hub2-mic-start" id="hubVoiceStart" data-hub-record-start="1">🎤 RECORD VOICE NOTE</button><button type="button" class="hub2-btn danger" id="hubVoiceStop" data-hub-record-stop="1" hidden>■ STOP RECORDING</button><span id="hubVoiceElapsed" class="hub2-micro">Tap microphone to record up to 60 seconds</span></div>'+ 
-  '<div id="hubVoicePreview" class="hub2-voice-preview" hidden></div>'+ 
-  '<label class="hub2-audio-field">OR UPLOAD AN AUDIO NOTE <input id="hubAudioFile" type="file" accept="audio/webm,audio/mp4,audio/x-m4a,audio/ogg,audio/mpeg,.mp3,.m4a"></label>'+
-  '<div class="hub2-tools"><span class="hub2-micro" id="hubCharCount">0 / 700</span><button class="hub2-btn" type="submit" id="hubPostSubmit">SEND MESSAGE</button></div></form>'+
-  '<p id="hubFeedback" class="hub2-feedback" role="status" aria-live="polite"></p></div>'
+ if(!member)return '<section class="hub2-panel hub4-guest"><h3>Join THE PULSE</h3><p class="hub2-muted">Sign in to post or react.</p><a class="hub2-btn" href="/login">SIGN IN</a></section>';
+ return '<section class="hub2-panel hub4-composer"><div class="hub4-compose-top">'+avatar({name:member.displayName,member_id:member.id})+'<div><strong>'+safe(member.displayName)+'</strong><small>CREATE POST</small></div></div>'+
+ '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
+ '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
+ '<label><textarea name="message" maxlength="700" placeholder="What’s happening? Paste pictures with Ctrl+V…"></textarea></label>'+
+ '<div class="hub4-media-actions">'+
+ '<button type="button" data-hub-pick="photo">📷 <span>Photo</span></button>'+
+ '<button type="button" data-hub-pick="video">🎬 <span>Video</span></button>'+
+ '<button type="button" data-hub-record-start="1" id="hubVoiceStart">🎤 <span>Voice</span></button>'+
+ '<button type="button" data-hub-record-stop="1" id="hubVoiceStop" hidden>■ <span>STOP</span></button>'+
+ '<button type="button" data-hub-pick="audio">📎 <span>Audio</span></button></div>'+
+ '<span class="hub2-micro" id="hubVoiceElapsed">Record up to 60 seconds</span>'+
+ '<input type="file" id="hubPhotoFile" accept="image/jpeg,image/png,image/webp" hidden>'+
+ '<input type="file" id="hubVideoFile" accept="video/mp4,video/webm" hidden>'+
+ '<input type="file" id="hubAudioFile" accept="audio/webm,audio/mp4,audio/x-m4a,audio/ogg,audio/mpeg,.mp3,.m4a" hidden>'+
+ '<div id="hubPhotoPreview" class="hub2-photo-preview" hidden></div>'+
+ '<div id="hubVideoPreview" class="hub2-video-preview" hidden></div>'+
+ '<div id="hubVoicePreview" class="hub2-voice-preview" hidden></div>'+
+ '<div class="hub4-compose-footer"><span class="hub2-micro" id="hubCharCount">0 / 700</span><button class="hub2-btn" type="submit" id="hubPostSubmit">POST</button></div></form>'+
+ '<p id="hubFeedback" class="hub2-feedback" role="status" aria-live="polite"></p></section>'
 }
 function adminPanel(){
  if(!owner)return '';
@@ -242,24 +247,27 @@ function adminPanel(){
 }
 function renderShell(){
  if(!shown())return;
- host.innerHTML='<div class="hub2">'+
- '<header class="hub2-header"><div class="hub2-kicker">THE EVENING WIRE · 2026 ELECTION NIGHT NEWSROOM</div>'+
+ host.innerHTML='<div class="hub2 hub4-layout" data-drawer="">'+
+ '<header class="hub2-header hub4-header"><div class="hub2-kicker">THE EVENING WIRE · LIVE COMMUNITY</div>'+
  '<h1>THE <span>PULSE</span></h1>'+
- '<p>Post · Reply · React · Share media</p>'+
+ '<p>Post · Reply · React · Share</p>'+
  '</header>'+
- '<div class="hub2-columns"><aside class="hub2-side"><div class="hub2-panel"><div class="hub2-label">ELECTION DEBATE ROOMS</div>'+
+ '<div class="hub2-columns hub4-columns"><aside class="hub2-side hub4-left"><div class="hub4-drawer-head"><b>POST & DISCUSS</b><button type="button" data-hub-close-drawer="1">✕</button></div>'+composer()+'<div class="hub2-panel hub4-rooms"><div class="hub2-label">DISCUSSION ROOMS</div>'+
  '<nav class="hub2-room-list" aria-label="Discussion rooms" id="hubRooms">'+rooms.map(([id,label])=>
  '<button class="hub2-room" data-hub-room="'+id+'" aria-pressed="'+(room===id?'true':'false')+'"><span>'+safe(label)+'</span><small id="hubRoomCount-'+id+'">0</small></button>').join('')+
- '</nav></div>'+adminPanel()+'</aside>'+
- '<main class="hub2-main">'+composer()+'<section id="hubRaceWrap" class="hub2-panel" hidden><div class="hub2-label">⚡ OWNER RACE CALLS</div><div id="hubRaceCards"></div></section>'+
- '<section class="hub2-panel"><div class="hub2-tools"><div><div class="hub2-label">THE LIVE FLOOR · NEWEST FIRST ↓</div><h2 id="hubRoomTitle">ALL DISCUSSIONS</h2></div><button type="button" class="hub2-btn secondary" data-hub-refresh="1">↻ REFRESH</button></div>'+
- '<div class="hub2-tools"><input class="hub2-search" id="hubSearch" type="search" placeholder="Search messages or members..." aria-label="Search messages">'+
+ '</nav></div>'+(owner?'<details class="hub4-owner-details"><summary>OWNER TOOLS</summary>'+adminPanel()+'</details>':'')+'</aside>'+
+ '<main class="hub2-main hub4-center">'+
+ '<section class="hub2-panel hub4-feed-panel"><div class="hub4-feed-heading"><div><div class="hub2-label">LIVE POSTS · NEWEST FIRST</div><h2 id="hubRoomTitle">ALL DISCUSSIONS</h2></div><button type="button" class="hub2-btn secondary" data-hub-refresh="1">⟳</button></div>'+
+ '<div class="hub4-mobile-controls"><button type="button" data-hub-mobile-open="compose">✎ POST</button><button type="button" data-hub-mobile-open="rooms">☰ ROOMS</button><button type="button" data-hub-mobile-open="calls">✓ RACE CALLS</button></div>'+ 
+ '<div class="hub2-tools hub4-searchbar"><input class="hub2-search" id="hubSearch" type="search" placeholder="Search messages or members..." aria-label="Search messages">'+
  '<span class="hub2-micro" id="hubUpdates">Live updates</span></div>'+
  '<div id="hubFeed" class="hub2-feed" aria-live="off" aria-label="Election discussion feed"></div>'+
  '<button type="button" class="hub2-btn hub2-new" id="hubNewMessages" hidden>↑ NEW MESSAGES</button></section></main>'+
- '<aside class="hub2-polls-col"><div class="hub2-panel"><div class="hub2-label">🗳 MEMBER PREDICTIONS</div><h2>LIVE RACE POLLS</h2>'+
+ '<aside class="hub2-polls-col hub4-right"><div class="hub4-drawer-head"><b>ELECTION DESK</b><button type="button" data-hub-close-drawer="1">✕</button></div>'+ 
+ '<section id="hubRaceWrap" class="hub2-panel hub4-race-panel"><div class="hub4-sidebar-title"><span>✓</span><h2>RACES CALLED</h2></div><p class="hub2-micro">Owner calls · Not certified</p><div id="hubRaceCards"></div><a class="hub4-all-calls" href="/#calls">VIEW ALL RACE CALLS</a></section>'+ 
+ '<div class="hub2-panel hub4-polls-panel"><div class="hub2-label">COMMUNITY</div><h2>LIVE POLLS</h2>'+
  '<p class="hub2-muted">Member opinions · Not election results</p>'+
- '<div id="hubPolls"></div></div></aside></div><div id="hubPhotoLightbox" class="hub2-photo-lightbox" hidden role="dialog" aria-label="View conversation photo"><button type="button" data-hub-close-photo="1">✕ CLOSE</button><img id="hubLightboxImg" alt="Larger message picture"></div></div>';
+ '<div id="hubPolls"></div></div></aside></div><button type="button" class="hub4-drawer-backdrop" data-hub-close-drawer="1" aria-label="Close sidebar"></button><div id="hubPhotoLightbox" class="hub2-photo-lightbox" hidden role="dialog" aria-label="View conversation photo"><button type="button" data-hub-close-photo="1">✕ CLOSE</button><img id="hubLightboxImg" alt="Larger message picture"></div></div>';
  q('hubSearch').value=search;
  if(member){q('hubComposer').elements.namedItem('topic').value=room==='all'?'general':room}
  wireEvents();renderAll()
@@ -352,11 +360,11 @@ function renderPolls(){
 }
 function renderRaceCards(){
  const target=q('hubRaceCards'),wrap=q('hubRaceWrap');if(!target||!wrap)return;
- const latest=calls.slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt)).slice(0,3);
- wrap.hidden=latest.length===0;
- target.innerHTML=latest.map(c=>'<div class="hub2-race"><div><strong>'+safe(c.state)+' '+safe(c.office.toUpperCase())+' · '+safe(c.candidate)+'</strong>'+
- '<small>'+safe(c.party==='R'?'REPUBLICAN':c.party==='D'?'DEMOCRAT':'OTHER')+' · OWNER EDITORIAL CALL · NOT OFFICIAL CERTIFICATION</small></div>'+
- '<a href="/#calls">RACE DETAILS ↗</a></div>').join('')
+ const latest=calls.slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt)).slice(0,5);
+ wrap.hidden=false;
+ target.innerHTML=latest.length?latest.map(c=>'<div class="hub2-race hub4-race"><div><strong>'+safe(c.state)+' · '+safe(c.office.toUpperCase())+'</strong><span class="hub4-candidate">'+safe(c.candidate)+'</span>'+
+ '<small class="hub4-party '+safe(c.party)+'">'+safe(c.party==='R'?'REPUBLICAN':c.party==='D'?'DEMOCRAT':'OTHER')+'</small><small> '+safe(clock(c.calledAt))+'</small></div>'+
+ '</div>').join(''):'<p class="hub2-muted">No owner calls published yet.</p>'
 }
 function renderPresence(){/* Presence still works privately; no counter shown in the header. */}
 function updateReply(){
@@ -397,7 +405,7 @@ async function action(path,body){
  const data=await api('/api/community/'+path,'POST',body);
  await refresh();return data
 }
-function focusComposer(){q('hubComposer')?.scrollIntoView({behavior:'smooth',block:'center'});q('hubComposer')?.elements.namedItem('message').focus()}
+function focusComposer(){if(window.matchMedia('(max-width:900px)').matches){const root=host.querySelector('.hub4-layout');if(root)root.dataset.drawer='compose'}else q('hubComposer')?.scrollIntoView({behavior:'smooth',block:'center'});q('hubComposer')?.elements.namedItem('message')?.focus()}
 function wireEvents(){
  if(!shown())return;
  host.onclick=async e=>{
@@ -408,8 +416,11 @@ function wireEvents(){
    room=roomButton.dataset.hubRoom;search='';replyId=null;editId=null;unread=0;previousLatest='';lastSignature='';
    host.querySelectorAll('[data-hub-room]').forEach(x=>x.setAttribute('aria-pressed',String(x===roomButton)));
    q('hubSearch').value='';if(member){q('hubComposer').elements.namedItem('topic').value=room==='all'?'general':room;updateReply()}
-   renderAll();return
+   const root=host.querySelector('.hub4-layout');if(root)root.dataset.drawer='';renderAll();return
   }
+  if(node.dataset.hubMobileOpen){const root=host.querySelector('.hub4-layout');if(root){root.dataset.drawer=node.dataset.hubMobileOpen;const first=root.querySelector(node.dataset.hubMobileOpen==='calls'?'.hub4-right [data-hub-close-drawer]':'.hub4-left [data-hub-close-drawer]');first?.focus()}return}
+  if(node.dataset.hubCloseDrawer){const root=host.querySelector('.hub4-layout');if(root)root.dataset.drawer='';return}
+  if(node.dataset.hubPick){const file={photo:'hubPhotoFile',video:'hubVideoFile',audio:'hubAudioFile'}[node.dataset.hubPick];if(file)q(file)?.click();return}
   if(node.dataset.hubRefresh){refresh();return}
   if(node.dataset.hubRemovePhoto){clearPicture();return}
   if(node.dataset.hubRemoveVideo){clearVideo();return}
@@ -517,6 +528,7 @@ async function open(){
 }
 window.addEventListener('pagehide',clearVoice);
 document.addEventListener('click',e=>{if(e.target.closest('[data-ew-tab]')&&voiceRecorder)clearVoice()},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const root=host.querySelector('.hub4-layout');if(root)root.dataset.drawer=''}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&q('hubPhotoLightbox')&&!q('hubPhotoLightbox').hidden){q('hubPhotoLightbox').hidden=true;q('hubLightboxImg').removeAttribute('src')}});
 setInterval(()=>{if(shown()&&!document.hidden)refresh()},5000);
 setInterval(()=>{if(shown()&&!document.hidden)presence()},30000);

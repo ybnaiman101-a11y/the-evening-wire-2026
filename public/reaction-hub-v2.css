@@ -207,3 +207,130 @@
 .hub2-composer .hub2-btn[type=submit]{background:linear-gradient(110deg,#5a37be,#a735a8);border-color:#9a6bd8;font-size:12px;padding:11px 22px;border-radius:99px}
 .hub2-composer .hub2-btn[type=submit]:hover{background:linear-gradient(110deg,#7149d2,#bc3dc0)}
 @media(max-width:580px){.hub2-main>.hub2-composer{padding:14px}.hub2-composer .hub2-form{grid-template-columns:1fr}.hub2-composer .hub2-form>*{grid-column:1/-1}}
+
+
+/* THE EVENING WIRE COMMAND CENTER 4.0: truly three-column Pulse */
+.hub4-layout{max-width:1750px;width:100%;margin:0 auto}
+.hub4-header{position:relative;min-height:105px!important;padding:19px 27px!important;border-radius:17px!important}
+.hub4-header h1{font-size:clamp(36px,4vw,54px)!important;margin:5px 0!important;line-height:1!important}
+.hub4-header p{margin:4px 0!important;font-size:11px!important}
+.hub4-header .hub2-kicker{font-size:10px!important}
+.hub4-columns{
+ display:grid!important;
+ grid-template-columns:minmax(220px,.8fr) minmax(0,3fr) minmax(230px,.8fr)!important;
+ align-items:start!important;gap:16px!important;margin-top:16px!important
+}
+.hub4-left,.hub4-center,.hub4-right{min-width:0!important;grid-row:1!important}
+.hub4-left{grid-column:1!important;display:grid!important;gap:13px}
+.hub4-center{grid-column:2!important;display:block!important}
+.hub4-right{grid-column:3!important;display:grid!important;gap:13px}
+.hub4-drawer-head{display:none}
+.hub4-composer{padding:16px!important;display:block!important;background:linear-gradient(145deg,#132d47,#0b1e32)!important;border:1px solid #47718b!important}
+.hub4-compose-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.hub4-compose-top .hub2-avatar{border-radius:50%;height:37px;width:37px}
+.hub4-compose-top strong{display:block;color:#fff;font-size:12px}
+.hub4-compose-top small{font-size:9px;letter-spacing:1px;font-weight:900;color:#7acde1}
+.hub4-composer .hub2-form{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+.hub4-composer .hub2-form>*{grid-column:1/-1!important;min-width:0}
+.hub4-composer .hub2-form label{font-size:10px}
+.hub4-composer .hub2-form select{width:100%;min-width:0;padding:9px 10px;border-radius:9px;font-size:12px}
+.hub4-composer .hub2-form textarea{min-height:120px!important;max-height:250px;resize:vertical;border-radius:12px!important;background:#08192a;border-color:#47728a;padding:12px!important;font-size:12px!important}
+.hub4-composer .hub2-form input[hidden]{display:none!important}
+.hub4-media-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.hub4-media-actions button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:52px;padding:7px 2px;border:1px solid #3f6987;background:#102e46;border-radius:11px;color:#dff6ff;font-size:16px}
+.hub4-media-actions button span{font-size:9px;font-weight:800}
+.hub4-media-actions button:hover{background:#205575;border-color:#73d5e8}
+.hub4-media-actions button[hidden]{display:none!important}
+.hub4-media-actions #hubVoiceStop{grid-column:span 2;background:#722d42;border-color:#c4697e}
+.hub4-composer #hubVoiceElapsed{font-size:10px;color:#a6c9da}
+.hub4-compose-footer{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hub4-compose-footer .hub2-btn{border-radius:999px!important;padding:11px 19px!important;font-size:11px!important;background:linear-gradient(115deg,#6d35c8,#b9359d)!important;border-color:#c981dd!important}
+.hub4-composer .hub2-photo-preview,.hub4-composer .hub2-video-preview,.hub4-composer .hub2-voice-preview{max-width:100%;min-width:0;overflow:hidden}
+.hub4-composer .hub2-photo-preview img{max-width:100%;object-fit:contain}
+.hub4-composer .hub2-voice-preview audio{max-width:100%}
+.hub4-rooms{padding:15px!important}
+.hub4-rooms .hub2-room-list{gap:5px}
+.hub4-rooms .hub2-room{padding:10px 9px!important;white-space:normal;text-align:left;font-size:11px!important}
+.hub4-rooms .hub2-room[aria-pressed="true"]{background:linear-gradient(110deg,#155d7d,#23618a)}
+.hub4-owner-details{border:1px solid #365a76;border-radius:13px;background:#0d2439;overflow:hidden}
+.hub4-owner-details>summary{cursor:pointer;list-style:none;padding:13px 14px;color:#abdfea;font-size:11px;font-weight:900;letter-spacing:.5px}
+.hub4-owner-details>summary:after{content:'⌄';float:right}
+.hub4-owner-details[open]>summary:after{content:'⌃'}
+.hub4-owner-details .hub2-panel{border:0;border-top:1px solid #335975;border-radius:0;box-shadow:none;padding:13px}
+.hub4-owner-details .hub2-form{min-width:0}
+.hub4-guest{padding:18px!important}.hub4-guest a.hub2-btn{display:inline-block;margin-top:10px}
+.hub4-feed-panel{padding:0!important;min-width:0!important;overflow:visible!important;background:#071321!important;border:1px solid #335371!important;box-shadow:0 15px 40px #0006}
+.hub4-feed-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px 12px;border-bottom:1px solid #223e55}
+.hub4-feed-heading h2{font-size:24px;margin:5px 0 0}
+.hub4-refresh{border-radius:50%!important;width:38px;height:38px;flex:none;font-size:19px!important}
+.hub4-searchbar{display:flex;align-items:center;gap:8px;padding:11px 18px!important;border-bottom:1px solid #263e53}
+.hub4-searchbar .hub2-search{border-radius:999px;min-width:0;max-width:100%;flex:1}
+.hub4-feed-panel #hubFeed{height:auto!important;min-height:450px!important;max-height:none!important;overflow:visible!important;scroll-behavior:auto!important;padding:0!important;margin:0!important}
+.hub4-feed-panel #hubFeed .pulse-post{padding:16px 20px}
+.hub4-feed-panel #hubFeed .pulse-branch{max-width:100%;min-width:0}
+.hub4-feed-panel #hubFeed .pulse-reply-bubble{overflow-wrap:anywhere}
+.hub4-feed-panel .hub2-new{position:sticky;bottom:14px}
+.hub4-sidebar-title{display:flex;align-items:center;gap:9px}
+.hub4-sidebar-title>span{background:#0e6b84;border-radius:9px;padding:7px 10px;color:#a8eeff;font-size:15px}
+.hub4-sidebar-title h2{font-size:24px;margin:0}
+.hub4-race-panel{padding:15px!important;display:block!important}
+.hub4-race{display:block!important;padding:12px 10px!important;border:1px solid #466a88;border-radius:10px;background:#102940!important;margin:9px 0}
+.hub4-race strong{display:block;font-size:11px;line-height:1.4;color:#d7ebf9}
+.hub4-race .hub4-candidate{display:block;font-size:14px;font-weight:900;line-height:1.3;margin:6px 0;color:#fff;overflow-wrap:anywhere}
+.hub4-race .hub4-party{display:inline-block;margin-right:4px;font-size:9px;font-weight:900;padding:4px 7px;border-radius:6px;border:1px solid #5886a1}
+.hub4-race .hub4-party.R{color:#ffd4da;background:#6a2537;border-color:#c45668}
+.hub4-race .hub4-party.D{color:#d5e8ff;background:#194c87;border-color:#498bc7}
+.hub4-race small{font-size:9px;color:#a7c3d6}
+.hub4-all-calls{display:block;margin-top:12px;padding:10px;text-align:center;border:1px solid #466a82;border-radius:9px;color:#a8ebff;font-size:10px;font-weight:900;letter-spacing:.4px}
+.hub4-all-calls:hover{border-color:#7cdef5;background:#163a51}
+.hub4-polls-panel{padding:15px!important}
+.hub4-polls-panel .hub2-poll{padding:12px}
+.hub4-polls-panel h2{font-size:23px}
+.hub4-mobile-controls{display:none}
+.hub4-drawer-backdrop{display:none}
+@media(max-width:1150px) and (min-width:901px){
+ .hub4-columns{grid-template-columns:minmax(190px,235px) minmax(0,1fr) minmax(205px,235px)!important;gap:10px!important}
+ .hub4-composer,.hub4-rooms,.hub4-race-panel,.hub4-polls-panel{padding:11px!important}
+}
+@media(max-width:900px){
+ .hub4-columns{display:block!important;margin-top:10px!important}
+ .hub4-center{display:block!important;grid-column:auto!important;width:100%;min-width:0!important}
+ .hub4-header{min-height:75px!important;padding:15px!important}
+ .hub4-header h1{font-size:38px!important}
+ .hub4-mobile-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:10px 12px;border-bottom:1px solid #2f4c61}
+ .hub4-mobile-controls button{padding:10px 5px;background:#153a57;color:#eaf9ff;border:1px solid #43748d;font-size:10px;border-radius:9px;white-space:nowrap}
+ .hub4-mobile-controls button:first-child{background:linear-gradient(115deg,#6639b4,#ad3296);border-color:#c88fe2}
+ .hub4-left,.hub4-right{display:block!important;position:fixed!important;top:0;bottom:0;width:min(365px,89vw)!important;max-width:89vw;overflow-y:auto;overflow-x:hidden;z-index:205;grid-row:auto!important;grid-column:auto!important;border:1px solid #4f7393;background:#081a2c;padding:13px;box-shadow:0 0 65px #000b;transition:transform .2s ease}
+ .hub4-left{left:0;transform:translateX(-108%)}
+ .hub4-right{right:0;transform:translateX(108%)}
+ .hub4-layout[data-drawer="compose"] .hub4-left,.hub4-layout[data-drawer="rooms"] .hub4-left{transform:translateX(0)}
+ .hub4-layout[data-drawer="calls"] .hub4-right{transform:translateX(0)}
+ .hub4-layout[data-drawer="rooms"] .hub4-composer{display:none!important}
+ .hub4-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 14px;color:#fff;font-size:13px;letter-spacing:.5px}
+ .hub4-drawer-head button{padding:7px 10px;border:1px solid #5783a1;border-radius:8px;background:#17354f;color:#fff}
+ .hub4-layout[data-drawer="compose"] .hub4-drawer-backdrop,.hub4-layout[data-drawer="rooms"] .hub4-drawer-backdrop,.hub4-layout[data-drawer="calls"] .hub4-drawer-backdrop{display:block!important;position:fixed;inset:0;background:#010816c9;backdrop-filter:blur(3px);z-index:204;border:0;border-radius:0}
+ .hub4-feed-panel #hubFeed{min-height:350px!important}
+ .hub4-feed-panel .pulse-post{padding:12px!important}
+}
+@media(max-width:540px){
+ .hub4-feed-heading{padding:13px 11px}
+ .hub4-feed-heading h2{font-size:21px}
+ .hub4-searchbar{padding:10px!important}
+ .hub4-searchbar .hub2-micro{display:none}
+ .hub4-header .hub2-kicker{font-size:8px!important;letter-spacing:1px}
+}
+@media(prefers-reduced-motion:reduce){
+ .hub4-left,.hub4-right{transition:none}
+}
+
+
+/* Small-screen action remains visible while browsing long conversations. */
+@media(max-width:900px){
+ .hub4-mobile-controls{grid-template-columns:repeat(2,minmax(0,1fr));padding-bottom:10px}
+ .hub4-mobile-controls button:first-child{
+  position:fixed;bottom:max(16px,env(safe-area-inset-bottom));right:16px;z-index:90;
+  min-height:47px;padding:12px 18px;border-radius:999px;
+  box-shadow:0 9px 28px #000c,0 0 0 1px #a55ddd44;
+  font-size:12px;font-weight:900
+ }
+}
