@@ -165,8 +165,8 @@ function renderShell(){
  if(!shown())return;
  host.innerHTML='<div class="hub2">'+
  '<header class="hub2-header"><div class="hub2-kicker">THE EVENING WIRE · 2026 ELECTION NIGHT NEWSROOM</div>'+
- '<h1>REACTION <span>HUB 2.0</span></h1>'+
- '<p>Inside the election-night conversation. Debate the races, react to breaking developments, vote in community polls, and follow messages from across America.</p>'+
+ '<h1>REACTION <span>HUB 2.1</span></h1>'+
+ '<p>THE LIVE ELECTION FLOOR · Newest messages first. Post pictures and 60-second voice notes, respond with emoji, debate races and vote in member polls.</p>'+
  '<div class="hub2-stats"><span class="hub2-stat live" id="hubLiveStatus">CONNECTING LIVE</span>'+
  '<span class="hub2-stat"><strong id="hubOnline">0</strong> ACTIVE MEMBERS</span>'+
  '<span class="hub2-stat"><strong id="hubMessages">0</strong> MESSAGES</span>'+
@@ -176,11 +176,11 @@ function renderShell(){
  '<button class="hub2-room" data-hub-room="'+id+'" aria-pressed="'+(room===id?'true':'false')+'"><span>'+safe(label)+'</span><small id="hubRoomCount-'+id+'">0</small></button>').join('')+
  '</nav><p class="hub2-micro">Pick a room to follow that conversation.</p></div>'+composer()+adminPanel()+'</aside>'+
  '<main class="hub2-main"><section id="hubRaceWrap" class="hub2-panel" hidden><div class="hub2-label">⚡ OWNER RACE CALLS</div><div id="hubRaceCards"></div></section>'+
- '<section class="hub2-panel"><div class="hub2-tools"><div><div class="hub2-label">THE LIVE FLOOR</div><h2 id="hubRoomTitle">ALL DISCUSSIONS</h2></div><button type="button" class="hub2-btn secondary" data-hub-refresh="1">↻ REFRESH</button></div>'+
+ '<section class="hub2-panel"><div class="hub2-tools"><div><div class="hub2-label">THE LIVE FLOOR · NEWEST FIRST ↓</div><h2 id="hubRoomTitle">ALL DISCUSSIONS</h2></div><button type="button" class="hub2-btn secondary" data-hub-refresh="1">↻ REFRESH</button></div>'+
  '<div class="hub2-tools"><input class="hub2-search" id="hubSearch" type="search" placeholder="Search messages or members..." aria-label="Search messages">'+
  '<span class="hub2-micro" id="hubUpdates">Live updates</span></div>'+
  '<div id="hubFeed" class="hub2-feed" aria-live="off" aria-label="Election discussion feed"></div>'+
- '<button type="button" class="hub2-btn hub2-new" id="hubNewMessages" hidden>↓ NEW MESSAGES</button></section></main>'+
+ '<button type="button" class="hub2-btn hub2-new" id="hubNewMessages" hidden>↑ NEW MESSAGES</button></section></main>'+
  '<aside class="hub2-polls-col"><div class="hub2-panel"><div class="hub2-label">🗳 MEMBER PREDICTIONS</div><h2>LIVE RACE POLLS</h2>'+
  '<p class="hub2-muted">One vote per member. Results are community opinion, not scientific polling or official election results.</p>'+
  '<div id="hubPolls"></div></div></aside></div><div id="hubPhotoLightbox" class="hub2-photo-lightbox" hidden role="dialog" aria-label="View conversation photo"><button type="button" data-hub-close-photo="1">✕ CLOSE</button><img id="hubLightboxImg" alt="Larger message picture"></div></div>';
@@ -205,6 +205,7 @@ function messageCard(p,children=[]){
  (p.official?'<span class="hub2-tag">OFFICIAL EVENING WIRE</span>':p.pinned?'<span class="hub2-tag">📌 PINNED</span>':'')+'</div>'+
  (p.message?'<p class="hub2-message-body">'+safe(p.message)+'</p>':'')+
  (p.image_id?'<button type="button" class="hub2-photo-card" data-hub-photo="'+safe(p.image_id)+'" aria-label="View picture shared by '+safe(p.name||'member')+'"><img loading="lazy" src="/api/community/images/'+safe(p.image_id)+'" alt="Picture shared by '+safe(p.name||'member')+'"></button>':'')+
+ (p.audio_id?'<div class="hub2-post-audio"><b>🎤 VOICE NOTE</b><audio controls preload="none" src="/api/community/audio/'+safe(p.audio_id)+'"></audio></div>':'')+
  '<div class="hub2-emojis">'+btns+'</div>'+
  '<div class="hub2-actions"><button type="button" data-hub-reply="'+safe(p.id)+'">↪ REPLY</button>'+
  (mine?'<button type="button" data-hub-edit="'+safe(p.id)+'">✎ EDIT</button>':'')+
@@ -216,20 +217,20 @@ function messageCard(p,children=[]){
 function renderFeed(){
  const feed=q('hubFeed');if(!feed||!shown())return;
  const visible=posts.filter(p=>(room==='all'||p.topic===room)&&(!search||(p.name+' '+p.message).toLowerCase().includes(search.toLowerCase())));
- const sig=JSON.stringify(visible.map(p=>[p.id,p.message,p.edited_at,p.likes,p.reactions,p.myReactions,p.pinned,p.official,p.image_id]))+'|'+room+'|'+search;
+ const sig=JSON.stringify(visible.map(p=>[p.id,p.message,p.edited_at,p.likes,p.reactions,p.myReactions,p.pinned,p.official,p.image_id,p.audio_id]))+'|'+room+'|'+search;
  if(sig===lastSignature)return;
  lastSignature=sig;
- const bottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<105;
- const before=feed.scrollTop;
+ const atTop=feed.scrollTop<85;
+ const before=feed.scrollTop,oldHeight=feed.scrollHeight;
  const children=new Map();
  for(const p of visible)if(p.parent_id){const row=children.get(p.parent_id)||[];row.push(p);children.set(p.parent_id,row)}
- const roots=visible.filter(p=>!p.parent_id).sort((a,b)=>(Number(b.pinned)-Number(a.pinned))||(Date.parse(a.created_at)-Date.parse(b.created_at)));
+ const roots=visible.filter(p=>!p.parent_id).sort((a,b)=>(Number(b.pinned)-Number(a.pinned))||(Date.parse(b.created_at)-Date.parse(a.created_at)));
  feed.innerHTML=roots.length?roots.map(p=>messageCard(p,(children.get(p.id)||[]).sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at)))).join(''):'<div class="hub2-empty">No messages in this room yet. Be the first to start a discussion.</div>';
- if(bottom||!previousLatest){feed.scrollTop=feed.scrollHeight;unread=0}else{feed.scrollTop=before}
- const fresh=roots.filter(p=>!p.pinned).at(-1)?.id||'';
- if(previousLatest&&fresh&&fresh!==previousLatest&&!bottom){unread+=1}
+ if(atTop||!previousLatest){feed.scrollTop=0;unread=0}else{feed.scrollTop=before+Math.max(0,feed.scrollHeight-oldHeight)}
+ const fresh=roots.filter(p=>!p.pinned)[0]?.id||'';
+ if(previousLatest&&fresh&&fresh!==previousLatest&&!atTop){unread+=1}
  previousLatest=fresh||previousLatest;
- const btn=q('hubNewMessages');btn.hidden=unread===0;btn.textContent=unread?'↓ '+unread+' NEW MESSAGE'+(unread===1?'':'S'):'';
+ const btn=q('hubNewMessages');btn.hidden=unread===0;btn.textContent=unread?'↑ '+unread+' NEW MESSAGE'+(unread===1?'':'S'):'';
  q('hubUpdates').textContent=visible.length+' posts displayed';
 }
 function renderPolls(){
@@ -311,7 +312,7 @@ function wireEvents(){
   if(node.dataset.hubRemovePhoto){clearPicture();return}
   if(node.dataset.hubPhoto){q('hubLightboxImg').src='/api/community/images/'+encodeURIComponent(node.dataset.hubPhoto);q('hubPhotoLightbox').hidden=false;return}
   if(node.dataset.hubClosePhoto){q('hubPhotoLightbox').hidden=true;q('hubLightboxImg').removeAttribute('src');return}
-  if(node.id==='hubNewMessages'){q('hubFeed').scrollTop=q('hubFeed').scrollHeight;unread=0;node.hidden=true;return}
+  if(node.id==='hubNewMessages'){q('hubFeed').scrollTo({top:0,behavior:'smooth'});unread=0;node.hidden=true;return}
   if(node.dataset.hubCancel){replyId=null;editId=null;clearPicture();updateReply();q('hubComposer').elements.namedItem('message').value='';q('hubPostSubmit').textContent='SEND MESSAGE';return}
   const id=node.dataset.hubReply||node.dataset.hubEdit||node.dataset.hubDelete||node.dataset.hubReport||node.dataset.hubPin||node.dataset.hubHide||node.dataset.hubReact;
   try{
