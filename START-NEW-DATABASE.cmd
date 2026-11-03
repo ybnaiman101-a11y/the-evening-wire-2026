@@ -18,14 +18,19 @@ if not exist "node_modules\@electric-sql\pglite" (
   )
 )
 if not exist "private-data\owner-admin.sha256" (
-  echo First-run setup: create your PRIVATE OWNER PASSWORD.
-  echo You will use this to control race calls and the member directory.
+  echo First-run setup: making a UNIQUE private owner password.
+  echo You do NOT need to type anything. The password appears ONCE.
   node set-owner-password.mjs
   if errorlevel 1 (
     echo Owner setup did not complete.
     pause
     exit /b 1
   )
+  echo.
+  echo IMPORTANT: Save the password displayed ABOVE before starting the website.
+  echo Do not send a picture of your private password.
+  echo.
+  pause
 )
 echo.
 echo =====================================================
