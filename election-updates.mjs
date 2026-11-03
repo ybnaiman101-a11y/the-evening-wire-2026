@@ -1,6 +1,6 @@
 // THE EVENING WIRE — owner-only, persistent, site-wide Election Update notices.
 // Members can read; only the authenticated administrator can publish or retract.
-import {Pool} from 'pg';
+import {Pool} from './local-db-pool.mjs';
 import {postgresTLS,postgresConnectionString} from './postgres-tls.mjs';
 import {randomUUID} from 'node:crypto';
 import {isEditorAdmin} from './editor-calls.mjs';
