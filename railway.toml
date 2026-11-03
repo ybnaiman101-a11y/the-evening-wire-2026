@@ -1,0 +1,14 @@
+# THE EVENING WIRE — electionhub2026.com.co
+# Deploy only the "public-electionhub2026" GitHub branch.
+# Before deployment: Railway Postgres + DATABASE_URL + privately generated
+# EW_ADMIN_PASSWORD_SHA256 are required. Never commit secrets.
+[build]
+builder = "RAILPACK"
+buildCommand = "npm install --omit=dev --ignore-scripts --no-audit --no-fund"
+
+[deploy]
+startCommand = "node start-public.mjs"
+healthcheckPath = "/health"
+healthcheckTimeout = 90
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
