@@ -316,6 +316,17 @@ const server=http.createServer(async (req,res)=>{
  }
 
  const json=(obj,code=200)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
+ // Safe preview mode for self-hosting: browsers may view public newsroom pages,
+ // but member credentials, admin routes, and write requests are disabled.
+ // This mode is deliberately unsuitable for interactive public launch.
+ if(process.env.EW_READ_ONLY_PREVIEW==='1'){
+  if(!['GET','HEAD'].includes(req.method) ||
+     u.pathname==='/login' ||
+     u.pathname.startsWith('/api/members/') ||
+     u.pathname.startsWith('/api/admin/')){
+   return json({error:'Read-only preview: sign-in and interactive actions are disabled'},403);
+  }
+ }
  if(u.pathname.startsWith('/api/members/')||u.pathname==='/api/admin/members'){memberRoute(req,res,u.pathname).catch(err=>{console.error('Members API error:',String(err?.message||err));if(!res.headersSent)json({error:'Member service temporarily unavailable'},503);else res.end()});return;}
  // Public showroom: visitors can view election coverage before creating an account.
  // Interactive mutations remain protected; sensitive administrative routes retain
