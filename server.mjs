@@ -285,7 +285,10 @@ async function censusMap(kind,state){
  try{return await pending}catch(e){censusGeoCache.delete(key);throw e}
 }
 
-const page=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/index.html',import.meta.url),'utf8'));
+const originalPage=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/index.html',import.meta.url),'utf8'));
+const page=process.env.EW_READ_ONLY_PREVIEW==='1'
+ ? originalPage.replace('<body>','<body data-ew-readonly-preview="true">')
+ : originalPage;
 const loginPage=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/login.html',import.meta.url),'utf8'));
 const server=http.createServer(async (req,res)=>{
  const u=new URL(req.url,'http://localhost');
