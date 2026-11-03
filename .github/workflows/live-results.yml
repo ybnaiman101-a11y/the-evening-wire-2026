@@ -24,7 +24,7 @@ jobs:
         run: |
           for source in *.mjs public/*.js test/*.mjs; do node --check "$source"; done
       - name: Test live sources and anti-false-call guarantees
-        run: node --test test/live-results.test.mjs
+        run: node --test test/live-results.test.mjs test/ui-inline.test.mjs
       - name: Test local members, owner access, reactions and database persistence
         run: node test/local-database-smoke.mjs
       - name: Check dependency security
