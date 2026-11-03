@@ -75,3 +75,27 @@
 .hub2-photo-lightbox img{max-width:95vw;max-height:83vh;object-fit:contain;border-radius:12px;box-shadow:0 16px 50px #000a}
 .hub2-photo-lightbox button{align-self:flex-end;border-radius:9px;border:1px solid #82d8ec;background:#15425f;color:#fff;padding:12px 16px;font-size:12px;font-weight:900;cursor:pointer}
 @media(max-width:600px){.hub2-photo-card img{max-height:330px}.hub2-photo-lightbox{padding:9px}.hub2-photo-preview img{width:74px}}
+
+
+/* 2.1 – election-night microphone notes, newest-first reading and polished media */
+.hub2-header{background:radial-gradient(ellipse at 9% 80%,#b02f4788,transparent 41%),radial-gradient(ellipse at 97% 15%,#1e83d795,transparent 47%),linear-gradient(135deg,#050b16,#102843 61%,#070f1e);border:1px solid #6283a1;box-shadow:0 24px 75px #000a}
+.hub2-header h1{text-shadow:0 3px 25px #69cfe655}
+.hub2-panel{border-color:#456987;box-shadow:0 7px 26px #0005}
+.hub2-feed{scroll-behavior:smooth;max-height:740px;border-top:1px solid #315776;margin-top:13px;overflow-anchor:none}
+.hub2-new{background:linear-gradient(100deg,#0d729b,#1660af);border-color:#8ae9ff;box-shadow:0 8px 30px #000a}
+.hub2-message{--message-accent:#4ca6ec;transition:border-color .18s ease,background .18s ease}
+.hub2-message:hover{border-color:#608fb7;background:#143250}
+.hub2-post-audio{display:grid;gap:7px;padding:14px;margin:12px 0;border-radius:13px;border:1px solid #4999a4;background:linear-gradient(110deg,#124154,#0a2541);max-width:600px}
+.hub2-post-audio b{font-size:11px;letter-spacing:.7px;color:#b2fbf1}
+.hub2-post-audio audio,.hub2-voice-preview audio{display:block;width:100%;max-width:540px;height:43px;color-scheme:dark}
+.hub2-voice-controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;padding:12px;border-radius:13px;background:linear-gradient(110deg,#112b45,#123e53);border:1px solid #497a94}
+.hub2-mic-start{background:linear-gradient(115deg,#0e7191,#116d66);border-color:#7fe5d1}
+.hub2-voice-controls #hubVoiceStop{background:linear-gradient(110deg,#8d304a,#bd3855);color:#fff;border:1px solid #ff8fae}
+.hub2-voice-controls #hubVoiceStop[hidden],.hub2-voice-controls #hubVoiceStart[hidden],.hub2-voice-preview[hidden]{display:none!important}
+.hub2-voice-controls .hub2-micro{flex:1 1 150px}
+.hub2-voice-preview{display:grid;gap:10px;padding:13px;border:1px solid #66ab9f;border-radius:13px;background:#0d3341}
+.hub2-voice-caption{display:grid;gap:3px}.hub2-voice-caption b{color:#87eac7;font-size:11px}.hub2-voice-caption small{color:#bddfeb;font-size:11px}
+.hub2-message .hub2-emojis button{border-radius:999px;padding:7px 12px;border-color:#3a6989;background:#163d59}
+.hub2-message .hub2-emojis button[aria-pressed="true"]{background:linear-gradient(110deg,#125a7b,#227e96);border-color:#83e7e1}
+.hub2-panel a.hub2-btn{display:inline-block;text-decoration:none}
+@media(max-width:540px){.hub2-voice-controls{flex-direction:column;align-items:stretch}.hub2-voice-controls button{width:100%}.hub2-message .hub2-emojis button{padding:8px 10px}}
