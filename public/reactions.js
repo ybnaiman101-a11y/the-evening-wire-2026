@@ -1,145 +1,244 @@
-/* THE EVENING WIRE — Registered member discussions, replies, and live colors */
+/* THE EVENING WIRE — Reaction Hub 2.0, non-destructive member community */
 (function(){
 'use strict';
 const host=document.getElementById('commandDesk');if(!host)return;
 const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const topics=[['all','All'],['general','General'],['senate','Senate'],['house','House'],['governors','Governors'],['election-night','Election Night'],['news','News']];
-const topicLabel=id=>topics.find(t=>t[0]===id)?.[1]||'General';
-const when=x=>{const t=Date.parse(x);return Number.isFinite(t)?new Date(t).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Recently'};
-let list=[],filter='all',activeReply=null,editingId=null,loading=false,ready=false,member=null,lastListSignature='',lastError='';
 const q=id=>document.getElementById(id),shown=()=>document.body.dataset.ewView==='reactions';
-const shade=(m)=>{const key=String(m.member_id||m.name||m.id||'');let v=0;for(let i=0;i<key.length;i++)v=(v*33+key.charCodeAt(i))>>>0;return v%8};
-function card(p,child=false,replies=[]){
- const color=shade(p);
- return '<article class="reaction-post '+(child?'ew-reply':'ew-root')+' ew-author-'+color+'" data-post-id="'+safe(p.id)+'">'+
- '<div class="reaction-posthead"><div class="ew-avatar ew-avatar-'+color+'">'+safe((p.name||'?').slice(0,1).toUpperCase())+'</div>'+
- '<div class="ew-author-info"><b>'+safe(p.name||'Legacy guest')+'</b><span>'+safe(topicLabel(p.topic))+' · '+safe(when(p.created_at))+(p.edited_at?' · EDITED':'')+'</span></div></div>'+
- '<p class="reaction-message">'+safe(p.message)+'</p>'+
- '<div class="reaction-controls">'+
- '<button type="button" data-like="'+safe(p.id)+'">♥ '+Number(p.likes||0)+' Likes</button>'+ 
- (member&&p.member_id===member.id?'<button type="button" data-ew-edit="'+safe(p.id)+'">✎ Edit my message</button>':'')+
- (child?'':'<button type="button" data-reply="'+safe(p.id)+'">↪ Reply'+(replies.length?' ('+replies.length+')':'')+'</button>')+
- '<button type="button" data-report="'+safe(p.id)+'">⚑ Report</button></div>'+
- (child?'':'<div class="ew-replies">'+replies.map(r=>card(r,true,[])).join('')+'</div>')+
- '</article>'
+const rooms=[['all','🌎 All Rooms'],['general','💬 National Discussion'],['senate','🏛 Senate Races'],['governors','🗳 Governor Races'],['house','🏛 House Races'],['election-night','⚡ Election Night'],['news','📡 Breaking News']];
+const emojis=[['like','👍'],['love','❤️'],['laugh','😂'],['wow','😮'],['usa','🇺🇸'],['fire','🔥']];
+const roomName=id=>rooms.find(x=>x[0]===id)?.[1]||'National Discussion';
+const clock=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Recently'};
+const tone=(x)=>{let h=0;const s=String(x||'');for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))>>>0;return h%8};
+let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false;
+function avatar(p){const number=tone(p.member_id||p.name||p.id);return '<span class="hub2-avatar a'+number+'">'+safe(String(p.name||'?').slice(0,1).toUpperCase())+'</span>'}
+function requireMember(){if(member)return true;location.href='/login';return false}
+async function api(path,method='GET',body){
+ const opts={method,credentials:'same-origin',cache:'no-store',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined};
+ const response=await fetch(path,opts),data=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(data.error||'Unable to complete request');return data
 }
-function listHTML(){
- if(!ready)return '<div class="reaction-empty">The discussion feed is temporarily unavailable.</div>';
- const parents=list.filter(p=>!p.parent_id),children=new Map();
- for(const p of list)if(p.parent_id){const a=children.get(p.parent_id)||[];a.push(p);children.set(p.parent_id,a)}
- return parents.length?parents.map(p=>card(p,false,(children.get(p.id)||[]).sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at)))).join(''):
- '<div class="reaction-empty">Nobody has posted in this section yet. Start the conversation.</div>'
+function feedback(text){const node=q('hubFeedback');if(node)node.textContent=text||''}
+function roleNotice(){return !member?'<div class="hub2-panel"><h2>JOIN THE CONVERSATION</h2><p class="hub2-muted">Explore the discussion and polls without signing in. Sign in once, then stay remembered on this device.</p><a class="hub2-btn" href="/login">SIGN IN OR CREATE ACCOUNT</a></div>':''}
+function composer(){
+ if(!member)return roleNotice();
+ return '<div class="hub2-panel"><div class="hub2-label">YOUR LIVE BROADCAST</div>'+
+  '<div class="hub2-compose-head">'+avatar({name:member.displayName,member_id:member.id})+'<div><b>'+safe(member.displayName)+'</b><small>Verified member session · Your name stays with your posts</small></div></div>'+
+  '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
+  '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
+  '<label>YOUR MESSAGE<textarea name="message" minlength="8" maxlength="700" required placeholder="Share your election take — the conversation is live."></textarea></label>'+
+  '<div class="hub2-tools"><span class="hub2-micro" id="hubCharCount">0 / 700</span><button class="hub2-btn" type="submit" id="hubPostSubmit">SEND MESSAGE</button></div></form>'+
+  '<p id="hubFeedback" class="hub2-feedback" role="status" aria-live="polite"></p></div>'
 }
-function updateFeed(){
+function adminPanel(){
+ if(!owner)return '';
+ return '<div class="hub2-panel"><div class="hub2-label">🔒 OWNER CONTROLS</div><h3>Newsroom Control</h3>'+
+ '<form class="hub2-form" id="hubAnnouncement"><label>PIN OFFICIAL ANNOUNCEMENT<textarea name="message" required minlength="8" maxlength="700" placeholder="Election-night announcement..."></textarea></label>'+
+ '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
+ '<button type="submit" class="hub2-btn">📣 POST OFFICIAL ANNOUNCEMENT</button></form>'+
+ '<hr style="border:0;border-top:1px solid #33526d;margin:20px 0">'+
+ '<form class="hub2-form" id="hubNewPoll"><label>CREATE ELECTION COMMUNITY POLL<input name="question" minlength="8" maxlength="180" required placeholder="Who will win the Senate?"></label>'+
+ '<label>ANSWER 1<input name="option" maxlength="90" required></label><label>ANSWER 2<input name="option" maxlength="90" required></label>'+
+ '<label>ANSWER 3 (OPTIONAL)<input name="option" maxlength="90"></label><label>ANSWER 4 (OPTIONAL)<input name="option" maxlength="90"></label>'+
+ '<label>POLL LENGTH<select name="durationHours"><option value="1">1 hour</option><option value="6">6 hours</option><option value="24" selected>24 hours</option><option value="72">3 days</option><option value="168">7 days</option></select></label>'+
+ '<button type="submit" class="hub2-btn">🗳 CREATE POLL</button></form></div>';
+}
+function renderShell(){
  if(!shown())return;
- const feed=q('reactionList'),count=q('reactionLiveCount'),send=q('reactionSubmit');
- const sig=JSON.stringify(list.map(p=>[p.id,p.likes,p.message,p.parent_id]))+'|'+ready;
- if(feed&&lastListSignature!==sig&&!editingId){feed.innerHTML=listHTML();lastListSignature=sig}
- if(count)count.textContent=(ready?list.filter(p=>!p.parent_id).length+' discussions · updates every 7 seconds':'Connection unavailable');
- if(send)send.disabled=!ready;
+ host.innerHTML='<div class="hub2">'+
+ '<header class="hub2-header"><div class="hub2-kicker">THE EVENING WIRE · 2026 ELECTION NIGHT NEWSROOM</div>'+
+ '<h1>REACTION <span>HUB 2.0</span></h1>'+
+ '<p>Inside the election-night conversation. Debate the races, react to breaking developments, vote in community polls, and follow messages from across America.</p>'+
+ '<div class="hub2-stats"><span class="hub2-stat live" id="hubLiveStatus">CONNECTING LIVE</span>'+
+ '<span class="hub2-stat"><strong id="hubOnline">0</strong> ACTIVE MEMBERS</span>'+
+ '<span class="hub2-stat"><strong id="hubMessages">0</strong> MESSAGES</span>'+
+ '<span class="hub2-stat"><strong>6</strong> DISCUSSION ROOMS</span></div></header>'+
+ '<div class="hub2-columns"><aside class="hub2-side"><div class="hub2-panel"><div class="hub2-label">ELECTION DEBATE ROOMS</div>'+
+ '<nav class="hub2-room-list" aria-label="Discussion rooms" id="hubRooms">'+rooms.map(([id,label])=>
+ '<button class="hub2-room" data-hub-room="'+id+'" aria-pressed="'+(room===id?'true':'false')+'"><span>'+safe(label)+'</span><small id="hubRoomCount-'+id+'">0</small></button>').join('')+
+ '</nav><p class="hub2-micro">Pick a room to follow that conversation.</p></div>'+composer()+adminPanel()+'</aside>'+
+ '<main class="hub2-main"><section id="hubRaceWrap" class="hub2-panel" hidden><div class="hub2-label">⚡ OWNER RACE CALLS</div><div id="hubRaceCards"></div></section>'+
+ '<section class="hub2-panel"><div class="hub2-tools"><div><div class="hub2-label">THE LIVE FLOOR</div><h2 id="hubRoomTitle">ALL DISCUSSIONS</h2></div><button type="button" class="hub2-btn secondary" data-hub-refresh="1">↻ REFRESH</button></div>'+
+ '<div class="hub2-tools"><input class="hub2-search" id="hubSearch" type="search" placeholder="Search messages or members..." aria-label="Search messages">'+
+ '<span class="hub2-micro" id="hubUpdates">Live updates</span></div>'+
+ '<div id="hubFeed" class="hub2-feed" aria-live="off" aria-label="Election discussion feed"></div>'+
+ '<button type="button" class="hub2-btn hub2-new" id="hubNewMessages" hidden>↓ NEW MESSAGES</button></section></main>'+
+ '<aside class="hub2-polls-col"><div class="hub2-panel"><div class="hub2-label">🗳 MEMBER PREDICTIONS</div><h2>LIVE RACE POLLS</h2>'+
+ '<p class="hub2-muted">One vote per member. Results are community opinion, not scientific polling or official election results.</p>'+
+ '<div id="hubPolls"></div></div></aside></div></div>';
+ q('hubSearch').value=search;
+ if(member){q('hubComposer').elements.namedItem('topic').value=room==='all'?'general':room}
+ wireEvents();renderAll()
+}
+function renderAll(){renderRooms();renderFeed();renderPolls();renderRaceCards();renderPresence()}
+function renderRooms(){
+ if(!shown())return;
+ for(const [id] of rooms){const node=q('hubRoomCount-'+id);if(node)node.textContent=posts.filter(p=>!p.parent_id&&(id==='all'||p.topic===id)).length}
+ q('hubRoomTitle').textContent=room==='all'?'ALL DISCUSSIONS':roomName(room).replace(/^[^\s]+\s/,'').toUpperCase();
+ q('hubMessages').textContent=posts.length;
+ q('hubLiveStatus').textContent=liveConnected?'● LIVE CONNECTED':'● AUTO REFRESH';
+ q('hubOnline').textContent=online;
+}
+function messageCard(p,children=[]){
+ const mine=member&&p.member_id===member.id,active=p.myReactions||[];
+ const btns=emojis.map(([id,label])=>'<button type="button" data-hub-react="'+safe(p.id)+'" data-emoji="'+id+'" aria-pressed="'+(active.includes(id)?'true':'false')+'" title="'+id+'">'+label+' '+Number(p.reactions?.[id]||0)+'</button>').join('');
+ return '<article class="hub2-message'+(p.official?' official':'')+(p.pinned?' pinned':'')+'" id="hub-message-'+safe(p.id)+'" data-post-id="'+safe(p.id)+'">'+
+ '<div class="hub2-message-header">'+avatar(p)+'<div class="hub2-author"><b>'+safe(p.name||'Member')+'</b><small>'+safe(roomName(p.topic))+' · '+safe(clock(p.created_at))+(p.edited_at?' · edited':'')+'</small></div>'+
+ (p.official?'<span class="hub2-tag">OFFICIAL EVENING WIRE</span>':p.pinned?'<span class="hub2-tag">📌 PINNED</span>':'')+'</div>'+
+ '<p class="hub2-message-body">'+safe(p.message)+'</p>'+
+ '<div class="hub2-emojis">'+btns+'</div>'+
+ '<div class="hub2-actions"><button type="button" data-hub-reply="'+safe(p.id)+'">↪ REPLY</button>'+
+ (mine?'<button type="button" data-hub-edit="'+safe(p.id)+'">✎ EDIT</button>':'')+
+ (mine&&Date.now()-Date.parse(p.created_at)<15*60000?'<button type="button" data-hub-delete="'+safe(p.id)+'">DELETE</button>':'')+
+ '<button type="button" data-hub-report="'+safe(p.id)+'">⚑ REPORT</button>'+
+ (owner?'<button type="button" data-hub-pin="'+safe(p.id)+'">'+(p.pinned?'UNPIN':'📌 PIN')+'</button><button type="button" data-hub-hide="'+safe(p.id)+'">HIDE</button>':'')+
+ '</div>'+ (children.length?'<div class="hub2-replies">'+children.map(x=>messageCard(x)).join('')+'</div>':'')+'</article>'
+}
+function renderFeed(){
+ const feed=q('hubFeed');if(!feed||!shown())return;
+ const visible=posts.filter(p=>(room==='all'||p.topic===room)&&(!search||(p.name+' '+p.message).toLowerCase().includes(search.toLowerCase())));
+ const sig=JSON.stringify(visible.map(p=>[p.id,p.message,p.edited_at,p.likes,p.reactions,p.myReactions,p.pinned,p.official]))+'|'+room+'|'+search;
+ if(sig===lastSignature)return;
+ lastSignature=sig;
+ const bottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<105;
+ const before=feed.scrollTop;
+ const children=new Map();
+ for(const p of visible)if(p.parent_id){const row=children.get(p.parent_id)||[];row.push(p);children.set(p.parent_id,row)}
+ const roots=visible.filter(p=>!p.parent_id).sort((a,b)=>(Number(b.pinned)-Number(a.pinned))||(Date.parse(a.created_at)-Date.parse(b.created_at)));
+ feed.innerHTML=roots.length?roots.map(p=>messageCard(p,(children.get(p.id)||[]).sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at)))).join(''):'<div class="hub2-empty">No messages in this room yet. Be the first to start a discussion.</div>';
+ if(bottom||!previousLatest){feed.scrollTop=feed.scrollHeight;unread=0}else{feed.scrollTop=before}
+ const fresh=roots.filter(p=>!p.pinned).at(-1)?.id||'';
+ if(previousLatest&&fresh&&fresh!==previousLatest&&!bottom){unread+=1}
+ previousLatest=fresh||previousLatest;
+ const btn=q('hubNewMessages');btn.hidden=unread===0;btn.textContent=unread?'↓ '+unread+' NEW MESSAGE'+(unread===1?'':'S'):'';
+ q('hubUpdates').textContent=visible.length+' posts displayed';
+}
+function renderPolls(){
+ const target=q('hubPolls');if(!target)return;
+ target.innerHTML=polls.length?polls.map(p=>{
+  const options=Array.isArray(p.options)?p.options:[];
+  const votes=options.reduce((sum,x,i)=>sum+Number(p.counts?.[i]||0),0);
+  const closed=p.closed||Date.parse(p.closes_at)<=Date.now(),voted=p.myVote!==null&&p.myVote!==undefined;
+  return '<article class="hub2-poll"><h4>'+safe(p.question)+'</h4><div class="hub2-poll-answers">'+options.map((option,i)=>{
+   const count=Number(p.counts?.[i]||0),percent=votes?Math.round(100*count/votes):0;
+   const text=String(option).toLowerCase(),cls=text.includes('republican')?'party-red':text.includes('democrat')?'party-blue':'';
+   return '<button class="hub2-choice '+cls+(p.myVote===i?' selected':'')+'" type="button" data-hub-vote="'+safe(p.id)+'" data-choice="'+i+'" '+(voted||closed?'disabled':'')+'>'+
+    '<span>'+safe(option)+' · '+(voted||closed?percent+'%':count+' votes')+'</span><span class="hub2-bar"><span style="width:'+percent+'%"></span></span></button>'
+  }).join('')+'</div><p class="hub2-micro">'+votes+' votes · '+(closed?'POLL CLOSED':voted?'YOUR VOTE RECORDED · '+'Closes '+clock(p.closes_at):'Closes '+clock(p.closes_at))+'</p>'+
+  (owner&&!closed?'<button class="hub2-btn secondary" type="button" data-hub-close-poll="'+safe(p.id)+'">CLOSE POLL</button>':'')+'</article>'
+ }).join(''):'<p class="hub2-muted">The owner has not opened any community polls yet.</p>';
+}
+function renderRaceCards(){
+ const target=q('hubRaceCards'),wrap=q('hubRaceWrap');if(!target||!wrap)return;
+ const latest=calls.slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt)).slice(0,3);
+ wrap.hidden=latest.length===0;
+ target.innerHTML=latest.map(c=>'<div class="hub2-race"><div><strong>'+safe(c.state)+' '+safe(c.office.toUpperCase())+' · '+safe(c.candidate)+'</strong>'+
+ '<small>'+safe(c.party==='R'?'REPUBLICAN':c.party==='D'?'DEMOCRAT':'OTHER')+' · OWNER EDITORIAL CALL · NOT OFFICIAL CERTIFICATION</small></div>'+
+ '<a href="/#calls">RACE DETAILS ↗</a></div>').join('')
+}
+function renderPresence(){if(!shown())return;q('hubOnline').textContent=online}
+function updateReply(){
+ const area=q('hubReply'),form=q('hubComposer');if(!area||!form)return;
+ const p=posts.find(x=>x.id===replyId);
+ if(!p){area.hidden=true;area.textContent='';form.elements.namedItem('topic').disabled=false;return}
+ area.hidden=false;area.innerHTML='↪ Replying to <b>'+safe(p.name)+'</b> · '+safe(p.message.slice(0,110))+' <button type="button" class="hub2-btn secondary" data-hub-cancel="1">CANCEL</button>';
+ form.elements.namedItem('topic').value=p.topic;form.elements.namedItem('topic').disabled=true
 }
 async function refresh(){
- if(loading)return;loading=true;
+ if(loading||!shown())return;loading=true;
  try{
-  const url='/api/community/posts'+(filter==='all'?'':'?topic='+encodeURIComponent(filter));
-  const response=await fetch(url,{credentials:'same-origin',cache:'no-store'}),data=await response.json();
-  if(!response.ok)throw Error(data.error||'Comments temporarily unavailable');
-  list=Array.isArray(data.posts)?data.posts:[];ready=true;lastError='';
- }catch(e){ready=false;lastError=e.message}
- finally{loading=false;updateFeed()}
+  const [p,pol,c]=await Promise.all([
+   api('/api/community/posts'),api('/api/community/polls'),api('/api/editor/calls')
+  ]);
+  posts=Array.isArray(p.posts)?p.posts:[];polls=Array.isArray(pol.polls)?pol.polls:[];calls=Array.isArray(c.calls)?c.calls:[];
+  renderAll()
+ }catch(err){feedback(err.message);const status=q('hubUpdates');if(status)status.textContent='Connection interrupted. Retrying.'}
+ finally{loading=false}
 }
-function replyInfo(){
- const line=q('ewReplyInfo'),form=q('reactionForm');if(!line||!form)return;
- const parent=list.find(x=>x.id===activeReply);
- if(parent){
-  line.hidden=false;line.innerHTML='↪ Replying to <b>'+safe(parent.name)+'</b> · '+safe(parent.message.slice(0,80))+' <button type="button" id="ewCancelReply">CANCEL</button>';
-  q('ewCancelReply').onclick=()=>{activeReply=null;replyInfo()};
-  form.elements.namedItem('topic').value=parent.topic;
-  form.elements.namedItem('topic').disabled=true;
- }else{
-  line.hidden=true;line.textContent='';
-  form.elements.namedItem('topic').disabled=false;
+async function presence(){
+ if(!shown())return;
+ try{
+  if(member)await api('/api/community/presence','POST');
+  const d=await api('/api/community/presence');online=Number(d.online)||0;renderPresence()
+ }catch{}
+}
+function connect(){
+ if(stream)return;
+ try{
+  stream=new EventSource('/api/community/stream');
+  stream.onopen=()=>{liveConnected=true;renderRooms()};
+  stream.addEventListener('change',()=>{if(shown())refresh()});
+  stream.onerror=()=>{liveConnected=false;renderRooms()}
+ }catch{stream=null}
+}
+async function action(path,body){
+ const data=await api('/api/community/'+path,'POST',body);
+ await refresh();return data
+}
+function focusComposer(){q('hubComposer')?.scrollIntoView({behavior:'smooth',block:'center'});q('hubComposer')?.elements.namedItem('message').focus()}
+function wireEvents(){
+ if(!shown())return;
+ host.onclick=async e=>{
+  if(!shown())return;
+  const node=e.target.closest('button,[data-hub-cancel]');if(!node)return;
+  const roomButton=node.closest('[data-hub-room]');
+  if(roomButton){
+   room=roomButton.dataset.hubRoom;search='';replyId=null;editId=null;unread=0;previousLatest='';lastSignature='';
+   host.querySelectorAll('[data-hub-room]').forEach(x=>x.setAttribute('aria-pressed',String(x===roomButton)));
+   q('hubSearch').value='';if(member){q('hubComposer').elements.namedItem('topic').value=room==='all'?'general':room;updateReply()}
+   renderAll();return
+  }
+  if(node.dataset.hubRefresh){refresh();return}
+  if(node.id==='hubNewMessages'){q('hubFeed').scrollTop=q('hubFeed').scrollHeight;unread=0;node.hidden=true;return}
+  if(node.dataset.hubCancel){replyId=null;editId=null;updateReply();q('hubComposer').elements.namedItem('message').value='';q('hubPostSubmit').textContent='SEND MESSAGE';return}
+  const id=node.dataset.hubReply||node.dataset.hubEdit||node.dataset.hubDelete||node.dataset.hubReport||node.dataset.hubPin||node.dataset.hubHide||node.dataset.hubReact;
+  try{
+   if(node.dataset.hubReply){if(!requireMember())return;const p=posts.find(x=>x.id===id);if(!p)return;replyId=p.parent_id||p.id;editId=null;updateReply();focusComposer();return}
+   if(node.dataset.hubEdit){const p=posts.find(x=>x.id===id);if(!p||!member||p.member_id!==member.id)return;editId=id;replyId=null;updateReply();const form=q('hubComposer');form.elements.namedItem('message').value=p.message;form.elements.namedItem('topic').value=p.topic;q('hubPostSubmit').textContent='SAVE EDIT';focusComposer();return}
+   if(node.dataset.hubReact){if(!requireMember())return;await action(id+'/react',{emoji:node.dataset.emoji});return}
+   if(node.dataset.hubDelete){if(!confirm('Delete your message?'))return;await action(id+'/delete');return}
+   if(node.dataset.hubReport){if(!requireMember()||!confirm('Report this message to the moderators?'))return;await action(id+'/report');return}
+   if(node.dataset.hubPin){await action('admin/posts/'+id+'/pin');return}
+   if(node.dataset.hubHide){if(!confirm('Hide this message from readers?'))return;await action('admin/posts/'+id+'/hide');return}
+   if(node.dataset.hubVote){if(!requireMember())return;await action('polls/'+node.dataset.hubVote+'/vote',{choice:Number(node.dataset.choice)});return}
+   if(node.dataset.hubClosePoll){if(!confirm('Close this community poll?'))return;await action('admin/polls/'+node.dataset.hubClosePoll+'/close');return}
+  }catch(err){feedback(err.message)}
+ };
+ host.oninput=e=>{
+  if(!shown())return;
+  if(e.target.id==='hubSearch'){search=e.target.value.trim().slice(0,120);lastSignature='';renderFeed()}
+  if(e.target.name==='message'&&e.target.closest('#hubComposer')){const x=q('hubCharCount');if(x)x.textContent=e.target.value.length+' / 700'}
+ };
+ host.onsubmit=async e=>{
+  if(!shown())return;const form=e.target.closest('form');if(!form)return;
+  if(!['hubComposer','hubAnnouncement','hubNewPoll'].includes(form.id))return;
+  e.preventDefault();const button=form.querySelector('[type=submit]');button.disabled=true;
+  try{
+   const d=new FormData(form);
+   if(form.id==='hubComposer'){
+    const message=String(d.get('message')||'').trim(),topic=replyId?posts.find(x=>x.id===replyId)?.topic||'general':d.get('topic')||'general';
+    if(editId)await action(editId+'/edit',{message});
+    else await action('posts',{topic,message,parentId:replyId});
+    form.reset();q('hubCharCount').textContent='0 / 700';q('hubPostSubmit').textContent='SEND MESSAGE';replyId=null;editId=null;updateReply();feedback('Message published successfully.')
+   }else if(form.id==='hubAnnouncement'){
+    await action('admin/announcement',{message:d.get('message'),topic:d.get('topic')});form.reset();feedback('Official announcement published.')
+   }else{
+    await action('admin/polls',{question:d.get('question'),options:d.getAll('option').map(x=>String(x).trim()).filter(Boolean),durationHours:Number(d.get('durationHours'))});form.reset();feedback('Community poll created.')
+   }
+  }catch(err){feedback(err.message)}finally{button.disabled=false}
  }
 }
 async function open(){
- const session=await fetch('/api/members/session',{credentials:'same-origin',cache:'no-store'}).then(x=>x.json()).catch(()=>null);
- member=session?.user||null;
  if(!shown())return;
- if(!member){host.innerHTML='<div class="reaction-panel"><h2>MEMBER SIGN-IN REQUIRED</h2><p>Sign in to join the discussion.</p><a href="/">Return to sign-in</a></div>';return}
- host.innerHTML='<div class="reaction-header"><div><div class="cmd-eyebrow">THE EVENING WIRE · MEMBERS-ONLY COMMUNITY</div>'+
- '<h1>REACTION <span>HUB</span></h1>'+
- '<p>Share your election take, reply to other members, and follow live discussion from every device. Display names are locked to accounts.</p></div><span class="reaction-live">● LIVE DISCUSSION</span></div>'+
- '<div class="reaction-layout"><section class="reaction-panel"><div class="ew-reaction-author"><span class="ew-avatar ew-avatar-'+shade({member_id:member.id})+'">'+safe(member.displayName.charAt(0).toUpperCase())+'</span><div><b>Posting as '+safe(member.displayName)+'</b><small>Your registered name is permanent across posts and replies</small></div></div>'+
- '<form id="reactionForm"><div id="ewReplyInfo" class="ew-reply-target" hidden></div>'+
- '<label>CHOOSE A TOPIC<select name="topic">'+topics.filter(t=>t[0]!=='all').map(t=>'<option value="'+t[0]+'">'+safe(t[1])+'</option>').join('')+'</select></label>'+
- '<label>YOUR MESSAGE<textarea name="message" required minlength="8" maxlength="700" rows="5" placeholder="What is your take?"></textarea></label>'+
- '<div class="reaction-footer"><span id="reactionCount">0 / 700</span><button type="submit" id="reactionSubmit" disabled>POST MESSAGE ↗</button></div>'+
- '<p id="reactionFormStatus" class="reaction-status" role="status" aria-live="polite"></p></form></section>'+
- '<section class="reaction-panel"><div class="reaction-top"><div><span class="cmd-eyebrow">DISCUSSION</span><h2>MEMBER MESSAGES</h2><p id="reactionLiveCount" class="reaction-hint">Connecting…</p></div><button type="button" id="reactionRefresh">↻ REFRESH</button></div>'+
- '<div class="reaction-filters">'+topics.map(t=>'<button type="button" data-reaction-topic="'+t[0]+'" class="'+(filter===t[0]?'chosen':'')+'">'+safe(t[1])+'</button>').join('')+'</div>'+
- '<div id="reactionList"></div></section></div>';
- const form=q('reactionForm'),text=form.elements.namedItem('message');
- text.addEventListener('input',()=>{q('reactionCount').textContent=text.value.length+' / 700'});
- form.onsubmit=async e=>{
-  e.preventDefault();const button=q('reactionSubmit');button.disabled=true;
-  try{
-   const body={topic:form.elements.namedItem('topic').value,message:text.value,parentId:activeReply};
-   const r=await fetch('/api/community/posts',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-   const data=await r.json();if(!r.ok)throw Error(data.error||'Posting failed');
-   text.value='';q('reactionCount').textContent='0 / 700';activeReply=null;replyInfo();
-   q('reactionFormStatus').textContent='Published! Other members can now see your message.';await refresh();
-  }catch(err){q('reactionFormStatus').textContent=err.message}
-  finally{button.disabled=!ready}
- };
- q('reactionRefresh').onclick=refresh;
- host.querySelectorAll('[data-reaction-topic]').forEach(b=>b.onclick=()=>{
-  filter=b.dataset.reactionTopic;host.querySelectorAll('[data-reaction-topic]').forEach(x=>x.classList.toggle('chosen',x===b));
-  list=[];lastListSignature='';activeReply=null;editingId=null;replyInfo();refresh()
- });
- q('reactionList').addEventListener('submit',async e=>{
-  const form=e.target.closest('[data-ew-edit-form]');if(!form)return;
-  e.preventDefault();const id=form.dataset.ewEditForm;const btn=form.querySelector('[type=submit]');btn.disabled=true;
-  try{
-   const message=form.elements.namedItem('message').value;
-   const resp=await fetch('/api/community/'+encodeURIComponent(id)+'/edit',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})});
-   const data=await resp.json();if(!resp.ok)throw Error(data.error||'Could not save changes');
-   editingId=null;lastListSignature='';q('reactionFormStatus').textContent='Your message was updated.';
-   await refresh();
-  }catch(err){q('reactionFormStatus').textContent=err.message;btn.disabled=false}
- });
- q('reactionList').onclick=async e=>{
-  const edit=e.target.closest('[data-ew-edit]'),cancelEdit=e.target.closest('[data-ew-cancel-edit]');
-  if(cancelEdit){editingId=null;lastListSignature='';updateFeed();return}
-  if(edit){
-   const original=list.find(p=>p.id===edit.dataset.ewEdit&&p.member_id===member?.id);
-   const card=edit.closest('[data-post-id]');
-   if(!original||!card)return;
-   editingId=original.id;
-   const content=card.querySelector('.reaction-message');
-   if(!content)return;
-   content.hidden=true;
-   const existing=card.querySelector('[data-ew-edit-form]');if(existing)existing.remove();
-   const form=document.createElement('form');form.dataset.ewEditForm=original.id;form.className='ew-edit-message-form';
-   form.innerHTML='<label>EDIT YOUR MESSAGE<textarea name="message" minlength="8" maxlength="700" required></textarea></label>'+
-    '<div><button type="submit">SAVE CHANGES</button><button type="button" data-ew-cancel-edit="1">CANCEL</button></div>';
-   content.insertAdjacentElement('afterend',form);
-   form.elements.namedItem('message').value=original.message;
-   form.elements.namedItem('message').focus();
-   return
-  }
-  const reply=e.target.closest('[data-reply]'),like=e.target.closest('[data-like]'),report=e.target.closest('[data-report]');
-  if(reply){const original=list.find(p=>p.id===reply.dataset.reply);if(!original)return;activeReply=original.id;replyInfo();form.scrollIntoView({behavior:'smooth',block:'start'});text.focus();return}
-  const b=like||report;if(!b)return;
-  if(report&&!confirm('Report this comment to moderators?'))return;
-  b.disabled=true;
-  try{const id=like?like.dataset.like:report.dataset.report,action=like?'like':'report';
-   const r=await fetch('/api/community/'+encodeURIComponent(id)+'/'+action,{method:'POST',credentials:'same-origin'});
-   if(!r.ok)throw Error('Unable to '+action+' this message');await refresh();
-  }catch(err){q('reactionFormStatus').textContent=err.message;b.disabled=false}
- };
- await refresh();
+ const [sess,admin]=await Promise.all([
+  fetch('/api/members/session',{credentials:'same-origin',cache:'no-store'}).then(r=>r.json()).catch(()=>({})),
+  fetch('/api/admin/session',{credentials:'same-origin',cache:'no-store'}).then(r=>r.json()).catch(()=>({}))
+ ]);
+ if(!shown())return;
+ member=sess.user||null;owner=admin.authenticated===true;
+ lastSignature='';renderShell();connect();await Promise.all([refresh(),presence()])
 }
-setInterval(()=>{if(shown()&&!document.hidden)refresh()},7000);
-document.addEventListener('visibilitychange',()=>{if(shown()&&!document.hidden)refresh()});
+setInterval(()=>{if(shown()&&!document.hidden)refresh()},5000);
+setInterval(()=>{if(shown()&&!document.hidden)presence()},30000);
+document.addEventListener('visibilitychange',()=>{if(shown()&&!document.hidden){refresh();presence()}});
 window.EWReactions={open,refresh};
 })();

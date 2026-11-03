@@ -359,12 +359,12 @@ const server=http.createServer(async (req,res)=>{
   u.pathname.startsWith('/api/challenge') ||
   u.pathname==='/api/updates'
  );
- const publicAsset=['/','/index.html','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/election-maps.js','/election-maps.css'].includes(u.pathname);
+ const publicAsset=['/','/index.html','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/reaction-hub-v2.css','/election-maps.js','/election-maps.css'].includes(u.pathname);
  // The admin API implements its own administrator password checks.
  const adminEndpoint=u.pathname.startsWith('/api/admin/');
  // Routes which validate their own owner session must be reachable without a
  // separate ordinary member login. The route still checks its authorization.
- const delegatedAuth=u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')||u.pathname.startsWith('/api/challenge');
+ const delegatedAuth=u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')||u.pathname.startsWith('/api/challenge')||u.pathname.startsWith('/api/community/admin/');
  if(!visitor && !(publicRead||publicAsset||adminEndpoint||delegatedAuth)){
   return json({error:'Sign in or register to use this feature',login:'/login'},401);
  }
@@ -436,7 +436,8 @@ const server=http.createServer(async (req,res)=>{
  if(u.pathname==='/traffic.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/traffic.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store'});res.end(b)}).catch(()=>json({error:'Traffic script unavailable'},404));return;}
  if(u.pathname==='/members.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/members.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/editor-calls.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/editor-calls.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
- if(u.pathname==='/reactions.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/reactions.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'public, max-age=180'});res.end(b)}).catch(()=>json({error:'Resource unavailable'},404));return;}
+ if(u.pathname==='/reaction-hub-v2.css'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/reaction-hub-v2.css',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/css; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Reaction Hub styles unavailable'},404));return;}
+ if(u.pathname==='/reactions.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/reactions.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Resource unavailable'},404));return;}
  if(u.pathname==='/election-maps.js'||u.pathname==='/election-maps.css'){
    const filename=u.pathname.slice(1),ctype=filename.endsWith(".css")?"text/css; charset=utf-8":"text/javascript; charset=utf-8";
    import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/'+filename,import.meta.url))).then(buf=>{

@@ -38,7 +38,7 @@ function setupLinks(){
  })
 }
 function subsetCalls(office){
- return (results.calls||[]).filter(c=>c.office===office&&c.editorial===true&&['R','D','I','OTHER'].includes(c.party)&&c.sourceUrl?.startsWith('https://'))
+ return (results.calls||[]).filter(c=>c.office===office&&c.editorial===true&&['R','D','I','OTHER'].includes(c.party))
 }
 function mapStats(){
  const list=subsetCalls(mode),total=mode==='senate'?35:mode==='house'?435:36;
@@ -51,7 +51,7 @@ function mapStats(){
  ].map(x=>'<div class="ew-studio-stat"><small>'+x[0]+'</small><b>'+x[1]+'</b><span>'+x[2]+'</span></div>').join('')+'</div>';
 }
 function mapSelection(){
- if(!selected)return '<p>Click a state or House district on the map to inspect its candidates and source-linked Evening Wire calls. Use the tabs to switch between offices.</p>';
+ if(!selected)return '<p>Click a state or House district on the map to inspect its candidates and Evening Wire editorial calls. Use the tabs to switch between offices.</p>';
  const races=states().filter(x=>x.office===mode&&x.state===selected.state&&(mode!=='house'||x.district===selected.district));
  if(!races.length)return '<p>No scheduled 2026 '+esc(mode)+' contest is listed in this location.</p>';
  return races.map(r=>{
@@ -59,7 +59,7 @@ function mapSelection(){
   return '<div class="ew-map-selected"><b>'+esc(title(r))+'</b>'+
    '<div class="ew-map-names">'+(r.candidates||[]).map(c=>'<p><span class="ew-studio-party '+(c.party==='R'?'red':c.party==='D'?'blue':'gold')+'">'+esc(party(c.party))+'</span> '+esc(c.name)+'</p>').join('')+'</div>'+
    (call?'<div class="ew-projection-status '+(call.party==='R'?'red':'blue')+'"><b>EVENING WIRE CALL:</b> '+esc(call.candidate)+
-    '<p>Editorial projection — NOT official certification</p><a target="_blank" rel="noopener noreferrer" href="'+esc(sourceLink(call.sourceUrl))+'">'+esc(call.sourceName)+' · Original source ↗</a></div>':
+    '<p>Editorial projection — NOT official certification</p>'+(call.sourceUrl?'<a target="_blank" rel="noopener noreferrer" href="'+esc(sourceLink(call.sourceUrl))+'">'+esc(call.sourceName||'Original source')+' ↗</a>':'<small>OWNER EDITORIAL CALL · No source supplied</small>')+'</div>':
     '<div class="ew-uncalled">NOT CALLED · No editorial winner published</div>')+'</div>'
  }).join('');
 }
@@ -74,7 +74,7 @@ function mapView(){
  '<b>GOVERNORSHIPS:</b> These 36 election contests do not constitute a legislative chamber. Uncalled means no published projection.')+
  '</div><div class="ew-map-grid"><section class="ew-map-main"><div id="ewStudioMap" class="ew-studio-map" aria-label="Accurate United States election map"></div>'+
  '<div class="ew-map-legend"><span><i class="red"></i> GOP CALLED</span><span><i class="blue"></i> DEMOCRAT CALLED</span><span><i class="gray"></i> NOT CALLED</span><span><i class="dark"></i> NO 2026 CONTEST</span></div>'+
- '<p class="ew-studio-note">Geographic boundaries: U.S. Census TIGERweb. Map colors represent only the site owner’s sourced editorial calls, not official results. Ohio and Florida are special Senate elections.</p></section>'+
+ '<p class="ew-studio-note">Geographic boundaries: U.S. Census TIGERweb. Map colors represent only the site owner’s editorial calls, not official results. Ohio and Florida are special Senate elections.</p></section>'+
  '<aside class="ew-map-aside"><h3>RACE INSPECTOR</h3><div id="ewMapInspector">'+mapSelection()+'</div>'+
  '<h3>LATEST RACE CALLS</h3><div id="ewMapLatest">'+mapLatest()+'</div></aside></div>';
  setupLinks();
@@ -84,11 +84,11 @@ function mapView(){
 }
 function mapLatest(){
  const list=subsetCalls(mode).slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt)).slice(0,10);
- if(!list.length)return '<p>No sourced owner calls in this office yet. Gray means uncalled, not tied.</p>';
+ if(!list.length)return '<p>No owner calls in this office yet. Gray means uncalled, not tied.</p>';
  return list.map(c=>{
   const race=namesByKey(c.id);
   return '<div class="ew-studio-call"><b>'+esc(race?title(race):c.state+' '+c.office)+'</b><span class="ew-studio-party '+(c.party==='R'?'red':'blue')+'">'+esc(c.party)+'</span>'+
-   '<p>'+esc(c.candidate)+'</p><a href="'+esc(sourceLink(c.sourceUrl))+'" target="_blank" rel="noopener noreferrer">'+esc(c.sourceName)+' ↗</a></div>';
+   '<p>'+esc(c.candidate)+'</p>'+(c.sourceUrl?'<a href="'+esc(sourceLink(c.sourceUrl))+'" target="_blank" rel="noopener noreferrer">'+esc(c.sourceName||'Original source')+' ↗</a>':'<small>Owner editorial call</small>')+'</div>';
  }).join('');
 }
 function mountMap(){

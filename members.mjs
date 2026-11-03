@@ -39,6 +39,7 @@ let db=null,ready=false,connecting=false,diagnostic=null;
 const rateLimit=new Map();
 const send=(res,status,data,headers={})=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(JSON.stringify(data))};
 const cookieName='ew_member_session';
+const rememberedSeconds=90*24*60*60;
 const secureCookieFlag=process.env.EW_LOCAL_DATABASE==='1'?'':'Secure; ';
 function originOK(req){const origin=String(req.headers.origin||'');return !origin||origin==='https://'+req.headers.host||origin==='http://'+req.headers.host}
 function client(req){return String(req.socket.remoteAddress||'unknown')}
@@ -67,6 +68,9 @@ async function setup(){
   await db.query("CREATE TABLE IF NOT EXISTS ew_member_sessions(token_hash varchar(64) PRIMARY KEY,member_id uuid NOT NULL REFERENCES ew_members(id) ON DELETE CASCADE,expires_at timestamptz NOT NULL)");
   await db.query("ALTER TABLE ew_members ADD COLUMN IF NOT EXISTS pin_hash varchar(255)");
   await db.query("CREATE TABLE IF NOT EXISTS ew_member_login_attempts(email varchar(254) PRIMARY KEY,attempts integer NOT NULL DEFAULT 0,locked_until timestamptz,updated_at timestamptz DEFAULT now())");
+  await db.query("ALTER TABLE ew_member_sessions ADD COLUMN IF NOT EXISTS remembered boolean NOT NULL DEFAULT false");
+  await db.query("ALTER TABLE ew_member_sessions ADD COLUMN IF NOT EXISTS last_seen_at timestamptz NOT NULL DEFAULT now()");
+  await db.query("CREATE INDEX IF NOT EXISTS ew_member_session_expiry_idx ON ew_member_sessions(expires_at)");
   ready=true;diagnostic=null;console.log('EW_MEMBERS_DATABASE_CONNECTED');
   const memberCount=await db.query('SELECT count(*)::integer AS total FROM ew_members');
   console.log('EW_MEMBERS_RECORD_COUNT='+memberCount.rows[0].total+' database_env='+databaseSource);
@@ -75,15 +79,22 @@ async function setup(){
 }
 setup();
 setInterval(()=>{if(!ready)setup();const now=Date.now();for(const [k,v] of rateLimit)if(now-v.s>3600000)rateLimit.delete(k)},120000).unref();
-async function getMember(req){
+async function getMember(req,res=null){
  const t=cookie(req);if(!t||!ready)return null;
- const result=await db.query("SELECT m.id,m.display_name,m.email,m.joined_at,m.last_login_at FROM ew_member_sessions s JOIN ew_members m ON s.member_id=m.id WHERE s.token_hash=$1 AND s.expires_at>now() LIMIT 1",[tokenHash(t)]);
- return publicUser(result.rows[0])
+ const result=await db.query("SELECT m.id,m.display_name,m.email,m.joined_at,m.last_login_at,s.remembered,s.last_seen_at FROM ew_member_sessions s JOIN ew_members m ON s.member_id=m.id WHERE s.token_hash=$1 AND s.expires_at>now() LIMIT 1",[tokenHash(t)]);
+ const row=result.rows[0];if(!row)return null;
+ // Extend the server-side expiry and renew the secure browser cookie during a session check.
+ if(res&&row.remembered&&Date.now()-new Date(row.last_seen_at).getTime()>12*3600000){
+  await db.query("UPDATE ew_member_sessions SET expires_at=now()+interval '90 days',last_seen_at=now() WHERE token_hash=$1 AND expires_at>now()",[tokenHash(t)]);
+  res.setHeader('Set-Cookie',sessionCookie(t,rememberedSeconds));
+ }
+ return publicUser(row)
 }
-async function createSession(res,member){
- const t=randomBytes(32).toString('hex');
- await db.query("INSERT INTO ew_member_sessions(token_hash,member_id,expires_at) VALUES($1,$2,now()+interval '12 hours')",[tokenHash(t),member.id]);
- send(res,200,{ok:true,user:publicUser(member)},{'Set-Cookie':sessionCookie(t,43200)})
+async function createSession(res,member,rememberDevice=true){
+ const t=randomBytes(32).toString('hex'),remembered=rememberDevice===true;
+ await db.query("INSERT INTO ew_member_sessions(token_hash,member_id,expires_at,remembered) VALUES($1,$2,now()+($3 * interval '1 second'),$4)",[tokenHash(t),member.id,remembered?rememberedSeconds:43200,remembered]);
+ // For unremembered devices, use a browser-session cookie rather than a persistent cookie.
+ send(res,200,{ok:true,user:publicUser(member),remembered},{'Set-Cookie':remembered?sessionCookie(t,rememberedSeconds):cookieName+'='+t+'; Path=/; HttpOnly; '+secureCookieFlag+'SameSite=Lax'})
 }
 export async function authenticatedMember(req){return ready?getMember(req):null}
 export async function memberRoute(req,res,path){
@@ -100,12 +111,18 @@ export async function memberRoute(req,res,path){
  const route=path.slice('/api/members/'.length);
  if(route==='session'&&req.method==='GET'){
   if(!ready){send(res,200,{ready:false,user:null,error:'Accounts are unavailable until PostgreSQL is connected'});return true}
-  send(res,200,{ready:true,user:await getMember(req)});return true
+  send(res,200,{ready:true,user:await getMember(req,res)});return true
  }
  if(!originOK(req)){send(res,403,{error:'Origin not allowed'});return true}
  if(route==='logout'&&req.method==='POST'){
   if(ready&&cookie(req))await db.query('DELETE FROM ew_member_sessions WHERE token_hash=$1',[tokenHash(cookie(req))]);
   send(res,200,{ok:true},{'Set-Cookie':sessionCookie('',0)});return true
+ }
+ if(route==='logout-all'&&req.method==='POST'){
+  const account=await authenticatedMember(req);
+  if(!account){send(res,401,{error:'Sign in first'});return true}
+  await db.query('DELETE FROM ew_member_sessions WHERE member_id=$1',[account.id]);
+  send(res,200,{ok:true,revokedAll:true},{'Set-Cookie':sessionCookie('',0)});return true
  }
  if(route==='profile'&&req.method==='POST'){
   // Display names are identity data: derive the account exclusively from the secure
@@ -158,7 +175,7 @@ export async function memberRoute(req,res,path){
   if(!saved.rowCount){send(res,409,{error:'A PIN has already been set for this account. Please sign in.'});return true}
   await db.query('DELETE FROM ew_member_login_attempts WHERE email=$1 OR email=$2',[mail,attemptKey]);
   console.log('EW_LEGACY_MEMBER_PIN_ACTIVATED');
-  await createSession(res,saved.rows[0]);return true
+  await createSession(res,saved.rows[0],obj.rememberDevice!==false);return true
  }
  if((route==='signup'||route==='login')&&req.method==='POST'){
   if(!rate(req,route,route==='login'?5:3,900000)){send(res,429,{error:'Too many attempts. Please try again later.'});return true}
@@ -176,7 +193,7 @@ export async function memberRoute(req,res,path){
     await db.query("INSERT INTO ew_members(id,display_name,email,password_hash,pin_hash,last_login_at) VALUES($1,$2,$3,$4,$5,now())",[id,displayName,mail,passwordHash,pinHash]);
    }catch(e){if(e.code==='23505'){send(res,409,{error:'This email already has an account. Sign in instead.'});return true}throw e}
    const row=await db.query('SELECT id,display_name,email,joined_at,last_login_at FROM ew_members WHERE id=$1',[id]);
-   await createSession(res,row.rows[0]);return true
+   await createSession(res,row.rows[0],obj.rememberDevice!==false);return true
   }
   // Database-persisted lockouts protect short PINs across service restarts.
   const attempts=await db.query('SELECT locked_until FROM ew_member_login_attempts WHERE email=$1',[mail]);
@@ -192,7 +209,7 @@ export async function memberRoute(req,res,path){
   await db.query('DELETE FROM ew_member_login_attempts WHERE email=$1',[mail]);
   await db.query('UPDATE ew_members SET last_login_at=now() WHERE id=$1',[row.rows[0].id]);
   row.rows[0].last_login_at=new Date().toISOString();
-  await createSession(res,row.rows[0]);return true
+  await createSession(res,row.rows[0],obj.rememberDevice!==false);return true
  }
  send(res,404,{error:'Member endpoint not found'});return true
 }

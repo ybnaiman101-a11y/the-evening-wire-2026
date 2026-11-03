@@ -75,6 +75,7 @@
    '<form id="ewMemberLogin" class="ew-member-form">'+
    '<label>Email address'+input('email','email','email','you@example.com','required maxlength="254"')+'</label>'+
    '<label>Four-digit sign-in PIN'+input('password','pin','one-time-code','Four numbers','required inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4"')+'</label>'+
+   '<label class="ew-member-check"><input type="checkbox" name="rememberDevice" checked><span>Remember this device for 90 days — no repeat PIN.</span></label>'+ 
    '<button class="cmd-primary" type="submit" '+(!dbReady?'disabled':'')+'>SIGN IN</button></form>';
  }
  function signedIn(){
@@ -85,7 +86,8 @@
    '<form id="ewProfileForm" class="ew-member-form">'+
    '<label>YOUR PUBLIC DISPLAY NAME<input name="displayName" type="text" value="'+safe(member.displayName)+'" autocomplete="nickname" minlength="2" maxlength="40" required></label>'+
    '<button type="submit" class="cmd-primary">SAVE NEW DISPLAY NAME</button></form></section>'+
-   '<button type="button" class="cmd-minibtn" id="ewMemberLogout">SIGN OUT</button>';
+   '<button type="button" class="cmd-minibtn" id="ewMemberLogout">SIGN OUT</button> '+ 
+    '<button type="button" class="cmd-minibtn" id="ewMemberLogoutAll">SIGN OUT ALL DEVICES</button>';
  }
  function signup(){
   if(member)return signedIn();
@@ -96,6 +98,7 @@
    '<label>Account recovery password — at least 12 characters'+input('password','password','new-password','Choose a strong password','required minlength="12" maxlength="128"')+'</label>'+ '<label>Four-digit sign-in PIN'+input('password','pin','new-password','Four numbers','required inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4"')+'</label>'+
    '<label class="ew-member-check"><input type="checkbox" name="agreed" required>'+
    '<span>I understand the owner can see my account name, email, registration date and last login. Emails are not verified.</span></label>'+
+   '<label class="ew-member-check"><input type="checkbox" name="rememberDevice" checked><span>Remember this device for 90 days.</span></label>'+ 
    '<button class="cmd-primary" type="submit" '+(!dbReady?'disabled':'')+'>CREATE ACCOUNT</button></form>';
  }
  function alternateRegistrations(){
@@ -149,13 +152,13 @@
   };
   const login=host.querySelector('#ewMemberLogin');
   if(login)login.onsubmit=e=>{e.preventDefault();perform(async()=>{
-   const d=new FormData(login);const data=await request('/api/members/login','POST',{email:d.get('email'),pin:d.get('pin')});
+   const d=new FormData(login);const data=await request('/api/members/login','POST',{email:d.get('email'),pin:d.get('pin'),rememberDevice:d.get('rememberDevice')==='on'});
    member=data.user;status='Welcome back!';render()
   })};
   const registration=host.querySelector('#ewMemberSignup');
   if(registration)registration.onsubmit=e=>{e.preventDefault();perform(async()=>{
    const d=new FormData(registration),data=await request('/api/members/signup','POST',{
-    displayName:d.get('displayName'),email:d.get('email'),password:d.get('password'),pin:d.get('pin'),agreed:d.get('agreed')==='on'
+    displayName:d.get('displayName'),email:d.get('email'),password:d.get('password'),pin:d.get('pin'),agreed:d.get('agreed')==='on',rememberDevice:d.get('rememberDevice')==='on'
    });
    member=data.user;panel='login';status='Your account has been created.';render()
   })};
@@ -196,6 +199,8 @@
   }));
   const logout=host.querySelector('#ewMemberLogout');
   if(logout)logout.onclick=()=>perform(async()=>{await request('/api/members/logout','POST');member=null;status='Signed out.';render()});
+  const logoutAll=host.querySelector('#ewMemberLogoutAll');
+  if(logoutAll)logoutAll.onclick=()=>{if(!confirm('Sign out this account on every device?'))return;perform(async()=>{await request('/api/members/logout-all','POST');member=null;status='All remembered devices were signed out.';render()})};
   const reload=host.querySelector('#ewMembersReload');
   if(reload)reload.onclick=()=>perform(async()=>{status='Checking registered readers…';const ok=await fetchMembers();if(ok)status='Member directory refreshed: '+total+' registered readers found.';render()});
  }
