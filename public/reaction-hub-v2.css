@@ -6,9 +6,6 @@
 .hub2-header>*{position:relative}.hub2-kicker{font-size:11px;font-weight:900;letter-spacing:2.4px;color:#87cde9}
 .hub2-header h1{font:900 clamp(42px,6vw,81px)/1 'Barlow Condensed',Impact,sans-serif;margin:12px 0;letter-spacing:1.3px;color:#fff}
 .hub2-header h1 span{color:#67dcec}.hub2-header p{font-size:13px;line-height:1.75;color:#d0dfef;max-width:800px}
-.hub2-stats{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:18px}
-.hub2-stat{background:#081b2fdc;border:1px solid #3b6287;padding:10px 13px;border-radius:999px;font-size:11px;font-weight:850;color:#eaf7ff}
-.hub2-stat strong{color:#73ecda}.hub2-stat.live:before{content:'';width:8px;height:8px;background:#43f4ae;display:inline-block;border-radius:50%;margin-right:8px;box-shadow:0 0 0 4px #24d89d22}
 .hub2-columns{display:grid;grid-template-columns:minmax(245px,.85fr) minmax(0,2.1fr);gap:17px;margin-top:17px;align-items:start}
 .hub2-side,.hub2-main{display:grid;gap:15px;min-width:0}
 .hub2-panel{background:linear-gradient(150deg,#102840,#0d1d31);border:1px solid var(--hub-line);border-radius:17px;padding:20px;min-width:0;box-shadow:0 9px 35px #0004}
