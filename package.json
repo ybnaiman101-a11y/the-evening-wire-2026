@@ -10,6 +10,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "pg": "^8.13.3"
+    "pg": "^8.13.3",
+    "@electric-sql/pglite": "0.5.12"
   }
 }
