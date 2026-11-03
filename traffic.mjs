@@ -1,6 +1,6 @@
 // Private, aggregated visitor analytics. Tracking is limited to signed-in account IDs,
 // page section, timestamp and optional referrer domain. Never expose individual browsing histories.
-import {Pool} from 'pg';
+import {Pool} from './local-db-pool.mjs';
 import {postgresTLS,postgresConnectionString} from './postgres-tls.mjs';
 import {authenticatedMember} from './members.mjs';
 import {isEditorAdmin} from './editor-calls.mjs';
