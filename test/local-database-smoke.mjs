@@ -125,6 +125,18 @@ try{
  assert.equal(audioResponse.status,200,'Public voice note served from Postgres');
  assert.equal(audioResponse.headers.get('content-type'),'audio/webm');
  assert.deepEqual(Buffer.from(await audioResponse.arrayBuffer()),audBytes);
+
+ const clip=await fetch(base+'/api/community/videos/'+media.data.videoId);
+ assert.equal(clip.status,200,'MP4 video remains accessible');
+ assert.equal(clip.headers.get('content-type'),'video/mp4');
+ assert.deepEqual(Buffer.from(await clip.arrayBuffer()),vidBytes);
+ const partial=await fetch(base+'/api/community/videos/'+media.data.videoId,{headers:{Range:'bytes=0-7'}});
+ assert.equal(partial.status,206,'Media supports ranged video playback');
+ assert.equal(partial.headers.get('content-range'),'bytes 0-7/'+vidBytes.length);
+ assert.deepEqual(Buffer.from(await partial.arrayBuffer()),vidBytes.subarray(0,8));
+ const audioPartial=await fetch(base+'/api/community/audio/'+media.data.audioId,{headers:{Range:'bytes=0-3'}});
+ assert.equal(audioPartial.status,206,'Audio can seek with byte-range requests');
+
  const invalidAudio=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
   topic:'general',message:'Invalid voice note should be rejected',audioData:'data:audio/webm;base64,'+imgBytes.toString('base64')
  }});
