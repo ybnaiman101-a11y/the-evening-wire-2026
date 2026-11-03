@@ -264,7 +264,7 @@ function renderShell(){
  '<div id="hubFeed" class="hub2-feed" aria-live="off" aria-label="Election discussion feed"></div>'+
  '<button type="button" class="hub2-btn hub2-new" id="hubNewMessages" hidden>↑ NEW MESSAGES</button></section></main>'+
  '<aside class="hub2-polls-col hub4-right"><div class="hub4-drawer-head"><b>ELECTION DESK</b><button type="button" data-hub-close-drawer="1">✕</button></div>'+ 
- '<section id="hubRaceWrap" class="hub2-panel hub4-race-panel"><div class="hub4-sidebar-title"><span>✓</span><h2>RACES CALLED</h2></div><div id="hubRaceCards"></div><a class="hub4-all-calls" href="/#calls">VIEW ALL RACE CALLS</a></section>'+ 
+ '<section id="hubRaceWrap" class="hub2-panel hub4-race-panel"><div class="hub4-sidebar-title"><span>✓</span><h2>RACES CALLED</h2></div><p class="hub2-micro">Owner calls · Not certified</p><div id="hubRaceCards"></div><a class="hub4-all-calls" href="/#calls">VIEW ALL RACE CALLS</a></section>'+ 
  '<div class="hub2-panel hub4-polls-panel"><div class="hub2-label">COMMUNITY</div><h2>LIVE POLLS</h2>'+
  '<p class="hub2-muted">Member opinions · Not election results</p>'+
  '<div id="hubPolls"></div></div></aside></div><button type="button" class="hub4-drawer-backdrop" data-hub-close-drawer="1" aria-label="Close sidebar"></button><div id="hubPhotoLightbox" class="hub2-photo-lightbox" hidden role="dialog" aria-label="View conversation photo"><button type="button" data-hub-close-photo="1">✕ CLOSE</button><img id="hubLightboxImg" alt="Larger message picture"></div></div>';
