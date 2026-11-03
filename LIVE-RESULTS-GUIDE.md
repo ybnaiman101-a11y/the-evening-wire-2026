@@ -4,7 +4,7 @@
 
 This branch carries the same member database and owner role as the previous local edition.
 
-**Recommended:** Stop the black server window, download the `live-results-2026` GitHub branch ZIP, choose **Extract All**, open the extracted folder and double-click `INSTALL-LIVE-RESULTS.cmd`. It finds your existing website, checks for the owner-password file, requests a YES confirmation, backs up the original code, and installs **only** three code files (`server.mjs`, `public/index.html`, `live-results.mjs`). Your `private-data` directory is not copied, overwritten or deleted. When prompted type `START` to relaunch.
+**Recommended:** Stop the black server window, download the `live-results-2026` GitHub branch ZIP, choose **Extract All**, open the extracted folder and double-click `INSTALL-LIVE-RESULTS.cmd`. It finds your existing website, checks for the owner-password file, requests a YES confirmation, backs up the original code, and installs **only** four code files (`server.mjs`, `public/index.html`, `live-results.mjs`, `start-local.mjs`). Your `private-data` directory is not copied, overwritten or deleted. When prompted type `START` to relaunch.
 
 If the updater reports multiple websites, select the one with your actual member accounts and most recent database. If there are none, copy your existing website folder location in File Explorer using Ctrl+L then Ctrl+C and paste it into the updater.
 
