@@ -443,7 +443,8 @@ const server=http.createServer(async (req,res)=>{
  }
  return json({error:'Not found'},404);
 });
-server.listen(PORT,'0.0.0.0',()=>{console.log('THE EVENING WIRE listening on '+PORT);runScan();setInterval(runScan,POLL).unref()});
+const HOST=process.env.HOST||'0.0.0.0';
+server.listen(PORT,HOST,()=>{console.log('THE EVENING WIRE listening on '+HOST+':'+PORT);runScan();setInterval(runScan,POLL).unref()});
 
 setTimeout(async()=>{
   for(const kind of ["states","districts"]){
