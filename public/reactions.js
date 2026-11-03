@@ -232,12 +232,15 @@ function wireEvents(){
    renderAll();return
   }
   if(node.dataset.hubRefresh){refresh();return}
+  if(node.dataset.hubRemovePhoto){clearPicture();return}
+  if(node.dataset.hubPhoto){q('hubLightboxImg').src='/api/community/images/'+encodeURIComponent(node.dataset.hubPhoto);q('hubPhotoLightbox').hidden=false;return}
+  if(node.dataset.hubClosePhoto){q('hubPhotoLightbox').hidden=true;q('hubLightboxImg').removeAttribute('src');return}
   if(node.id==='hubNewMessages'){q('hubFeed').scrollTop=q('hubFeed').scrollHeight;unread=0;node.hidden=true;return}
-  if(node.dataset.hubCancel){replyId=null;editId=null;updateReply();q('hubComposer').elements.namedItem('message').value='';q('hubPostSubmit').textContent='SEND MESSAGE';return}
+  if(node.dataset.hubCancel){replyId=null;editId=null;clearPicture();updateReply();q('hubComposer').elements.namedItem('message').value='';q('hubPostSubmit').textContent='SEND MESSAGE';return}
   const id=node.dataset.hubReply||node.dataset.hubEdit||node.dataset.hubDelete||node.dataset.hubReport||node.dataset.hubPin||node.dataset.hubHide||node.dataset.hubReact;
   try{
    if(node.dataset.hubReply){if(!requireMember())return;const p=posts.find(x=>x.id===id);if(!p)return;replyId=p.parent_id||p.id;editId=null;updateReply();focusComposer();return}
-   if(node.dataset.hubEdit){const p=posts.find(x=>x.id===id);if(!p||!member||p.member_id!==member.id)return;editId=id;replyId=null;updateReply();const form=q('hubComposer');form.elements.namedItem('message').value=p.message;form.elements.namedItem('topic').value=p.topic;q('hubPostSubmit').textContent='SAVE EDIT';focusComposer();return}
+   if(node.dataset.hubEdit){clearPicture();const p=posts.find(x=>x.id===id);if(!p||!member||p.member_id!==member.id)return;editId=id;replyId=null;updateReply();const form=q('hubComposer');form.elements.namedItem('message').value=p.message;form.elements.namedItem('topic').value=p.topic;q('hubPostSubmit').textContent='SAVE EDIT';focusComposer();return}
    if(node.dataset.hubReact){if(!requireMember())return;await action(id+'/react',{emoji:node.dataset.emoji});return}
    if(node.dataset.hubDelete){if(!confirm('Delete your message?'))return;await action(id+'/delete');return}
    if(node.dataset.hubReport){if(!requireMember()||!confirm('Report this message to the moderators?'))return;await action(id+'/report');return}
@@ -252,6 +255,12 @@ function wireEvents(){
   if(e.target.id==='hubSearch'){search=e.target.value.trim().slice(0,120);lastSignature='';renderFeed()}
   if(e.target.name==='message'&&e.target.closest('#hubComposer')){const x=q('hubCharCount');if(x)x.textContent=e.target.value.length+' / 700'}
  };
+ host.onchange=async e=>{
+  if(e.target.id!=='hubPhotoFile')return;
+  const file=e.target.files?.[0];if(!file)return;
+  try{feedback('Preparing picture…');const ready=await preparePicture(file);clearPicture();pendingImageData=ready.imageData;pendingImageUrl=ready.imageUrl;showPicturePreview();feedback('Picture attached. Add a caption if you like, then publish.')}
+  catch(err){clearPicture();feedback(String(err.message||err))}
+ };
  host.onsubmit=async e=>{
   if(!shown())return;const form=e.target.closest('form');if(!form)return;
   if(!['hubComposer','hubAnnouncement','hubNewPoll'].includes(form.id))return;
@@ -260,9 +269,10 @@ function wireEvents(){
    const d=new FormData(form);
    if(form.id==='hubComposer'){
     const message=String(d.get('message')||'').trim(),topic=replyId?posts.find(x=>x.id===replyId)?.topic||'general':d.get('topic')||'general';
-    if(editId)await action(editId+'/edit',{message});
-    else await action('posts',{topic,message,parentId:replyId});
-    form.reset();q('hubCharCount').textContent='0 / 700';q('hubPostSubmit').textContent='SEND MESSAGE';replyId=null;editId=null;updateReply();feedback('Message published successfully.')
+    if(!editId&&!pendingImageData&&message.length<8)throw Error('Write at least eight characters or attach a picture.');
+    if(editId){if(pendingImageData)throw Error('Picture uploads are available on new messages.');await action(editId+'/edit',{message})}
+    else await action('posts',{topic,message,parentId:replyId,imageData:pendingImageData});
+    clearPicture();form.reset();q('hubCharCount').textContent='0 / 700';q('hubPostSubmit').textContent='SEND MESSAGE';replyId=null;editId=null;updateReply();feedback('Message published successfully.')
    }else if(form.id==='hubAnnouncement'){
     await action('admin/announcement',{message:d.get('message'),topic:d.get('topic')});form.reset();feedback('Official announcement published.')
    }else{
@@ -281,6 +291,7 @@ async function open(){
  member=sess.user||null;owner=admin.authenticated===true;
  lastSignature='';renderShell();connect();await Promise.all([refresh(),presence()])
 }
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&q('hubPhotoLightbox')&&!q('hubPhotoLightbox').hidden){q('hubPhotoLightbox').hidden=true;q('hubLightboxImg').removeAttribute('src')}});
 setInterval(()=>{if(shown()&&!document.hidden)refresh()},5000);
 setInterval(()=>{if(shown()&&!document.hidden)presence()},30000);
 document.addEventListener('visibilitychange',()=>{if(shown()&&!document.hidden){refresh();presence()}});
