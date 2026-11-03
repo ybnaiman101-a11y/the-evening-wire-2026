@@ -247,7 +247,7 @@ function adminPanel(){
 }
 function renderShell(){
  if(!shown())return;
- host.innerHTML='<div class="hub2">'+
+ host.innerHTML='<div class="hub2 hub4-layout" data-drawer="">'+
  '<header class="hub2-header hub4-header"><div class="hub2-kicker">THE EVENING WIRE · LIVE COMMUNITY</div>'+
  '<h1>THE <span>PULSE</span></h1>'+
  '<p>Post · Reply · React · Share</p>'+
@@ -360,11 +360,11 @@ function renderPolls(){
 }
 function renderRaceCards(){
  const target=q('hubRaceCards'),wrap=q('hubRaceWrap');if(!target||!wrap)return;
- const latest=calls.slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt)).slice(0,3);
- wrap.hidden=latest.length===0;
- target.innerHTML=latest.map(c=>'<div class="hub2-race"><div><strong>'+safe(c.state)+' '+safe(c.office.toUpperCase())+' · '+safe(c.candidate)+'</strong>'+
- '<small>'+safe(c.party==='R'?'REPUBLICAN':c.party==='D'?'DEMOCRAT':'OTHER')+' · OWNER EDITORIAL CALL · NOT OFFICIAL CERTIFICATION</small></div>'+
- '<a href="/#calls">RACE DETAILS ↗</a></div>').join('')
+ const latest=calls.slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt)).slice(0,5);
+ wrap.hidden=false;
+ target.innerHTML=latest.length?latest.map(c=>'<div class="hub2-race hub4-race"><div><strong>'+safe(c.state)+' · '+safe(c.office.toUpperCase())+'</strong><span class="hub4-candidate">'+safe(c.candidate)+'</span>'+
+ '<small class="hub4-party '+safe(c.party)+'">'+safe(c.party==='R'?'REPUBLICAN':c.party==='D'?'DEMOCRAT':'OTHER')+'</small><small> '+safe(clock(c.calledAt))+'</small></div>'+
+ '</div>').join(''):'<p class="hub2-muted">No owner calls published yet.</p>'
 }
 function renderPresence(){/* Presence still works privately; no counter shown in the header. */}
 function updateReply(){
@@ -405,7 +405,7 @@ async function action(path,body){
  const data=await api('/api/community/'+path,'POST',body);
  await refresh();return data
 }
-function focusComposer(){q('hubComposer')?.scrollIntoView({behavior:'smooth',block:'center'});q('hubComposer')?.elements.namedItem('message').focus()}
+function focusComposer(){if(window.matchMedia('(max-width:900px)').matches){const root=host.querySelector('.hub4-layout');if(root)root.dataset.drawer='compose'}else q('hubComposer')?.scrollIntoView({behavior:'smooth',block:'center'});q('hubComposer')?.elements.namedItem('message')?.focus()}
 function wireEvents(){
  if(!shown())return;
  host.onclick=async e=>{
@@ -416,8 +416,11 @@ function wireEvents(){
    room=roomButton.dataset.hubRoom;search='';replyId=null;editId=null;unread=0;previousLatest='';lastSignature='';
    host.querySelectorAll('[data-hub-room]').forEach(x=>x.setAttribute('aria-pressed',String(x===roomButton)));
    q('hubSearch').value='';if(member){q('hubComposer').elements.namedItem('topic').value=room==='all'?'general':room;updateReply()}
-   renderAll();return
+   const root=host.querySelector('.hub4-layout');if(root)root.dataset.drawer='';renderAll();return
   }
+  if(node.dataset.hubMobileOpen){const root=host.querySelector('.hub4-layout');if(root){root.dataset.drawer=node.dataset.hubMobileOpen;const first=root.querySelector(node.dataset.hubMobileOpen==='calls'?'.hub4-right [data-hub-close-drawer]':'.hub4-left [data-hub-close-drawer]');first?.focus()}return}
+  if(node.dataset.hubCloseDrawer){const root=host.querySelector('.hub4-layout');if(root)root.dataset.drawer='';return}
+  if(node.dataset.hubPick){const file={photo:'hubPhotoFile',video:'hubVideoFile',audio:'hubAudioFile'}[node.dataset.hubPick];if(file)q(file)?.click();return}
   if(node.dataset.hubRefresh){refresh();return}
   if(node.dataset.hubRemovePhoto){clearPicture();return}
   if(node.dataset.hubRemoveVideo){clearVideo();return}
@@ -525,6 +528,7 @@ async function open(){
 }
 window.addEventListener('pagehide',clearVoice);
 document.addEventListener('click',e=>{if(e.target.closest('[data-ew-tab]')&&voiceRecorder)clearVoice()},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const root=host.querySelector('.hub4-layout');if(root)root.dataset.drawer=''}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&q('hubPhotoLightbox')&&!q('hubPhotoLightbox').hidden){q('hubPhotoLightbox').hidden=true;q('hubLightboxImg').removeAttribute('src')}});
 setInterval(()=>{if(shown()&&!document.hidden)refresh()},5000);
 setInterval(()=>{if(shown()&&!document.hidden)presence()},30000);
