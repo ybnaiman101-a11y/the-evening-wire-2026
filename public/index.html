@@ -968,11 +968,17 @@ go(active);sync();setInterval(sync,30000);document.addEventListener('visibilityc
  'use strict';
  let signedIn=false,checked=false;
  const previewMode=document.body.dataset.ewReadonlyPreview==='true';
+ const localDatabaseMode=document.body.dataset.ewLocalDatabase==='true';
  const note=document.createElement('div');
  note.className='ew-guest-note';
  note.hidden=true;
  note.innerHTML='You are browsing as a guest. <a href="/login">Sign in or join</a> to use the newsroom tools.';
  document.body.append(note);
+ if(localDatabaseMode){
+  // Local visitors may browse all newsroom tabs; the server authenticates writes.
+  // No public link to this localhost instance is available.
+  return;
+ }
  if(previewMode){
   note.innerHTML='LOCAL PREVIEW · Browsing is enabled. Member sign-in, posting, and admin actions are not available until setup is complete.';
   note.hidden=false;
