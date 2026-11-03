@@ -117,6 +117,7 @@
  function adminContent(){
   if(!admin)return '<h2>OWNER ONLY · ADMIN LOGIN</h2><p>Use your private Races Called administrator password. Public readers cannot see registered members.</p>'+
    '<form id="ewMemberAdminLogin" class="ew-member-form"><label>Owner administrator password'+input('password','password','current-password','Private admin password','required')+'</label>'+
+    '<label class="ew-member-check"><input type="checkbox" name="rememberDevice" checked><span>Remember this trusted owner device for 30 days.</span></label>'+
    '<button class="cmd-primary" type="submit">UNLOCK ADMIN DIRECTORY</button></form>';
   return '<div class="ew-members-head"><h2>REGISTERED READERS</h2><span>'+(memberListLoaded&&!memberFetchError?total+' total':'COUNT UNAVAILABLE')+'</span></div>'+
    (!dbReady?'<p class="ew-members-offline">The member database is not connected. Existing accounts cannot be verified until the connection is restored.</p>':
@@ -164,7 +165,7 @@
   })};
   const adminForm=host.querySelector('#ewMemberAdminLogin');
   if(adminForm)adminForm.onsubmit=e=>{e.preventDefault();perform(async()=>{
-   const d=new FormData(adminForm),data=await request('/api/admin/login','POST',{password:d.get('password')});
+   const d=new FormData(adminForm),data=await request('/api/admin/login','POST',{password:d.get('password'),rememberDevice:d.get('rememberDevice')==='on'});
    admin=data.authenticated===true;status='Owner access confirmed.';await fetchMembers();render()
   })};
   const profile=host.querySelector('#ewProfileForm');
