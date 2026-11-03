@@ -1,0 +1,37 @@
+name: Public electionhub2026 deployment safeguards
+on:
+  push:
+    branches: [public-electionhub2026]
+  pull_request:
+    branches: [public-electionhub2026]
+permissions:
+  contents: read
+jobs:
+  public-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: 'true'
+      EW_LIVE_RESULTS_DISABLE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Validate JavaScript
+        run: |
+          for source in *.mjs public/*.js test/*.mjs; do node --check "$source"; done
+      - name: Public entrypoint refuses to launch without new owner password
+        run: |
+          if NODE_ENV=production node start-public.mjs > /tmp/production-preflight.log 2>&1; then
+            echo "ERROR: Public server started without required password and database!"
+            exit 1
+          fi
+          grep 'PUBLIC_LAUNCH_BLOCKED' /tmp/production-preflight.log
+      - name: Test live feeds and webpage JavaScript
+        run: node --test test/live-results.test.mjs test/ui-inline.test.mjs
+      - name: Test local database remains functional and not overwritten
+        run: node test/local-database-smoke.mjs
+      - name: Check dependency vulnerabilities
+        run: npm audit --omit=dev --audit-level=high
