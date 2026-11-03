@@ -51,10 +51,10 @@ export async function communityRoute(req,res,path){
    respond(res,200,{ready:true,posts:detailed.map(p=>({...p,member_id:member?p.member_id:null}))});return true
   }
   if(route==='posts'&&req.method==='POST'){
-   if(!rate(req,3,600000)){respond(res,429,{error:'Limit: three posts per ten minutes'});return true}
+   if(!rate(req,20,600000)){respond(res,429,{error:'Posting limit reached (20 messages per ten minutes). Try again shortly.'});return true}
    const x=await input(req,23000000),name=member.displayName.slice(0,30),message=String(x.message||'').trim(),topic=String(x.topic||'general'),parent=typeof x.parentId==='string'&&/^[0-9a-f-]{36}$/.test(x.parentId)?x.parentId:null;
    let image,audio,video;try{image=decodeCommunityImage(x.imageData);audio=decodeCommunityAudio(x.audioData);video=decodeCommunityVideo(x.videoData)}catch(err){respond(res,400,{error:err.message});return true}
-   if(message.length>700||(!image&&!audio&&!video&&message.length<8)||!topics.has(topic)||/https?:\/\/|www\./i.test(message)){respond(res,400,{error:'Write 8–700 characters, or attach a picture, video, or voice note with an optional caption. No external links.'});return true}
+   if(message.length>700||(!image&&!audio&&!video&&message.length<1)||!topics.has(topic)||/https?:\/\/|www\./i.test(message)){respond(res,400,{error:'Write a message of 1–700 characters, or attach a picture, video, or voice note. No external links.'});return true}
    if(parent){
     // Recursive ancestry permits replies to replies, while limiting depth.
     const q=await pool.query("WITH RECURSIVE ancestry AS (SELECT id,parent_id,topic,1 AS depth FROM community_posts WHERE id=$1 AND status='visible' UNION ALL SELECT p.id,p.parent_id,p.topic,a.depth+1 FROM community_posts p JOIN ancestry a ON a.parent_id=p.id WHERE p.status='visible' AND a.depth<13) SELECT depth,parent_id,topic FROM ancestry ORDER BY depth DESC LIMIT 1",[parent]);
@@ -90,8 +90,8 @@ export async function communityRoute(req,res,path){
    // Member ID is taken from the signed-in session, never supplied by the client.
    if(!rate(req,12,600000)){respond(res,429,{error:'Too many message edits. Try again shortly.'});return true}
    const x=await input(req),message=String(x.message||'').trim();
-   if(message.length<8||message.length>700||/https?:\/\/|www\./i.test(message)){
-    respond(res,400,{error:'Write 8–700 characters without links.'});return true
+   if(message.length<1||message.length>700||/https?:\/\/|www\./i.test(message)){
+    respond(res,400,{error:'Write 1–700 characters without links.'});return true
    }
    const updated=await pool.query("UPDATE community_posts SET message=$1,edited_at=now() WHERE id=$2 AND member_id=$3 AND status='visible' RETURNING id",[message,edit[1],member.id]);
    if(!updated.rowCount){respond(res,403,{error:'You can only edit your own visible messages.'});return true}
