@@ -1,8 +1,9 @@
 import {randomBytes,createHash,timingSafeEqual} from 'node:crypto';
 import {readFile,writeFile,rename} from 'node:fs/promises';
-import {Pool} from 'pg';
+import {Pool} from './local-db-pool.mjs';
 import {postgresTLS,postgresConnectionString} from './postgres-tls.mjs';
 const passwordHash=String(process.env.EW_ADMIN_PASSWORD_SHA256||'').toLowerCase();
+const cookieSecure=process.env.EW_LOCAL_DATABASE==='1'?'':'; Secure';
 const db=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
 const file='/tmp/ew-race-calls.json',sessions=new Map(),failures=new Map();
 const codes='AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' ');
@@ -80,7 +81,7 @@ export async function editorRoute(req,res,path){
    try{await pool.query("INSERT INTO ew_editor_sessions(token_hash,expires_at) VALUES($1,now()+interval '12 hours')",[createHash('sha256').update(key).digest('hex')])}
    catch(err){console.error('EW_ADMIN_SESSION_SAVE_FAILED',String(err.message||err));send(res,503,{error:'Unable to save your secure administrator session. Please retry.'});return true}
   }else sessions.set(key,n+43200000);
-  send(res,200,{authenticated:true,...meta(),count:calls.length},{'Set-Cookie':'ew_editor_session='+key+'; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=43200'});return true;
+  send(res,200,{authenticated:true,...meta(),count:calls.length},{'Set-Cookie':'ew_editor_session='+key+'; HttpOnly'+cookieSecure+'; SameSite=Strict; Path=/; Max-Age=43200'});return true;
  }
  if(route==='logout'&&req.method==='POST'){
   const k=(String(req.headers.cookie||'').match(/ew_editor_session=([a-f0-9]{64})/)||[])[1];
