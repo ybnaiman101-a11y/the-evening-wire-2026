@@ -721,7 +721,7 @@ function liveNumbersBoard(office){
  const reporting=(results.races||[]).filter(r=>r.office===office&&r.totalVotes>0);
  const online=(results.liveSources||[]).filter(s=>s.connected).map(s=>s.name);
  const display=reporting.slice().sort((a,b)=>b.totalVotes-a.totalVotes).slice(0,12);
- const head='<section class="ew-live-numbers"><div class="ew-live-numbers-head"><div><small>THE EVENING WIRE / AUTOMATIC COUNTING DESK</small><h3>LIVE '+esc(office.toUpperCase())+' VOTE TOTALS</h3><p>'+reporting.length+' races reporting'</p></div><span>NUMBERS ONLY · NO AUTOMATIC CALLS</span></div>';
+ const head='<section class="ew-live-numbers"><div class="ew-live-numbers-head"><div><small>THE EVENING WIRE / AUTOMATIC COUNTING DESK</small><h3>LIVE '+esc(office.toUpperCase())+' VOTE TOTALS</h3><p>'+reporting.length+' races reporting</p></div><span>NUMBERS ONLY · NO AUTOMATIC CALLS</span></div>';
  if(!display.length)return head+'<p class="ew-live-waiting">Awaiting reported votes.</p></section>';
  return head+'<div class="ew-live-number-grid">'+display.map(r=>{
   const top=r.candidates.slice().sort((a,b)=>(b.votes||0)-(a.votes||0)).slice(0,3);
