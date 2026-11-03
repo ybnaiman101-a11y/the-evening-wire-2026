@@ -137,6 +137,27 @@ try{
  const audioPartial=await fetch(base+'/api/community/audio/'+media.data.audioId,{headers:{Range:'bytes=0-3'}});
  assert.equal(audioPartial.status,206,'Audio can seek with byte-range requests');
 
+ const mp3Bytes=Buffer.concat([Buffer.from('ID3'),Buffer.alloc(40)]);
+ const mp3=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
+  topic:'general',message:'',audioData:'data:audio/mpeg;base64,'+mp3Bytes.toString('base64')
+ }});
+ assert.equal(mp3.code,201,'MP3 upload is accepted as a voice-note fallback');
+ const reply1=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
+  topic:'general',message:'First reply',parentId:reaction.data.id
+ }});
+ assert.equal(reply1.code,201,'First reply works');
+ const reply2=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
+  topic:'general',message:'Nested reply',parentId:reply1.data.id
+ }});
+ assert.equal(reply2.code,201,'Reply to a reply works');
+ const reply3=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
+  topic:'general',message:'Third-level bubble',parentId:reply2.data.id
+ }});
+ assert.equal(reply3.code,201,'Deeply nested replies work');
+ const nested=await call('/api/community/posts');
+ assert.equal(nested.data.posts.find(p=>p.id===reply3.data.id)?.parent_id,reply2.data.id);
+ const nestedReact=await call('/api/community/'+reply3.data.id+'/react',{method:'POST',cookie:memberCookie,body:{emoji:'love'}});
+ assert.equal(nestedReact.code,200,'Each small reply bubble accepts reactions');
  const invalidAudio=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
   topic:'general',message:'Invalid voice note should be rejected',audioData:'data:audio/webm;base64,'+imgBytes.toString('base64')
  }});
