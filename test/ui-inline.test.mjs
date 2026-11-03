@@ -27,3 +27,18 @@ test('The Pulse supports clipboard images and a full-page reading layout',()=>{
  assert.match(css,/max-height:none!important/);
  assert.match(html,/body\[data-ew-view="reactions"\] #commandDesk/);
 });
+
+test('THE PULSE is reachable immediately from the masthead and first navigation position',()=>{
+ assert.match(html,/class="ew-pulse-quick" data-ew-pulse-shortcut="1"/);
+ assert.match(html,/<nav class="command-nav"[^>]*><button[^>]*data-ew-tab="reactions"/);
+ assert.match(html,/data-ew-pulse-shortcut.*addEventListener\('click',\(\)=>go\('reactions'\)\)/);
+});
+test('voice notes remain in processing state until browser audio conversion completes',()=>{
+ const app=readFileSync(new URL('../public/reactions.js',import.meta.url),'utf8');
+ assert.doesNotThrow(()=>new Script(app,{filename:'public/reactions.js'}));
+ assert.match(app,/voiceProcessing=true;voiceButtons\(\)/);
+ assert.match(app,/finally\{voiceProcessing=false;voiceButtons\(\)\}/);
+ assert.match(app,/voiceRecorder\|\|voiceProcessing/);
+ assert.match(app,/if\(voiceRecorder\|\|voiceProcessing\)throw Error/);
+ assert.match(app,/class="hub2-panel hub2-composer"/);
+});
