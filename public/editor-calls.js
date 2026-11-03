@@ -149,7 +149,7 @@ function view(){
   '<button type="button" id="ewCloseEditor" class="cmd-minibtn">CLOSE ✕</button></div>'+
   (!meta.configured?'<p class="cmd-notice">Administrator password is not configured.</p>':!logged?
    '<form id="ewEditorLogin" class="ew-admin-login"><label>OWNER ADMIN PASSWORD<input name="password" type="password" autocomplete="current-password" required></label>'+
-   '<button type="submit" class="cmd-primary">UNLOCK RACE CALL DESK</button></form>':
+   '<label class="ew-check-inline"><input type="checkbox" name="rememberDevice" checked> Remember this trusted device for 30 days</label>'+'<button type="submit" class="cmd-primary">UNLOCK RACE CALL DESK</button></form>':
   warning+'<form id="ewCallForm" class="ew-call-form">'+
   '<div class="ew-form-grid"><label>1. OFFICE<select name="office"><option value="senate">U.S. SENATE · 35</option><option value="house">U.S. HOUSE · 435</option><option value="governor">GOVERNORS · 36</option></select></label>'+
   '<label>2. STATE<select name="state"></select></label>'+
@@ -173,7 +173,7 @@ function view(){
   if(form)form.onsubmit=async e=>{
    e.preventDefault();
    try{
-    const result=await api('/api/admin/login','POST',{password:form.elements.namedItem('password').value});
+    const result=await api('/api/admin/login','POST',{password:form.elements.namedItem('password').value,rememberDevice:form.elements.namedItem('rememberDevice').checked});
     logged=result.authenticated===true;meta=result;
     await window.EWRaceCatalogPromise;await load();status='Owner verified. Choose a race and its winner.';view();
    }catch(err){status=err.message;q('ewEditorStatus').textContent=status}

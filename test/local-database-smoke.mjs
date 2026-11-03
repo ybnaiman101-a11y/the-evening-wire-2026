@@ -74,6 +74,7 @@ try{
  assert.equal(signedIn.data.authenticated,true);
  const ownerCookie=signedIn.cookie;
  assert.match(ownerCookie,/^ew_editor_session=/);
+ assert.match(signedIn.setCookie,/Max-Age=2592000/,'Owner remembered login lasts 30 days on trusted devices');
  const ownerCheck=await call('/api/admin/session',{cookie:ownerCookie});
  assert.equal(ownerCheck.data.authenticated,true);
  const member=await call('/api/members/signup',{method:'POST',body:{
@@ -100,6 +101,33 @@ try{
  const readReactions=await call('/api/community/posts',{cookie:memberCookie});
  assert.equal(readReactions.code,200,'Reaction reading: '+JSON.stringify(readReactions.data));
  assert.equal(readReactions.data.posts.some(p=>p.id===reaction.data.id),true);
+ const imgBytes=Buffer.concat([Buffer.from([0xff,0xd8,0xff,0xe0]),Buffer.alloc(36)]);
+ const audBytes=Buffer.concat([Buffer.from([0x1a,0x45,0xdf,0xa3]),Buffer.alloc(40)]);
+ const media=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
+  topic:'general',message:'',imageData:'data:image/jpeg;base64,'+imgBytes.toString('base64'),
+  audioData:'data:audio/webm;codecs=opus;base64,'+audBytes.toString('base64')
+ }});
+ assert.equal(media.code,201,'Member can post a photo and voice note without text: '+JSON.stringify(media.data));
+ assert.match(media.data.imageId,/^[0-9a-f-]{36}$/);
+ assert.match(media.data.audioId,/^[0-9a-f-]{36}$/);
+ const mediaFeed=await call('/api/community/posts');
+ const visibleMedia=mediaFeed.data.posts.find(p=>p.id===media.data.id);
+ assert.equal(visibleMedia?.image_id,media.data.imageId,'Image attached to permanent post');
+ assert.equal(visibleMedia?.audio_id,media.data.audioId,'Voice note attached to permanent post');
+ const photoResponse=await fetch(base+'/api/community/images/'+media.data.imageId);
+ assert.equal(photoResponse.status,200,'Public photo served from Postgres');
+ assert.equal(photoResponse.headers.get('content-type'),'image/jpeg');
+ assert.deepEqual(Buffer.from(await photoResponse.arrayBuffer()),imgBytes);
+ const audioResponse=await fetch(base+'/api/community/audio/'+media.data.audioId);
+ assert.equal(audioResponse.status,200,'Public voice note served from Postgres');
+ assert.equal(audioResponse.headers.get('content-type'),'audio/webm');
+ assert.deepEqual(Buffer.from(await audioResponse.arrayBuffer()),audBytes);
+ const invalidAudio=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{
+  topic:'general',message:'Invalid voice note should be rejected',audioData:'data:audio/webm;base64,'+imgBytes.toString('base64')
+ }});
+ assert.equal(invalidAudio.code,400,'Invalid audio byte signatures rejected');
+ const guestPost=await call('/api/community/posts',{method:'POST',body:{topic:'general',message:'Guests cannot post content.'}});
+ assert.equal(guestPost.code,401,'Posting requires a member account');
  // New rooms are readable without membership; member actions remain protected.
  const publicPosts=await call('/api/community/posts');
  assert.equal(publicPosts.code,200,'Guest can read the public conversation');
@@ -129,6 +157,12 @@ try{
  assert.equal(hide.code,200,'Owner can moderate messages');
  const afterHide=await call('/api/community/posts');
  assert.equal(afterHide.data.posts.some(p=>p.id===reaction.data.id),false);
+ const hideMedia=await call('/api/community/admin/posts/'+media.data.id+'/hide',{method:'POST',cookie:ownerCookie});
+ assert.equal(hideMedia.code,200,'Owner can hide media posts');
+ const hiddenPhoto=await fetch(base+'/api/community/images/'+media.data.imageId);
+ assert.equal(hiddenPhoto.status,404,'Hidden photos no longer served');
+ const hiddenAudio=await fetch(base+'/api/community/audio/'+media.data.audioId);
+ assert.equal(hiddenAudio.status,404,'Hidden voice notes no longer served');
  const optionalSource=await call('/api/admin/calls',{method:'POST',cookie:ownerCookie,body:{
   office:'senate',state:'TX',candidate:'Example Election Test Candidate',party:'R',sourceName:'',sourceUrl:'',confirm:true
  }});

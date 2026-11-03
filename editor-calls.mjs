@@ -6,6 +6,8 @@ const passwordHash=String(process.env.EW_ADMIN_PASSWORD_SHA256||'').toLowerCase(
 const cookieSecure=process.env.EW_LOCAL_DATABASE==='1'?'':'; Secure';
 const db=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
 const file='/tmp/ew-race-calls.json',sessions=new Map(),failures=new Map();
+const ownerRememberSeconds=30*24*60*60;
+const ownerCookie=(key,seconds)=>'ew_editor_session='+key+'; HttpOnly'+cookieSecure+'; SameSite=Strict; Path=/; Max-Age='+seconds;
 const codes='AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' ');
 const nums=[7,1,9,4,52,8,5,1,28,14,2,2,17,9,4,4,6,6,2,8,9,13,8,4,8,2,3,4,2,12,3,26,14,1,15,5,6,17,2,7,1,9,38,4,1,11,10,2,8,1];
 const districts=Object.fromEntries(codes.map((c,i)=>[c,nums[i]]));
@@ -17,13 +19,20 @@ function send(res,code,data,headers={}){res.writeHead(code,{'Content-Type':'appl
 function meta(){return {configured:/^[a-f0-9]{64}$/.test(passwordHash),storage:store,persistent:store==='postgresql',warning:store==='temporary'?'Temporary server storage: calls may disappear after a restart or redeployment. Export backups until PostgreSQL is connected.':null}}
 const snapshot=()=>({version:1,calls,audit});
 export async function isEditorAdmin(req){await init;return current(req)}
-async function current(req){
+async function current(req,res=null){
  const key=(String(req.headers.cookie||'').match(/(?:^|;\s*)ew_editor_session=([a-f0-9]{64})(?:;|$)/)||[])[1];
  if(!key)return false;
  if(store==='postgresql'){
   try{
-   const row=await pool.query("SELECT 1 FROM ew_editor_sessions WHERE token_hash=$1 AND expires_at>now() LIMIT 1",[createHash('sha256').update(key).digest('hex')]);
-   return row.rowCount>0;
+   const hashed=createHash('sha256').update(key).digest('hex');
+   const result=await pool.query("SELECT remembered,last_seen_at FROM ew_editor_sessions WHERE token_hash=$1 AND expires_at>now() LIMIT 1",[hashed]);
+   if(!result.rowCount)return false;
+   const row=result.rows[0];
+   if(res&&row.remembered&&Date.now()-new Date(row.last_seen_at).getTime()>12*3600000){
+    await pool.query("UPDATE ew_editor_sessions SET expires_at=now()+interval '30 days',last_seen_at=now() WHERE token_hash=$1 AND expires_at>now()",[hashed]);
+    res.setHeader('Set-Cookie',ownerCookie(key,ownerRememberSeconds));
+   }
+   return true;
   }catch(err){console.warn('EW_ADMIN_SESSION_CHECK_FAILED',String(err.message||err));return false}
  }
  const expiry=sessions.get(key);return !!expiry&&expiry>Date.now();
@@ -55,6 +64,8 @@ const init=(async()=>{
   pool=new Pool({connectionString:postgresConnectionString(db),max:3,connectionTimeoutMillis:8000,ssl:postgresTLS(db)});
   await pool.query('CREATE TABLE IF NOT EXISTS ew_editor_state(id integer PRIMARY KEY,data jsonb NOT NULL)');
   await pool.query('CREATE TABLE IF NOT EXISTS ew_editor_sessions(token_hash varchar(64) PRIMARY KEY,expires_at timestamptz NOT NULL)');
+  await pool.query('ALTER TABLE ew_editor_sessions ADD COLUMN IF NOT EXISTS remembered boolean NOT NULL DEFAULT false');
+  await pool.query('ALTER TABLE ew_editor_sessions ADD COLUMN IF NOT EXISTS last_seen_at timestamptz NOT NULL DEFAULT now()');
   const result=await pool.query('SELECT data FROM ew_editor_state WHERE id=1'),saved=result.rows[0]?.data;
   if(Array.isArray(saved?.calls)){calls=saved.calls;audit=Array.isArray(saved.audit)?saved.audit:[]}
   store='postgresql';console.log('EW_EDITOR_DB_READY total='+calls.length);return;
@@ -68,7 +79,7 @@ export function publicMeta(){return meta()}
 export async function editorRoute(req,res,path){
  if(path==='/api/editor/calls'){await init;send(res,200,{...meta(),calls:publicCalls()});return true}
  if(!path.startsWith('/api/admin/'))return false;
- await init;const route=path.slice('/api/admin/'.length),authed=await current(req);
+ await init;const route=path.slice('/api/admin/'.length),authed=await current(req,route==='session'?res:null);
  if(route==='session'&&req.method==='GET'){send(res,200,{authenticated:authed,...meta(),count:calls.length});return true}
  if(!secureOrigin(req)){send(res,403,{error:'Origin not allowed'});return true}
  if(route==='login'&&req.method==='POST'){
@@ -76,12 +87,12 @@ export async function editorRoute(req,res,path){
   if(last&&n-last.start<900000&&last.count>=6){send(res,429,{error:'Too many attempts. Try again later.'});return true}
   let b;try{b=await input(req,1500)}catch(e){send(res,400,{error:e.message});return true}
   if(!validPassword(b.password)){const f=last&&n-last.start<900000?last:{start:n,count:0};f.count++;failures.set(address,f);send(res,401,{error:'Incorrect administrator password'});return true}
-  failures.delete(address);const key=randomBytes(32).toString('hex');
+  failures.delete(address);const key=randomBytes(32).toString('hex'),remembered=b.rememberDevice!==false,seconds=remembered?ownerRememberSeconds:43200;
   if(store==='postgresql'){
-   try{await pool.query("INSERT INTO ew_editor_sessions(token_hash,expires_at) VALUES($1,now()+interval '12 hours')",[createHash('sha256').update(key).digest('hex')])}
+   try{await pool.query("INSERT INTO ew_editor_sessions(token_hash,expires_at,remembered) VALUES($1,now()+($2 * interval '1 second'),$3)",[createHash('sha256').update(key).digest('hex'),seconds,remembered])}
    catch(err){console.error('EW_ADMIN_SESSION_SAVE_FAILED',String(err.message||err));send(res,503,{error:'Unable to save your secure administrator session. Please retry.'});return true}
-  }else sessions.set(key,n+43200000);
-  send(res,200,{authenticated:true,...meta(),count:calls.length},{'Set-Cookie':'ew_editor_session='+key+'; HttpOnly'+cookieSecure+'; SameSite=Strict; Path=/; Max-Age=43200'});return true;
+  }else sessions.set(key,n+seconds*1000);
+  send(res,200,{authenticated:true,...meta(),count:calls.length,remembered},{'Set-Cookie':ownerCookie(key,seconds)});return true;
  }
  if(route==='logout'&&req.method==='POST'){
   const k=(String(req.headers.cookie||'').match(/ew_editor_session=([a-f0-9]{64})/)||[])[1];
