@@ -1,0 +1,42 @@
+name: Windows self-host preview checks
+on:
+  push:
+    branches: [windows-self-host-prep]
+  pull_request:
+    branches: [windows-self-host-prep]
+permissions:
+  contents: read
+jobs:
+  local-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install production dependencies
+        run: npm install --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: JavaScript syntax validation
+        run: |
+          for source in *.mjs public/*.js; do
+            node --check "$source"
+          done
+      - name: Database TLS unit tests
+        run: node --test test/recovery.test.mjs
+      - name: Confirm localhost-only read-only preview works
+        run: |
+          HOST=127.0.0.1 PORT=3999 NODE_ENV=development EW_READ_ONLY_PREVIEW=1 node server.mjs > /tmp/ew-local-preview.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          ok=0
+          for i in $(seq 1 20); do
+            if curl --max-time 3 -fsS http://127.0.0.1:3999/health > /tmp/ew-health.json; then ok=1; break; fi
+            sleep 1
+          done
+          if [ "$ok" != "1" ]; then cat /tmp/ew-local-preview.log; exit 1; fi
+          curl -fsS http://127.0.0.1:3999/ | grep -qi 'EVENING WIRE'
+          curl --max-time 5 -fsS http://127.0.0.1:3999/about-security > /dev/null
+          status=$(curl --max-time 5 -s -o /tmp/ew-post-response -w "%{http_code}" -X POST http://127.0.0.1:3999/api/members/login)
+          [ "$status" = "403" ] || { echo "Expected login to be disabled, got HTTP $status"; exit 1; }
+      - name: Check dependencies
+        run: npm audit --omit=dev --audit-level=high
