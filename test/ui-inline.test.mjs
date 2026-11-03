@@ -28,11 +28,14 @@ test('The Pulse supports clipboard images and a full-page reading layout',()=>{
  assert.match(html,/body\[data-ew-view="reactions"\] #commandDesk/);
 });
 
-test('THE PULSE is reachable immediately from the masthead and first navigation position',()=>{
- assert.match(html,/class="ew-pulse-quick" data-ew-pulse-shortcut="1"/);
- assert.match(html,/<nav class="command-nav"[^>]*><button[^>]*data-ew-tab="reactions"/);
- assert.match(html,/data-ew-pulse-shortcut.*addEventListener\('click',\(\)=>go\('reactions'\)\)/);
+test('THE PULSE stays in primary navigation with no misleading number',()=>{
+ assert.match(html,/class="command-nav command-nav-v4"/);
+ assert.match(html,/data-ew-tab="reactions"/);
+ assert.match(html,/class="ew-v4-nav-link ew-v4-pulse"/);
+ assert.match(html,/id="ewV4MoreButton"/);
+ assert.doesNotMatch(html,/data-ew-tab="reactions"[^<]*<span class="num">/);
 });
+
 test('voice notes remain in processing state until browser audio conversion completes',()=>{
  const app=readFileSync(new URL('../public/reactions.js',import.meta.url),'utf8');
  assert.doesNotThrow(()=>new Script(app,{filename:'public/reactions.js'}));
