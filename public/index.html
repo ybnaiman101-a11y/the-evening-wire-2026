@@ -967,11 +967,17 @@ go(active);sync();setInterval(sync,30000);document.addEventListener('visibilityc
 (function(){
  'use strict';
  let signedIn=false,checked=false;
+ const previewMode=document.body.dataset.ewReadonlyPreview==='true';
  const note=document.createElement('div');
  note.className='ew-guest-note';
  note.hidden=true;
  note.innerHTML='You are browsing as a guest. <a href="/login">Sign in or join</a> to use the newsroom tools.';
  document.body.append(note);
+ if(previewMode){
+  note.innerHTML='LOCAL PREVIEW · Browsing is enabled. Member sign-in, posting, and admin actions are not available until setup is complete.';
+  note.hidden=false;
+  return;
+ }
  const refresh=async()=>{
   try{const r=await fetch('/api/members/session',{credentials:'same-origin',cache:'no-store'});const data=await r.json();signedIn=!!data.user}
   catch{signedIn=false}
