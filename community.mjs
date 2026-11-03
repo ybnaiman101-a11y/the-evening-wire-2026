@@ -2,6 +2,7 @@ import {Pool} from './local-db-pool.mjs';
 import {postgresTLS,postgresConnectionString} from './postgres-tls.mjs';
 import {temporaryCommunityRoute} from './community-temp.mjs';
 import {authenticatedMember} from './members.mjs';
+import {setupCommunityV2,addHubPostDetails,communityV2Route,announceHubUpdate} from './community-v2.mjs';
 import {randomUUID,createHash,timingSafeEqual} from 'node:crypto';
 const connection=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
 const adminSecret=process.env.REACTION_ADMIN_TOKEN||'';
@@ -23,6 +24,7 @@ async function setup(){
   await pool.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS edited_at timestamptz");
   await pool.query("CREATE INDEX IF NOT EXISTS ew_community_parent_idx ON community_posts(parent_id)");
   await pool.query("CREATE TABLE IF NOT EXISTS community_reports(post_id uuid NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,member_id uuid NOT NULL REFERENCES ew_members(id),PRIMARY KEY(post_id,member_id))");
+  await setupCommunityV2(pool);
   ready=true;console.log('REACTION_HUB_DATABASE_CONNECTED');
  }catch(e){ready=false;console.warn('Reaction DB not ready:',e.message);await pool?.end().catch(()=>{});pool=null}
 }
@@ -34,14 +36,19 @@ export async function communityRoute(req,res,path){
  const route=path.slice('/api/community/'.length);
  const member=await authenticatedMember(req);
  if(route==='health'&&req.method==='GET'&&connection){respond(res,200,{ready,configured:true,postingEnabled:ready,storage:'postgresql'});return true}
- if(!member){respond(res,401,{error:'Sign in to view and post reactions.'});return true}
+ const publicReading=req.method==='GET'&&['posts','polls','presence','stream'].includes(route);
+ const ownerAction=route.startsWith('admin/');
+ if(!member&&!publicReading&&!ownerAction){respond(res,401,{error:'Sign in to participate in discussions.'});return true}
+ if(req.method==='POST'&&req.headers.origin&&!['https://'+req.headers.host,'http://'+req.headers.host].includes(req.headers.origin)){respond(res,403,{error:'Origin not allowed'});return true}
  if(!connection){respond(res,503,{error:'Discussion requires PostgreSQL storage'});return true}
  if(!ready){respond(res,503,{ready:false,error:'Permanent database is configured but not yet available'});return true}
  try{
+  if(await communityV2Route(req,res,route,pool,member))return true;
   if(route==='posts'&&req.method==='GET'){
    const topic=new URL(req.url,'http://localhost').searchParams.get('topic');
-   const q=await pool.query("SELECT p.id,COALESCE(m.display_name,p.name) AS name,p.topic,p.message,p.created_at,p.edited_at,p.likes,p.parent_id,p.member_id,COALESCE((SELECT count(*)::int FROM community_posts replies WHERE replies.parent_id=p.id AND replies.status='visible'),0) AS reply_count FROM community_posts p LEFT JOIN ew_members m ON p.member_id=m.id WHERE p.status='visible' AND ($1::text IS NULL OR p.topic=$1) ORDER BY p.created_at DESC LIMIT 350",[topics.has(topic)?topic:null]);
-   respond(res,200,{ready:true,posts:q.rows});return true
+   const q=await pool.query("SELECT p.id,COALESCE(m.display_name,p.name) AS name,p.topic,p.message,p.created_at,p.edited_at,p.likes,p.parent_id,p.member_id,p.pinned,p.official,COALESCE((SELECT count(*)::int FROM community_posts replies WHERE replies.parent_id=p.id AND replies.status='visible'),0) AS reply_count FROM community_posts p LEFT JOIN ew_members m ON p.member_id=m.id WHERE p.status='visible' AND ($1::text IS NULL OR p.topic=$1) ORDER BY p.pinned DESC,p.created_at DESC LIMIT 350",[topics.has(topic)?topic:null]);
+   const detailed=await addHubPostDetails(pool,q.rows,member);
+   respond(res,200,{ready:true,posts:detailed.map(p=>({...p,member_id:member?p.member_id:null}))});return true
   }
   if(route==='posts'&&req.method==='POST'){
    if(!rate(req,3,600000)){respond(res,429,{error:'Limit: three posts per ten minutes'});return true}
@@ -51,7 +58,7 @@ export async function communityRoute(req,res,path){
     const q=await pool.query("SELECT id,topic,parent_id FROM community_posts WHERE id=$1 AND status='visible'",[parent]);
     if(!q.rowCount||q.rows[0].topic!==topic||q.rows[0].parent_id){respond(res,400,{error:'Replies must be to an existing top-level message in the same category.'});return true}
    }
-   const id=randomUUID();await pool.query('INSERT INTO community_posts(id,name,topic,message,member_id,parent_id) VALUES($1,$2,$3,$4,$5,$6)',[id,name,topic,message,member.id,parent]);respond(res,201,{ok:true,id});return true
+   const id=randomUUID();await pool.query('INSERT INTO community_posts(id,name,topic,message,member_id,parent_id) VALUES($1,$2,$3,$4,$5,$6)',[id,name,topic,message,member.id,parent]);announceHubUpdate('messages');respond(res,201,{ok:true,id});return true
   }
   const edit=route.match(/^([a-f0-9-]{36})\/edit$/);
   if(edit&&req.method==='POST'){
@@ -63,7 +70,7 @@ export async function communityRoute(req,res,path){
    }
    const updated=await pool.query("UPDATE community_posts SET message=$1,edited_at=now() WHERE id=$2 AND member_id=$3 AND status='visible' RETURNING id",[message,edit[1],member.id]);
    if(!updated.rowCount){respond(res,403,{error:'You can only edit your own visible messages.'});return true}
-   respond(res,200,{ok:true,id:updated.rows[0].id});return true
+   announceHubUpdate('messages');respond(res,200,{ok:true,id:updated.rows[0].id});return true
   }
   const like=route.match(/^([a-f0-9-]{36})\/like$/);
   if(like&&req.method==='POST'){
@@ -71,14 +78,14 @@ export async function communityRoute(req,res,path){
    const memberFingerprint=createHash('sha256').update(member.id).digest('hex').slice(0,24);
    const q=await pool.query('INSERT INTO community_likes(post_id,visitor) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING post_id',[like[1],memberFingerprint]);
    if(q.rowCount)await pool.query('UPDATE community_posts SET likes=likes+1 WHERE id=$1',[like[1]]);
-   respond(res,200,{ok:true});return true
+   announceHubUpdate('messages');respond(res,200,{ok:true});return true
   }
   const report=route.match(/^([a-f0-9-]{36})\/report$/);
   if(report&&req.method==='POST'){
    if(!rate(req,5,3600000)){respond(res,429,{error:'Rate limited'});return true}
    const inserted=await pool.query("INSERT INTO community_reports(post_id,member_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING post_id",[report[1],member.id]);
    if(inserted.rowCount)await pool.query("UPDATE community_posts SET reports=reports+1,status=CASE WHEN reports>=2 THEN 'hidden' ELSE status END WHERE id=$1",[report[1]]);
-   respond(res,200,{ok:true});return true
+   announceHubUpdate('messages');respond(res,200,{ok:true});return true
   }
   const moderation=route.match(/^admin\/([a-f0-9-]{36})\/(hide|restore)$/);
   if(moderation&&req.method==='POST'){
