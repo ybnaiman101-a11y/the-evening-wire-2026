@@ -364,7 +364,7 @@ const server=http.createServer(async (req,res)=>{
  const adminEndpoint=u.pathname.startsWith('/api/admin/');
  // Routes which validate their own owner session must be reachable without a
  // separate ordinary member login. The route still checks its authorization.
- const delegatedAuth=u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')||u.pathname.startsWith('/api/challenge');
+ const delegatedAuth=u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')||u.pathname.startsWith('/api/challenge')||u.pathname.startsWith('/api/community/admin/');
  if(!visitor && !(publicRead||publicAsset||adminEndpoint||delegatedAuth)){
   return json({error:'Sign in or register to use this feature',login:'/login'},401);
  }
