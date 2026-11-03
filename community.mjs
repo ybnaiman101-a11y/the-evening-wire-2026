@@ -1,4 +1,4 @@
-import {Pool} from 'pg';
+import {Pool} from './local-db-pool.mjs';
 import {postgresTLS,postgresConnectionString} from './postgres-tls.mjs';
 import {temporaryCommunityRoute} from './community-temp.mjs';
 import {authenticatedMember} from './members.mjs';
