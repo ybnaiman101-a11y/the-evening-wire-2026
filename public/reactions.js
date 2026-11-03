@@ -267,7 +267,7 @@ function renderShell(){
  '<section id="hubRaceWrap" class="hub2-panel hub4-race-panel"><div class="hub4-sidebar-title"><span>✓</span><h2>RACES CALLED</h2></div><div id="hubRaceCards"></div><a class="hub4-all-calls" href="/#calls">VIEW ALL RACE CALLS</a></section>'+ 
  '<div class="hub2-panel hub4-polls-panel"><div class="hub2-label">COMMUNITY</div><h2>LIVE POLLS</h2>'+
  '<p class="hub2-muted">Member opinions · Not election results</p>'+
- '<div id="hubPolls"></div></div></aside></div><button type="button" class="hub4-drawer-backdrop" data-hub-close-drawer="1" aria-label="Close sidebar" hidden></button><div id="hubPhotoLightbox" class="hub2-photo-lightbox" hidden role="dialog" aria-label="View conversation photo"><button type="button" data-hub-close-photo="1">✕ CLOSE</button><img id="hubLightboxImg" alt="Larger message picture"></div></div>';
+ '<div id="hubPolls"></div></div></aside></div><button type="button" class="hub4-drawer-backdrop" data-hub-close-drawer="1" aria-label="Close sidebar"></button><div id="hubPhotoLightbox" class="hub2-photo-lightbox" hidden role="dialog" aria-label="View conversation photo"><button type="button" data-hub-close-photo="1">✕ CLOSE</button><img id="hubLightboxImg" alt="Larger message picture"></div></div>';
  q('hubSearch').value=search;
  if(member){q('hubComposer').elements.namedItem('topic').value=room==='all'?'general':room}
  wireEvents();renderAll()
