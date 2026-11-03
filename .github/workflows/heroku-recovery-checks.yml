@@ -1,0 +1,24 @@
+name: Heroku recovery preparation checks
+on:
+  push:
+    branches: [heroku-recovery-prep]
+  pull_request:
+    branches: [heroku-recovery-prep]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: |
+          for source in *.mjs public/*.js; do
+            node --check "$source"
+          done
+      - run: node --test test/recovery.test.mjs
+      - run: node -e "const a=require('./app.json'); if(!a.name || !a.repository || !a.env) process.exit(1)"
+      - run: npm audit --omit=dev --audit-level=high
