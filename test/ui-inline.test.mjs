@@ -61,21 +61,17 @@ test('Command Center 4.0 header uses original logo with accessible responsive na
  assert.match(html,/id="ewV4UsMap"/);
  assert.match(html,/\/api\/geo\/states/);
 });
-test('Pulse 4.0 puts posting at left, feed in center, editorial race calls at right',()=>{
+test('THE LOUNGE Pulse keeps posting at left, messages in center and everyday social tools at right',()=>{
  const app=readFileSync(new URL('../public/reactions.js',import.meta.url),'utf8');
  const css=readFileSync(new URL('../public/reaction-hub-v2.css',import.meta.url),'utf8');
- assert.match(app,/hub4-columns/);
- assert.match(app,/hub4-left/);
- assert.match(app,/hub4-center/);
- assert.match(app,/hub4-right/);
- assert.match(app,/hub4-race-panel/);
- assert.match(app,/hub4-media-actions/);
+ for(const part of ['hub4-columns','hub4-left','hub4-center','hub4-right','lounge-sidebar-welcome','hub4-polls-panel','hub4-media-actions'])
+  assert.match(app,new RegExp(part));
+ assert.doesNotMatch(app,/id="hubRaceWrap"/);
  assert.match(app,/data-hub-pick="photo"/);
  assert.match(app,/data-hub-pick="video"/);
  assert.match(app,/data-hub-record-start="1"/);
  assert.match(app,/data-hub-pick="audio"/);
  assert.match(app,/data-hub-mobile-open="compose"/);
- assert.match(app,/data-hub-mobile-open="calls"/);
  assert.match(css,/grid-template-columns:minmax\(220px,.8fr\) minmax\(0,3fr\) minmax\(230px,.8fr\)/);
  assert.match(css,/#hubFeed\{height:auto!important/);
  assert.match(css,/data-drawer="rooms"/);
