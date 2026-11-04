@@ -253,7 +253,7 @@ try{
  const hide=await call('/api/community/admin/posts/'+reaction.data.id+'/hide',{method:'POST',cookie:ownerCookie});
  assert.equal(hide.code,200,'Owner can moderate messages');
  const afterHide=await call('/api/community/posts');
- assert.equal(afterHide.data.posts.some(p=>p.id===archived.data.id),false);
+ assert.equal(afterHide.data.posts.some(p=>p.id===reaction.data.id),false);
  const hideMedia=await call('/api/community/admin/posts/'+media.data.id+'/hide',{method:'POST',cookie:ownerCookie});
  assert.equal(hideMedia.code,200,'Owner can hide media posts');
  const hiddenPhoto=await fetch(base+'/api/community/images/'+media.data.imageId);
