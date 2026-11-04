@@ -300,7 +300,7 @@ const server=http.createServer(async (req,res)=>{
  const u=new URL(req.url,'http://localhost');
  // Security headers on all routes, including authentication, API and errors.
  // TLS termination and certificates are managed by Render at the public edge.
- const csp="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https:; frame-src 'none'";
+ const csp="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https:; frame-src 'none'";
  res.setHeader('Content-Security-Policy',csp);
  res.setHeader('Strict-Transport-Security','max-age=31536000');
  res.setHeader('X-Content-Type-Options','nosniff');
