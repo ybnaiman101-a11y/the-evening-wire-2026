@@ -66,6 +66,8 @@ export function announceHubUpdate(type='messages'){
  for(const response of [...listeners]){try{response.write('event: change\ndata: '+JSON.stringify({type})+'\n\n')}catch{listeners.delete(response)}}
 }
 export async function setupCommunityV2(pool){
+ await pool.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS site_section varchar(24) NOT NULL DEFAULT 'legacy'");
+ await pool.query("CREATE INDEX IF NOT EXISTS ew_community_section_created ON community_posts(site_section,created_at DESC)");
  await pool.query("CREATE TABLE IF NOT EXISTS community_images(id uuid PRIMARY KEY,member_id uuid NOT NULL REFERENCES ew_members(id) ON DELETE CASCADE,media_type varchar(24) NOT NULL,image_data bytea NOT NULL,created_at timestamptz NOT NULL DEFAULT now())");
  await pool.query("CREATE INDEX IF NOT EXISTS ew_community_images_member_recent ON community_images(member_id,created_at DESC)");
  await pool.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS image_id uuid REFERENCES community_images(id) ON DELETE SET NULL");
@@ -244,7 +246,7 @@ export async function communityV2Route(req,res,route,pool,member){
    const b=await input(req),message=String(b.message||'').trim(),topic=String(b.topic||'general');
    if(message.length<8||message.length>700||!categories.has(topic)){json(res,400,{error:'Write 8–700 characters and choose a discussion room'});return true}
    const id=randomUUID();
-   await pool.query("INSERT INTO community_posts(id,name,topic,message,official,pinned) VALUES($1,'THE LOUNGE',$2,$3,true,true)",[id,topic,message]);
+   await pool.query("INSERT INTO community_posts(id,name,topic,message,official,pinned,site_section) VALUES($1,'THE LOUNGE',$2,$3,true,true,'social')",[id,topic,message]);
    announceHubUpdate('messages');json(res,201,{ok:true,id});return true
   }
  }
