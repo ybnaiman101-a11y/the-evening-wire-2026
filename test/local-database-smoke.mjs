@@ -67,6 +67,11 @@ try{
  start();
  await waitReady();
  console.log('Local DB initialized');
+ const homepage=await fetch(base+'/');
+ assert.equal(homepage.status,200,'Lounge homepage loads');
+ const homepageText=await homepage.text();
+ assert.match(homepageText,/<title>THE LOUNGE/,'New social brand is the homepage');
+ assert.doesNotMatch(homepageText,/LIVE NUMERICAL RESULTS|ELECTION NIGHT 2026/i,'No election-night branding in social homepage');
  const unauthed=await call('/api/admin/members');
  assert.equal(unauthed.code,403,'Owner directory must not be public');
  const signedIn=await call('/api/admin/login',{method:'POST',body:{password}});
@@ -101,6 +106,37 @@ try{
  const readReactions=await call('/api/community/posts',{cookie:memberCookie});
  assert.equal(readReactions.code,200,'Reaction reading: '+JSON.stringify(readReactions.data));
  assert.equal(readReactions.data.posts.some(p=>p.id===reaction.data.id),true);
+
+ const archived=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{topic:'senate',message:'Keep these old posts in our archive.'}});
+ assert.equal(archived.code,201);
+ const oldHidden=await call('/api/community/posts?scope=social',{cookie:memberCookie});
+ assert.equal(oldHidden.code,200,'Social feed is readable');
+ assert.equal(oldHidden.data.posts.some(p=>p.id===archived.data.id),false,'Old election content is archived, not shown in Lounge');
+ const socialPost=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{topic:'sports',message:'Sharing favorite sports highlights with my friends.'}});
+ assert.equal(socialPost.code,201,'Everyday sport posts can be created');
+ const socialFeed=await call('/api/community/posts?scope=social',{cookie:memberCookie});
+ assert.equal(socialFeed.data.posts.some(p=>p.id===socialPost.data.id),true,'New social posts appear');
+ assert.equal(socialFeed.data.posts.some(p=>p.id===archived.data.id),false,'Historical posts remain hidden from new feed');
+ const originalFeed=await call('/api/community/posts',{cookie:memberCookie});
+ assert.equal(originalFeed.data.posts.some(p=>p.id===archived.data.id),true,'Archived posts are preserved in the database');
+ const discoverBefore=await call('/api/lounge/people');
+ assert.equal(discoverBefore.code,200,'Friend directory publicly readable');
+ assert.equal(discoverBefore.data.people.length,0,'Friends visibility is opt-in');
+ const visible=await call('/api/lounge/visibility',{method:'POST',cookie:memberCookie,body:{visible:true}});
+ assert.equal(visible.code,200,'Member can opt into Friends');
+ const discoverAfter=await call('/api/lounge/people');
+ assert.equal(discoverAfter.data.people.length,1,'Opt-in profile visible');
+ assert.equal(discoverAfter.data.people[0].displayName,'Test Election Reader');
+ assert.equal(discoverAfter.data.people[0].email,undefined,'Friends never shows emails');
+ const guestFollow=await call('/api/lounge/follow',{method:'POST',body:{memberId:member.data.user.id}});
+ assert.equal(guestFollow.code,401,'Guests cannot follow members');
+ const selfFollow=await call('/api/lounge/follow',{method:'POST',cookie:memberCookie,body:{memberId:member.data.user.id}});
+ assert.equal(selfFollow.code,400,'Members cannot follow themselves');
+ const hidden=await call('/api/lounge/visibility',{method:'POST',cookie:memberCookie,body:{visible:false}});
+ assert.equal(hidden.code,200,'Member can hide from Friends again');
+ const discoverHidden=await call('/api/lounge/people');
+ assert.equal(discoverHidden.data.people.length,0,'Hidden profiles are excluded');
+
 
  // Profile photos are account-owned and permanently attached to all historical posts.
  const jpeg=Buffer.concat([Buffer.from([255,216,255,224]),Buffer.alloc(160,3)]);

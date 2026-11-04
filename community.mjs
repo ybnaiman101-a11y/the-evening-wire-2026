@@ -9,7 +9,8 @@ const adminSecret=process.env.REACTION_ADMIN_TOKEN||'';
 let pool=null,ready=false;
 console.log('REACTION_HUB_CONFIG connection_present='+Boolean(connection)+' matching_env_keys='+['DATABASE_URL','REACTION_DATABASE_URL','POSTGRES_URL','POSTGRESQL_URL','DB_URL'].filter(key=>Boolean(process.env[key])).join(','));
 const limits=new Map();
-const topics=new Set(['general','senate','house','governors','election-night','news']);
+const socialTopics=['general','sports','movies','music','gaming','questions','random'];
+const topics=new Set([...socialTopics,'senate','house','governors','election-night','news']);
 const respond=(r,n,x)=>{r.writeHead(n,{'Content-Type':'application/json','Cache-Control':'no-store'});r.end(JSON.stringify(x))};
 function fingerprint(req){return createHash('sha256').update(String(req.socket.remoteAddress||'unknown')).digest('hex').slice(0,24)}
 function rate(req,limit,ms){const k=fingerprint(req)+req.url.split('?')[0]+req.method,n=Date.now(),v=limits.get(k);if(!v||n-v.s>ms){limits.set(k,{s:n,c:1});return true}if(v.c>=limit)return false;v.c++;return true}
@@ -45,8 +46,8 @@ export async function communityRoute(req,res,path){
  try{
   if(await communityV2Route(req,res,route,pool,member))return true;
   if(route==='posts'&&req.method==='GET'){
-   const topic=new URL(req.url,'http://localhost').searchParams.get('topic');
-   const q=await pool.query("SELECT p.id,COALESCE(m.display_name,p.name) AS name,p.topic,p.message,p.created_at,p.edited_at,p.likes,p.parent_id,p.member_id,p.image_id,p.audio_id,p.video_id,p.pinned,p.official,CASE WHEN av.member_id IS NOT NULL THEN '/api/members/avatar/' || av.member_id::text || '?v=' || floor(extract(epoch from av.updated_at)*1000)::bigint::text ELSE NULL END AS avatar_url,COALESCE((SELECT count(*)::int FROM community_posts replies WHERE replies.parent_id=p.id AND replies.status='visible'),0) AS reply_count FROM community_posts p LEFT JOIN ew_members m ON p.member_id=m.id LEFT JOIN ew_member_avatars av ON av.member_id=p.member_id WHERE p.status='visible' AND ($1::text IS NULL OR p.topic=$1) ORDER BY p.created_at DESC LIMIT 350",[topics.has(topic)?topic:null]);
+   const params=new URL(req.url,'http://localhost').searchParams,topic=params.get('topic'),social=params.get('scope')==='social';
+   const q=await pool.query("SELECT p.id,COALESCE(m.display_name,p.name) AS name,p.topic,p.message,p.created_at,p.edited_at,p.likes,p.parent_id,p.member_id,p.image_id,p.audio_id,p.video_id,p.pinned,p.official,CASE WHEN av.member_id IS NOT NULL THEN '/api/members/avatar/' || av.member_id::text || '?v=' || floor(extract(epoch from av.updated_at)*1000)::bigint::text ELSE NULL END AS avatar_url,COALESCE((SELECT count(*)::int FROM community_posts replies WHERE replies.parent_id=p.id AND replies.status='visible'),0) AS reply_count FROM community_posts p LEFT JOIN ew_members m ON p.member_id=m.id LEFT JOIN ew_member_avatars av ON av.member_id=p.member_id WHERE p.status='visible' AND ($1::text IS NULL OR p.topic=$1) AND (NOT $2::boolean OR (p.topic=ANY($3::text[]) AND p.site_section='social')) ORDER BY p.created_at DESC LIMIT 350",[topics.has(topic)?topic:null,social,socialTopics]);
    const detailed=await addHubPostDetails(pool,q.rows,member);
    respond(res,200,{ready:true,posts:detailed.map(p=>({...p,member_id:member?p.member_id:null}))});return true
   }
@@ -80,7 +81,7 @@ export async function communityRoute(req,res,path){
      if(Number(recentVideo.rows[0]?.used||0)+video.bytes.length>40000000){await dbClient.query('ROLLBACK');respond(res,429,{error:'Daily video upload limit reached (40 MB). Try again tomorrow.'});return true}
      await dbClient.query('INSERT INTO community_videos(id,member_id,media_type,video_data) VALUES($1,$2,$3,$4)',[videoId,member.id,video.mediaType,video.bytes]);
     }
-    await dbClient.query('INSERT INTO community_posts(id,name,topic,message,member_id,parent_id,image_id,audio_id,video_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',[id,name,topic,message,member.id,parent,imageId,audioId,videoId]);
+    await dbClient.query('INSERT INTO community_posts(id,name,topic,message,member_id,parent_id,image_id,audio_id,video_id,site_section) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[id,name,topic,message,member.id,parent,imageId,audioId,videoId,socialTopics.includes(topic)?'social':'legacy']);
     await dbClient.query('COMMIT');
    }catch(err){await dbClient.query('ROLLBACK').catch(()=>{});throw err}finally{dbClient.release()}
    announceHubUpdate('messages');respond(res,201,{ok:true,id,imageId,audioId,videoId});return true

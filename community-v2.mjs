@@ -4,7 +4,7 @@ import {randomUUID} from 'node:crypto';
 import {isEditorAdmin} from './editor-calls.mjs';
 
 const emojiKinds=new Set(['like','love','laugh','wow','usa','fire']);
-const categories=new Set(['general','senate','house','governors','election-night','news']);
+const categories=new Set(['general','sports','movies','music','gaming','questions','random','senate','house','governors','election-night','news']);
 const listeners=new Set();
 const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(data))};
 const originOK=req=>!req.headers.origin||req.headers.origin==='https://'+req.headers.host||req.headers.origin==='http://'+req.headers.host;
@@ -66,6 +66,8 @@ export function announceHubUpdate(type='messages'){
  for(const response of [...listeners]){try{response.write('event: change\ndata: '+JSON.stringify({type})+'\n\n')}catch{listeners.delete(response)}}
 }
 export async function setupCommunityV2(pool){
+ await pool.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS site_section varchar(24) NOT NULL DEFAULT 'legacy'");
+ await pool.query("CREATE INDEX IF NOT EXISTS ew_community_section_created ON community_posts(site_section,created_at DESC)");
  await pool.query("CREATE TABLE IF NOT EXISTS community_images(id uuid PRIMARY KEY,member_id uuid NOT NULL REFERENCES ew_members(id) ON DELETE CASCADE,media_type varchar(24) NOT NULL,image_data bytea NOT NULL,created_at timestamptz NOT NULL DEFAULT now())");
  await pool.query("CREATE INDEX IF NOT EXISTS ew_community_images_member_recent ON community_images(member_id,created_at DESC)");
  await pool.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS image_id uuid REFERENCES community_images(id) ON DELETE SET NULL");
@@ -80,6 +82,8 @@ export async function setupCommunityV2(pool){
  await pool.query("CREATE TABLE IF NOT EXISTS community_reactions(post_id uuid NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,member_id uuid NOT NULL REFERENCES ew_members(id) ON DELETE CASCADE,emoji varchar(12) NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(post_id,member_id,emoji))");
  await pool.query("CREATE INDEX IF NOT EXISTS ew_reaction_post_index ON community_reactions(post_id)");
  await pool.query("CREATE TABLE IF NOT EXISTS community_polls(id uuid PRIMARY KEY,question varchar(180) NOT NULL,options jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),closes_at timestamptz NOT NULL,closed boolean NOT NULL DEFAULT false)");
+ await pool.query("ALTER TABLE community_polls ADD COLUMN IF NOT EXISTS kind varchar(24) NOT NULL DEFAULT 'legacy'");
+ await pool.query("CREATE INDEX IF NOT EXISTS community_polls_kind_newest ON community_polls(kind,created_at DESC)");
  await pool.query("CREATE TABLE IF NOT EXISTS community_poll_votes(poll_id uuid NOT NULL REFERENCES community_polls(id) ON DELETE CASCADE,member_id uuid NOT NULL REFERENCES ew_members(id) ON DELETE CASCADE,choice_index smallint NOT NULL,PRIMARY KEY(poll_id,member_id))");
  await pool.query("CREATE TABLE IF NOT EXISTS community_presence(member_id uuid PRIMARY KEY REFERENCES ew_members(id) ON DELETE CASCADE,last_seen_at timestamptz NOT NULL DEFAULT now())");
 }
@@ -167,7 +171,8 @@ export async function communityV2Route(req,res,route,pool,member){
   json(res,200,{ok:true});return true
  }
  if(route==='polls'&&req.method==='GET'){
-  const rows=(await pool.query("SELECT id,question,options,created_at,closes_at,closed FROM community_polls ORDER BY created_at DESC LIMIT 12")).rows;
+  const social=new URL(req.url,"http://localhost").searchParams.get("scope")==="social";
+  const rows=(await pool.query("SELECT id,question,options,created_at,closes_at,closed FROM community_polls WHERE (NOT $1::boolean OR kind='social') ORDER BY created_at DESC LIMIT 12",[social])).rows;
   if(!rows.length){json(res,200,{polls:[]});return true}
   const ids=rows.map(x=>x.id);
   const counts=(await pool.query("SELECT poll_id,choice_index,count(*)::integer AS total FROM community_poll_votes WHERE poll_id=ANY($1::uuid[]) GROUP BY poll_id,choice_index",[ids])).rows;
@@ -219,7 +224,7 @@ export async function communityV2Route(req,res,route,pool,member){
    }
    const hours=Number(body.durationHours)||24;if(![1,6,12,24,48,72,168].includes(hours)){json(res,400,{error:'Choose a supported poll duration'});return true}
    const id=randomUUID();
-   await pool.query("INSERT INTO community_polls(id,question,options,closes_at) VALUES($1,$2,$3::jsonb,now()+($4 * interval '1 hour'))",[id,question,JSON.stringify(options),hours]);
+   await pool.query("INSERT INTO community_polls(id,question,options,closes_at,kind) VALUES($1,$2,$3::jsonb,now()+($4 * interval '1 hour'),'social')",[id,question,JSON.stringify(options),hours]);
    announceHubUpdate('polls');json(res,201,{ok:true,id});return true
   }
   const close=route.match(/^admin\/polls\/([a-f0-9-]{36})\/close$/);
@@ -241,7 +246,7 @@ export async function communityV2Route(req,res,route,pool,member){
    const b=await input(req),message=String(b.message||'').trim(),topic=String(b.topic||'general');
    if(message.length<8||message.length>700||!categories.has(topic)){json(res,400,{error:'Write 8–700 characters and choose a discussion room'});return true}
    const id=randomUUID();
-   await pool.query("INSERT INTO community_posts(id,name,topic,message,official,pinned) VALUES($1,'THE EVENING WIRE',$2,$3,true,true)",[id,topic,message]);
+   await pool.query("INSERT INTO community_posts(id,name,topic,message,official,pinned,site_section) VALUES($1,'THE LOUNGE',$2,$3,true,true,'social')",[id,topic,message]);
    announceHubUpdate('messages');json(res,201,{ok:true,id});return true
   }
  }

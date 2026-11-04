@@ -3,6 +3,7 @@ import {editorRoute,publicCalls,publicMeta} from './editor-calls.mjs';
 import {apSnapshot} from './ap-election-results.mjs';
 import {liveResultsHub} from './live-results.mjs';
 import {communityRoute} from './community.mjs';
+import {loungeRoute} from './lounge.mjs';
 import {memberRoute,authenticatedMember} from './members.mjs';
 import {trafficRoute} from './traffic.mjs';
 import {updateRoute} from './election-updates.mjs';
@@ -292,19 +293,20 @@ const page=process.env.EW_READ_ONLY_PREVIEW==='1'
  : process.env.EW_LOCAL_DATABASE==='1'
    ? originalPage.replace('<body>','<body data-ew-local-database="true">')
    : originalPage;
-const loginPage=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/login.html',import.meta.url),'utf8'));
+const loungePage=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/lounge.html',import.meta.url),'utf8'));
+ const loginPage=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/login.html',import.meta.url),'utf8'));
 liveResultsHub.start();
 const server=http.createServer(async (req,res)=>{
  const u=new URL(req.url,'http://localhost');
  // Security headers on all routes, including authentication, API and errors.
  // TLS termination and certificates are managed by Render at the public edge.
- const csp="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https:; frame-src 'none'";
+ const csp="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https:; frame-src 'none'";
  res.setHeader('Content-Security-Policy',csp);
  res.setHeader('Strict-Transport-Security','max-age=31536000');
  res.setHeader('X-Content-Type-Options','nosniff');
  res.setHeader('X-Frame-Options','DENY');
  res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
- res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=(), payment=()');
+ res.setHeader('Permissions-Policy','camera=(), microphone=(self), geolocation=(), payment=()');
  res.setHeader('Cross-Origin-Opener-Policy','same-origin');
  // Public traffic is HTTPS-only; keep health checks and local development working.
  const host=String(req.headers.host||'').toLowerCase().split(':')[0];
@@ -356,15 +358,16 @@ const server=http.createServer(async (req,res)=>{
   ['/api/stories','/api/status','/api/stream','/api/election','/api/live-results','/api/historical','/api/historical/counties','/api/race-catalog','/api/editor/calls'].includes(u.pathname) ||
   u.pathname.startsWith('/api/geo/') ||
   u.pathname.startsWith('/api/community/') ||
+   u.pathname.startsWith('/api/lounge/') ||
   u.pathname.startsWith('/api/challenge') ||
   u.pathname==='/api/updates'
  );
- const publicAsset=['/','/index.html','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/reaction-hub-v2.css','/election-maps.js','/election-maps.css'].includes(u.pathname);
+ const publicAsset=['/','/index.html','/lounge.css','/lounge.js','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/reaction-hub-v2.css','/election-maps.js','/election-maps.css'].includes(u.pathname);
  // The admin API implements its own administrator password checks.
  const adminEndpoint=u.pathname.startsWith('/api/admin/');
  // Routes which validate their own owner session must be reachable without a
  // separate ordinary member login. The route still checks its authorization.
- const delegatedAuth=u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')||u.pathname.startsWith('/api/challenge')||u.pathname.startsWith('/api/community/admin/');
+ const delegatedAuth=u.pathname.startsWith('/api/lounge/')||u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')||u.pathname.startsWith('/api/challenge')||u.pathname.startsWith('/api/community/admin/');
  if(!visitor && !(publicRead||publicAsset||adminEndpoint||delegatedAuth)){
   return json({error:'Sign in or register to use this feature',login:'/login'},401);
  }
@@ -376,6 +379,7 @@ const server=http.createServer(async (req,res)=>{
  }
  if(u.pathname.startsWith('/api/traffic/')){trafficRoute(req,res,u.pathname).catch(err=>{console.error('Traffic API error',err);if(!res.headersSent)json({error:'Traffic temporarily unavailable'},503);else res.end()});return;}
 
+ if(u.pathname.startsWith('/api/lounge/')){loungeRoute(req,res,u.pathname).catch(err=>{console.error('Lounge API:',String(err?.message||err));if(!res.headersSent)json({error:'Social feature temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname).catch(err=>{console.error('Community API request error:',String(err?.message||err));if(!res.headersSent)json({error:'Community service temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname==='/api/editor/calls'||u.pathname.startsWith('/api/admin/')){editorRoute(req,res,u.pathname).catch(err=>{console.error('Editor route error',err);if(!res.headersSent)json({error:'Editorial desk unavailable'},503);else res.end()});return;}
  if(u.pathname==='/api/live-results')return json(liveResultsHub.snapshot());
@@ -437,6 +441,10 @@ const server=http.createServer(async (req,res)=>{
  if(u.pathname==='/members.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/members.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/editor-calls.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/editor-calls.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/reaction-hub-v2.css'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/reaction-hub-v2.css',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/css; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Reaction Hub styles unavailable'},404));return;}
+ if(u.pathname==='/lounge.js'||u.pathname==='/lounge.css'){
+  const file=u.pathname==='/lounge.js'?'lounge.js':'lounge.css',ctype=file.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8';
+  import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/'+file,import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':ctype,'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Site asset unavailable'},404));return;
+ }
  if(u.pathname==='/reactions.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/reactions.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Resource unavailable'},404));return;}
  if(u.pathname==='/election-maps.js'||u.pathname==='/election-maps.css'){
    const filename=u.pathname.slice(1),ctype=filename.endsWith(".css")?"text/css; charset=utf-8":"text/javascript; charset=utf-8";
@@ -463,7 +471,7 @@ const server=http.createServer(async (req,res)=>{
   return;
  }
  if(u.pathname==='/'||u.pathname==='/index.html'){
-  res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'});return res.end(page);
+  res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'});return res.end(loungePage);
  }
  return json({error:'Not found'},404);
 });

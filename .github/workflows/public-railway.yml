@@ -30,7 +30,7 @@ jobs:
           fi
           grep 'PUBLIC_LAUNCH_BLOCKED' /tmp/production-preflight.log
       - name: Test live feeds and webpage JavaScript
-        run: node --test test/live-results.test.mjs test/ui-inline.test.mjs test/railway-postgres-tls.test.mjs
+        run: node --test test/live-results.test.mjs test/ui-inline.test.mjs test/railway-postgres-tls.test.mjs test/lounge-social.test.mjs
       - name: Test local database remains functional and not overwritten
         run: node test/local-database-smoke.mjs
       - name: Check dependency vulnerabilities
