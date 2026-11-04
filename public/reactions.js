@@ -9,7 +9,7 @@ const emojis=[['like','👍'],['love','❤️'],['laugh','😂'],['wow','😮'],
 const roomName=id=>rooms.find(x=>x[0]===id)?.[1]||'Hangout';
 const clock=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Recently'};
 const tone=(x)=>{let h=0;const s=String(x||'');for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))>>>0;return h%8};
-let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null,pendingVideoData=null,pendingVideoUrl=null,pendingAudioData=null,pendingAudioUrl=null,voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceLimit=null,discardVoiceOnStop=false,voiceProcessing=false;
+let member=null,owner=false,posts=[],polls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null,pendingVideoData=null,pendingVideoUrl=null,pendingAudioData=null,pendingAudioUrl=null,voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceLimit=null,discardVoiceOnStop=false,voiceProcessing=false;
 function avatar(p){
  const color=tone(p.member_id||p.name||p.id),name=String(p.name||'Member');
  const url=p.avatar_url||(member&&p.member_id===member.id?member.avatarUrl:null);
@@ -357,20 +357,12 @@ function renderPolls(){
   const closed=p.closed||Date.parse(p.closes_at)<=Date.now(),voted=p.myVote!==null&&p.myVote!==undefined;
   return '<article class="hub2-poll"><h4>'+safe(p.question)+'</h4><div class="hub2-poll-answers">'+options.map((option,i)=>{
    const count=Number(p.counts?.[i]||0),percent=votes?Math.round(100*count/votes):0;
-   const text=String(option).toLowerCase(),cls=text.includes('republican')?'party-red':text.includes('democrat')?'party-blue':'';
+   const cls=''; // Neutral styling for everyday community polls.
    return '<button class="hub2-choice '+cls+(p.myVote===i?' selected':'')+'" type="button" data-hub-vote="'+safe(p.id)+'" data-choice="'+i+'" '+(voted||closed?'disabled':'')+'>'+
     '<span>'+safe(option)+' · '+(voted||closed?percent+'%':count+' votes')+'</span><span class="hub2-bar"><span style="width:'+percent+'%"></span></span></button>'
   }).join('')+'</div><p class="hub2-micro">'+votes+' votes · '+(closed?'POLL CLOSED':voted?'YOUR VOTE RECORDED · '+'Closes '+clock(p.closes_at):'Closes '+clock(p.closes_at))+'</p>'+
   (owner&&!closed?'<button class="hub2-btn secondary" type="button" data-hub-close-poll="'+safe(p.id)+'">CLOSE POLL</button>':'')+'</article>'
  }).join(''):'<p class="hub2-muted">The owner has not opened any community polls yet.</p>';
-}
-function renderRaceCards(){
- const target=q('hubRaceCards'),wrap=q('hubRaceWrap');if(!target||!wrap)return;
- const latest=calls.slice().sort((a,b)=>Date.parse(b.calledAt)-Date.parse(a.calledAt)).slice(0,5);
- wrap.hidden=false;
- target.innerHTML=latest.length?latest.map(c=>'<div class="hub2-race hub4-race"><div><strong>'+safe(c.state)+' · '+safe(c.office.toUpperCase())+'</strong><span class="hub4-candidate">'+safe(c.candidate)+'</span>'+
- '<small class="hub4-party '+safe(c.party)+'">'+safe(c.party==='R'?'REPUBLICAN':c.party==='D'?'DEMOCRAT':'OTHER')+'</small><small> '+safe(clock(c.calledAt))+'</small></div>'+
- '</div>').join(''):'<p class="hub2-muted">No owner calls published yet.</p>'
 }
 function renderPresence(){/* Presence still works privately; no counter shown in the header. */}
 function updateReply(){
@@ -386,7 +378,7 @@ async function refresh(){
   const [p,pol]=await Promise.all([
    api('/api/community/posts?scope=social'),api('/api/community/polls?scope=social')
   ]);
-  posts=Array.isArray(p.posts)?p.posts:[];polls=Array.isArray(pol.polls)?pol.polls:[];calls=[];
+  posts=Array.isArray(p.posts)?p.posts:[];polls=Array.isArray(pol.polls)?pol.polls:[];
   renderAll()
  }catch(err){feedback(err.message);const status=q('hubUpdates');if(status)status.textContent='Connection interrupted. Retrying.'}
  finally{loading=false}
