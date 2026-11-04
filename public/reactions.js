@@ -1,4 +1,4 @@
-/* THE EVENING WIRE — Reaction Hub 2.0, non-destructive member community */
+/* THE LOUNGE — friendly everyday social timeline; preserves existing member records */
 (function(){
 'use strict';
 const host=document.getElementById('commandDesk');if(!host)return;
@@ -218,7 +218,7 @@ function stopVoice(){
 
 function composer(){
  if(!member)return '<section class="hub2-panel hub4-guest"><h3>Join THE PULSE</h3><p class="hub2-muted">Sign in to post or react.</p><a class="hub2-btn" href="/login">SIGN IN</a></section>';
- return '<section class="hub2-panel hub4-composer"><div class="hub4-compose-top">'+avatar({name:member.displayName,member_id:member.id,avatar_url:member.avatarUrl})+'<div><strong>'+safe(member.displayName)+'</strong><small>CREATE POST · <a class="hub4-edit-profile" href="/#members">EDIT PHOTO</a></small></div></div>'+
+ return '<section class="hub2-panel hub4-composer"><div class="hub4-compose-top">'+avatar({name:member.displayName,member_id:member.id,avatar_url:member.avatarUrl})+'<div><strong>'+safe(member.displayName)+'</strong><small>CREATE POST · <a class="hub4-edit-profile" href="/#profile">EDIT PHOTO</a></small></div></div>'+
  '<form id="hubComposer" class="hub2-form"><div id="hubReply" class="hub2-replying" hidden></div>'+
  '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
  '<label><textarea name="message" maxlength="700" placeholder="What’s happening? Paste pictures with Ctrl+V…"></textarea></label>'+
@@ -278,14 +278,14 @@ function renderShell(){
  if(member){q('hubComposer').elements.namedItem('topic').value=room==='all'?'general':room}
  wireEvents();renderAll()
 }
-function renderAll(){renderRooms();renderFeed();renderPolls();renderRaceCards();renderPresence()}
+function renderAll(){renderRooms();renderFeed();renderPolls();renderPresence()}
 function renderRooms(){
  if(!shown())return;
  for(const [id] of rooms){const node=q('hubRoomCount-'+id);if(node)node.textContent=posts.filter(p=>!p.parent_id&&(id==='all'||p.topic===id)).length}
  q('hubRoomTitle').textContent=room==='all'?'ALL DISCUSSIONS':roomName(room).replace(/^[^\s]+\s/,'').toUpperCase();
 
 }
-// X-style election timeline: each reply is a compact bubble nested inside
+// Social timeline: each reply is a compact bubble nested inside
 // the message it responds to, and every level supports further replies/reactions.
 function messageCard(p,childrenById,depth=0){
  const mine=member&&p.member_id===member.id,active=p.myReactions||[],nested=depth>0;
@@ -383,10 +383,10 @@ function updateReply(){
 async function refresh(){
  if(loading||!shown())return;loading=true;
  try{
-  const [p,pol,c]=await Promise.all([
-   api('/api/community/posts'),api('/api/community/polls'),api('/api/editor/calls')
+  const [p,pol]=await Promise.all([
+   api('/api/community/posts?scope=social'),api('/api/community/polls?scope=social')
   ]);
-  posts=Array.isArray(p.posts)?p.posts:[];polls=Array.isArray(pol.polls)?pol.polls:[];calls=Array.isArray(c.calls)?c.calls:[];
+  posts=Array.isArray(p.posts)?p.posts:[];polls=Array.isArray(pol.polls)?pol.polls:[];calls=[];
   renderAll()
  }catch(err){feedback(err.message);const status=q('hubUpdates');if(status)status.textContent='Connection interrupted. Retrying.'}
  finally{loading=false}
