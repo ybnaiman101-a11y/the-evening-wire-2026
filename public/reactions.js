@@ -4,10 +4,10 @@
 const host=document.getElementById('commandDesk');if(!host)return;
 const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const q=id=>document.getElementById(id),shown=()=>document.body.dataset.ewView==='reactions';
-const rooms=[['all','🌎 All Rooms'],['general','💬 National Discussion'],['senate','🏛 Senate Races'],['governors','🗳 Governor Races'],['house','🏛 House Races'],['election-night','⚡ Election Night'],['news','📡 Breaking News']];
+const rooms=[['all','✨ All Posts'],['general','💬 Hangout'],['sports','🏀 Sports'],['movies','🎬 Movies & TV'],['music','🎧 Music'],['gaming','🎮 Gaming'],['questions','❔ Questions'],['random','🎲 Random']];
 const emojis=[['like','👍'],['love','❤️'],['laugh','😂'],['wow','😮'],['usa','🇺🇸'],['fire','🔥']];
-const roomName=id=>rooms.find(x=>x[0]===id)?.[1]||'National Discussion';
-const clock=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' ET':'Recently'};
+const roomName=id=>rooms.find(x=>x[0]===id)?.[1]||'Hangout';
+const clock=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Recently'};
 const tone=(x)=>{let h=0;const s=String(x||'');for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))>>>0;return h%8};
 let member=null,owner=false,posts=[],polls=[],calls=[],room='all',search='',replyId=null,editId=null,loading=false,stream=null,liveConnected=false,online=0,unread=0,previousLatest='',lastSignature='',running=false,pendingImageData=null,pendingImageUrl=null,pendingVideoData=null,pendingVideoUrl=null,pendingAudioData=null,pendingAudioUrl=null,voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceLimit=null,discardVoiceOnStop=false,voiceProcessing=false;
 function avatar(p){
@@ -240,12 +240,12 @@ function composer(){
 }
 function adminPanel(){
  if(!owner)return '';
- return '<div class="hub2-panel"><div class="hub2-label">🔒 OWNER CONTROLS</div><h3>Newsroom Control</h3>'+
- '<form class="hub2-form" id="hubAnnouncement"><label>PIN OFFICIAL ANNOUNCEMENT<textarea name="message" required minlength="8" maxlength="700" placeholder="Election-night announcement..."></textarea></label>'+
+ return '<div class="hub2-panel"><div class="hub2-label">🔒 OWNER TOOLS</div><h3>Community Control</h3>'+
+ '<form class="hub2-form" id="hubAnnouncement"><label>PIN OFFICIAL ANNOUNCEMENT<textarea name="message" required minlength="8" maxlength="700" placeholder="A message for your friends..."></textarea></label>'+
  '<label>ROOM<select name="topic">'+rooms.filter(x=>x[0]!=='all').map(x=>'<option value="'+x[0]+'">'+safe(x[1])+'</option>').join('')+'</select></label>'+
  '<button type="submit" class="hub2-btn">📣 POST OFFICIAL ANNOUNCEMENT</button></form>'+
  '<hr style="border:0;border-top:1px solid #33526d;margin:20px 0">'+
- '<form class="hub2-form" id="hubNewPoll"><label>CREATE ELECTION COMMUNITY POLL<input name="question" minlength="8" maxlength="180" required placeholder="Who will win the Senate?"></label>'+
+ '<form class="hub2-form" id="hubNewPoll"><label>CREATE A COMMUNITY POLL<input name="question" minlength="8" maxlength="180" required placeholder="What should we do this weekend?"></label>'+
  '<label>ANSWER 1<input name="option" maxlength="90" required></label><label>ANSWER 2<input name="option" maxlength="90" required></label>'+
  '<label>ANSWER 3 (OPTIONAL)<input name="option" maxlength="90"></label><label>ANSWER 4 (OPTIONAL)<input name="option" maxlength="90"></label>'+
  '<label>POLL LENGTH<select name="durationHours"><option value="1">1 hour</option><option value="6">6 hours</option><option value="24" selected>24 hours</option><option value="72">3 days</option><option value="168">7 days</option></select></label>'+
@@ -254,7 +254,7 @@ function adminPanel(){
 function renderShell(){
  if(!shown())return;
  host.innerHTML='<div class="hub2 hub4-layout" data-drawer="">'+
- '<header class="hub2-header hub4-header"><div class="hub2-kicker">THE EVENING WIRE · LIVE COMMUNITY</div>'+
+ '<header class="hub2-header hub4-header"><div class="hub2-kicker">YOUR PEOPLE · YOUR SPACE</div>'+
  '<h1>THE <span>PULSE</span></h1>'+
  '<p>Post · Reply · React · Share</p>'+
  '</header>'+
@@ -264,15 +264,15 @@ function renderShell(){
  '</nav></div>'+(owner?'<details class="hub4-owner-details"><summary>OWNER TOOLS</summary>'+adminPanel()+'</details>':'')+'</aside>'+
  '<main class="hub2-main hub4-center">'+
  '<section class="hub2-panel hub4-feed-panel"><div class="hub4-feed-heading"><div><div class="hub2-label">LIVE POSTS · NEWEST FIRST</div><h2 id="hubRoomTitle">ALL DISCUSSIONS</h2></div><button type="button" class="hub2-btn secondary" data-hub-refresh="1">⟳</button></div>'+
- '<div class="hub4-mobile-controls"><button type="button" data-hub-mobile-open="compose">✎ POST</button><button type="button" data-hub-mobile-open="rooms">☰ ROOMS</button><button type="button" data-hub-mobile-open="calls">✓ RACE CALLS</button></div>'+ 
+ '<div class="hub4-mobile-controls"><button type="button" data-hub-mobile-open="compose">✎ POST</button><button type="button" data-hub-mobile-open="rooms">☰ ROOMS</button><button type="button" data-hub-mobile-open="calls">♡ COMMUNITY</button></div>'+ 
  '<div class="hub2-tools hub4-searchbar"><input class="hub2-search" id="hubSearch" type="search" placeholder="Search messages or members..." aria-label="Search messages">'+
  '<span class="hub2-micro" id="hubUpdates">Live updates</span></div>'+
- '<div id="hubFeed" class="hub2-feed" aria-live="off" aria-label="Election discussion feed"></div>'+
+ '<div id="hubFeed" class="hub2-feed" aria-live="off" aria-label="Social community feed"></div>'+
  '<button type="button" class="hub2-btn hub2-new" id="hubNewMessages" hidden>↑ NEW MESSAGES</button></section></main>'+
- '<aside class="hub2-polls-col hub4-right"><div class="hub4-drawer-head"><b>ELECTION DESK</b><button type="button" data-hub-close-drawer="1">✕</button></div>'+ 
- '<section id="hubRaceWrap" class="hub2-panel hub4-race-panel"><div class="hub4-sidebar-title"><span>✓</span><h2>RACES CALLED</h2></div><p class="hub2-micro">Owner calls · Not certified</p><div id="hubRaceCards"></div><a class="hub4-all-calls" href="/#calls">VIEW ALL RACE CALLS</a></section>'+ 
+ '<aside class="hub2-polls-col hub4-right"><div class="hub4-drawer-head"><b>THE HANGOUT</b><button type="button" data-hub-close-drawer="1">✕</button></div>'+ 
+ '<section class="hub2-panel lounge-sidebar-welcome"><div class="hub2-label">GOOD TO SEE YOU</div><h2>Make yourself at home.</h2><p>Find friends, jump into a room, or just scroll.</p><a href="/#friends" class="lounge-sidebar-link">♡ FIND FRIENDS</a><a href="/#media" class="lounge-sidebar-link">▣ SHARED PHOTOS</a></section>'+ 
  '<div class="hub2-panel hub4-polls-panel"><div class="hub2-label">COMMUNITY</div><h2>LIVE POLLS</h2>'+
- '<p class="hub2-muted">Member opinions · Not election results</p>'+
+ '<p class="hub2-muted">Vote for fun · One vote per member</p>'+
  '<div id="hubPolls"></div></div></aside></div><button type="button" class="hub4-drawer-backdrop" data-hub-close-drawer="1" aria-label="Close sidebar"></button><div id="hubPhotoLightbox" class="hub2-photo-lightbox" hidden role="dialog" aria-label="View conversation photo"><button type="button" data-hub-close-photo="1">✕ CLOSE</button><img id="hubLightboxImg" alt="Larger message picture"></div></div>';
  q('hubSearch').value=search;
  if(member){q('hubComposer').elements.namedItem('topic').value=room==='all'?'general':room}
@@ -306,7 +306,7 @@ function messageCard(p,childrenById,depth=0){
  const bubble='<div class="pulse-bubble">'+
    '<div class="pulse-author-line">'+avatar(p)+'<div class="pulse-author-meta"><strong>'+safe(p.name||'Member')+'</strong>'+
    '<small> · '+safe(clock(p.created_at))+(p.edited_at?' · edited':'')+(nested?' · REPLY':'')+'</small></div>'+
-   (p.official?'<span class="hub2-tag">OFFICIAL EVENING WIRE</span>':p.pinned?'<span class="hub2-tag">📌 PINNED</span>':'')+'</div>'+
+   (p.official?'<span class="hub2-tag">LOUNGE ANNOUNCEMENT</span>':p.pinned?'<span class="hub2-tag">📌 PINNED</span>':'')+'</div>'+
    (p.message?'<p class="pulse-message-text">'+safe(p.message)+'</p>':'')+
    media+controls+'<div class="pulse-emoji-strip" aria-label="Reactions to this message">'+btns+'</div></div>';
  const nestedChildren=children.length?'<div class="pulse-branch">'+children.slice().sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)).map(child=>messageCard(child,childrenById,depth+1)).join('')+'</div>':'';
@@ -341,7 +341,7 @@ function renderFeed(){
   const row=children.get(p.parent_id)||[];row.push(p);children.set(p.parent_id,row)
  }
  const roots=visible.filter(p=>!p.parent_id||!listed.has(p.parent_id)).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
- feed.innerHTML=roots.length?roots.map(p=>messageCard(p,children)).join(''):'<div class="hub2-empty">No conversations here yet. Start the first election-night discussion.</div>';
+ feed.innerHTML=roots.length?roots.map(p=>messageCard(p,children)).join(''):'<div class="hub2-empty">Nothing here yet. Be the first to post!</div>';
  if(atTop||!previousLatest){feed.scrollTop=0;unread=0}else feed.scrollTop=oldTop+Math.max(0,feed.scrollHeight-oldHeight);
  const fresh=roots[0]?.id||'';
  if(previousLatest&&fresh&&fresh!==previousLatest&&!atTop)unread+=1;
@@ -533,11 +533,11 @@ async function open(){
  lastSignature='';renderShell();connect();await Promise.all([refresh(),presence()])
 }
 window.addEventListener('pagehide',clearVoice);
-document.addEventListener('click',e=>{if(e.target.closest('[data-ew-tab]')&&voiceRecorder)clearVoice()},true);
+document.addEventListener('click',e=>{if(e.target.closest('[data-page]')&&voiceRecorder)clearVoice()},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const root=host.querySelector('.hub4-layout');if(root)root.dataset.drawer=''}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&q('hubPhotoLightbox')&&!q('hubPhotoLightbox').hidden){q('hubPhotoLightbox').hidden=true;q('hubLightboxImg').removeAttribute('src')}});
 setInterval(()=>{if(shown()&&!document.hidden)refresh()},5000);
 setInterval(()=>{if(shown()&&!document.hidden)presence()},30000);
 document.addEventListener('visibilitychange',()=>{if(shown()&&!document.hidden){refresh();presence()}});
-window.EWReactions={open,refresh};
+window.EWReactions={open,refresh,chooseRoom(id){if(!rooms.some(x=>x[0]===id))return;room=id;search='';replyId=null;editId=null;lastSignature='';previousLatest='';if(shown()){renderShell();refresh()}},focusComposer};
 })();
