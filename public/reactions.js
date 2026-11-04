@@ -4,7 +4,7 @@
 const host=document.getElementById('commandDesk');if(!host)return;
 const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const q=id=>document.getElementById(id),shown=()=>document.body.dataset.ewView==='reactions';
-const rooms=[['all','✨ All Posts'],['general','💬 Hangout'],['sports','🏀 Sports'],['movies','🎬 Movies & TV'],['music','🎧 Music'],['gaming','🎮 Gaming'],['questions','❔ Questions'],['random','🎲 Random']];
+const rooms=[['all','✨ All Posts'],['general','💬 General Discussion'],['politics','🏛️ Politics'],['jewish','✡️ Hasidic & Jewish Life'],['world','🌍 World Affairs'],['history','📜 History & Geography'],['economics','📈 Economics & Markets'],['science','🔬 Science & Ideas'],['questions','❔ Questions & Debates']];
 const emojis=[['like','👍'],['love','❤️'],['laugh','😂'],['wow','😮'],['usa','🇺🇸'],['fire','🔥']];
 const roomName=id=>rooms.find(x=>x[0]===id)?.[1]||'Hangout';
 const clock=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Recently'};
@@ -270,7 +270,7 @@ function renderShell(){
  '<div id="hubFeed" class="hub2-feed" aria-live="off" aria-label="Social community feed"></div>'+
  '<button type="button" class="hub2-btn hub2-new" id="hubNewMessages" hidden>↑ NEW MESSAGES</button></section></main>'+
  '<aside class="hub2-polls-col hub4-right"><div class="hub4-drawer-head"><b>THE HANGOUT</b><button type="button" data-hub-close-drawer="1">✕</button></div>'+ 
- '<section class="hub2-panel lounge-sidebar-welcome"><div class="hub2-label">GOOD TO SEE YOU</div><h2>Make yourself at home.</h2><p>Find friends, jump into a room, or just scroll.</p><a href="/#friends" class="lounge-sidebar-link">♡ FIND FRIENDS</a><a href="/#media" class="lounge-sidebar-link">▣ SHARED PHOTOS</a></section>'+ 
+ '<section class="hub2-panel lounge-sidebar-welcome"><div class="hub2-label">GOOD TO SEE YOU</div><h2>Make yourself at home.</h2><p>Find friends, jump into a room, or just scroll.</p><a href="/#friends" class="lounge-sidebar-link">♡ FIND FRIENDS</a><a href="/#rooms" class="lounge-sidebar-link">☷ MORE DISCUSSION ROOMS</a></section>'+ 
  '<div class="hub2-panel hub4-polls-panel"><div class="hub2-label">COMMUNITY</div><h2>LIVE POLLS</h2>'+
  '<p class="hub2-muted">Vote for fun · One vote per member</p>'+
  '<div id="hubPolls"></div></div></aside></div><button type="button" class="hub4-drawer-backdrop" data-hub-close-drawer="1" aria-label="Close sidebar"></button><div id="hubPhotoLightbox" class="hub2-photo-lightbox" hidden role="dialog" aria-label="View conversation photo"><button type="button" data-hub-close-photo="1">✕ CLOSE</button><img id="hubLightboxImg" alt="Larger message picture"></div></div>';

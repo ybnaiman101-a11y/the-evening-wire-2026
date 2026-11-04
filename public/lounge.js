@@ -4,7 +4,7 @@
 const desk=document.getElementById('commandDesk'),hero=document.getElementById('loungeWelcome'),nav=document.querySelector('.lounge-nav');
 if(!desk||!hero||!nav)return;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const rooms=[['general','💬','Hangout','Anything on your mind'],['sports','🏀','Sports','Games, teams and highlights'],['movies','🎬','Movies & TV','What are you watching?'],['music','🎧','Music','Share your favorite sounds'],['gaming','🎮','Gaming','Games and good times'],['questions','❔','Questions','Ask everyone'],['random','🎲','Random','A little bit of everything']];
+const rooms=[['general','💬','General Discussion','Talk about whatever is on your mind'],['politics','🏛️','Politics','Elections, government and political ideas'],['jewish','✡️','Hasidic & Jewish Life','Traditions, Torah, community and Jewish history'],['world','🌍','World Affairs','Geopolitics, countries and current events'],['history','📜','History & Geography','Empires, borders and the past'],['economics','📈','Economics & Markets','Business, money and the economy'],['science','🔬','Science & Ideas','Discoveries, technology and how things work'],['questions','❔','Questions & Debates','Ask, discuss and respectfully disagree']];
 const rnames=Object.fromEntries(rooms.map(r=>[r[0],r[2]]));
 let page='',member=null,admin=false,status='',searchTerm='',sequence=0;
 const validAvatar=x=>typeof x==='string'&&/^\/api\/members\/avatar\/[0-9a-f-]{36}\?v=\d+$/.test(x);
@@ -26,17 +26,11 @@ function panel(title,intro,body){
 function empty(text){return '<div class="lounge-empty">✳ <p>'+esc(text)+'</p></div>'}
 async function latest(){const data=await api('/api/community/posts?scope=social');return data.posts||[]}
 async function home(token){
- desk.innerHTML=panel('Your corner of the internet','', '<div class="lounge-home-actions"><a href="/#pulse" class="lounge-action-main">⚡ OPEN THE PULSE</a><a href="/#friends">♡ FIND FRIENDS</a><a href="/#rooms">☷ EXPLORE ROOMS</a></div><div class="lounge-home-grid"><section class="lounge-surface"><h2>Fresh conversations</h2><div id="loungeHomePosts" class="lounge-post-stack">'+empty('Loading posts…')+'</div></section><aside class="lounge-surface"><h2>Find your crowd</h2><div class="lounge-home-rooms">'+rooms.slice(0,5).map(r=>'<a href="/#pulse/'+r[0]+'"><span>'+r[1]+'</span><strong>'+r[2]+'</strong><span>↗</span></a>').join('')+'</div><a href="/#rooms" class="lounge-inline-link">ALL ROOMS ↗</a><div class="lounge-promo"><span>✦</span><b>Share a little something.</b><p>Photos, laughs, music, late-night thoughts. Everyone is invited.</p></div></aside></div>');
+ desk.innerHTML=panel('Your corner of the internet','', '<div class="lounge-home-actions"><a href="/#pulse" class="lounge-action-main">⚡ OPEN THE PULSE</a><a href="/#friends">♡ FIND FRIENDS</a><a href="/#rooms">☷ EXPLORE ROOMS</a></div><div class="lounge-home-grid"><section class="lounge-surface"><h2>Fresh conversations</h2><div id="loungeHomePosts" class="lounge-post-stack">'+empty('Loading posts…')+'</div></section><aside class="lounge-surface"><h2>Find your crowd</h2><div class="lounge-home-rooms">'+rooms.slice(0,5).map(r=>'<a href="/#pulse/'+r[0]+'"><span>'+r[1]+'</span><strong>'+r[2]+'</strong><span>↗</span></a>').join('')+'</div><a href="/#rooms" class="lounge-inline-link">ALL ROOMS ↗</a><div class="lounge-promo"><span>✦</span><b>Share a little something.</b><p>Politics, history, big ideas and good conversation. Everyone is invited.</p></div></aside></div>');
  try{const posts=await latest();if(token===sequence){const el=document.getElementById('loungeHomePosts');if(el)el.innerHTML=posts.length?posts.slice(0,12).map(card).join(''):empty('Your Lounge is ready. Start the first conversation!')}}catch(err){if(token===sequence)desk.querySelector('#loungeHomePosts').innerHTML=empty(err.message)}
 }
 function roomsPage(){
  desk.innerHTML=panel('Find your room','Drop in anywhere. Every conversation has a place.','<div class="lounge-room-grid">'+roomTiles()+'</div>');
-}
-async function mediaPage(token){
- desk.innerHTML=panel('Photos & videos','Little moments worth sharing.','<div id="loungeMediaGallery" class="lounge-media-grid">'+empty('Loading pictures…')+'</div>');
- try{const posts=(await latest()).filter(p=>p.image_id||p.video_id);if(token!==sequence)return;
- document.getElementById('loungeMediaGallery').innerHTML=posts.length?posts.map(p=>'<a class="lounge-media-card" href="/#pulse/'+encodeURIComponent(p.topic)+'">'+(p.image_id?'<img loading="lazy" src="/api/community/images/'+esc(p.image_id)+'" alt="Shared picture">':'<video preload="metadata" muted playsinline src="/api/community/videos/'+esc(p.video_id)+'"></video>')+'<span>'+esc(p.name||'Member')+' · '+(p.image_id?'PHOTO':'VIDEO')+'</span></a>').join(''):empty('No pictures or videos yet. Share the first one in THE PULSE.')}
- catch(err){if(token===sequence)document.getElementById('loungeMediaGallery').innerHTML=empty(err.message)}
 }
 async function pollPage(token){
  desk.innerHTML=panel('The opinion corner','Fun questions. Your vote.','<div id="loungePollList" class="lounge-poll-list">'+empty('Loading polls…')+'</div>');
@@ -90,7 +84,7 @@ function setStatus(message){
 }
 function currentHash(){
  const raw=decodeURIComponent(location.hash.replace(/^#/,'')||'home').replace(/^\//,'');
- const [p,...rest]=raw.split('/');return {page:['home','pulse','rooms','media','polls','friends','discover','profile'].includes(p)?p:'home',room:rest[0]||'all'}
+ const [p,...rest]=raw.split('/');return {page:['home','pulse','rooms','polls','friends','discover','profile'].includes(p)?p:'home',room:rest[0]||'all'}
 }
 async function route(){
  const token=++sequence,{page:next,room}=currentHash();page=next;hero.hidden=page!=='home';document.body.dataset.ewView=page==='pulse'?'reactions':page;
@@ -100,7 +94,6 @@ async function route(){
  if(page==='pulse'){hero.hidden=true;window.EWReactions?.chooseRoom(room);await window.EWReactions?.open();return}
  if(page==='home')return home(token);
  if(page==='rooms')return roomsPage();
- if(page==='media')return mediaPage(token);
  if(page==='polls')return pollPage(token);
  if(page==='friends')return friendsPage(token);
  if(page==='discover')return discoverPage(token);

@@ -9,7 +9,7 @@ const adminSecret=process.env.REACTION_ADMIN_TOKEN||'';
 let pool=null,ready=false;
 console.log('REACTION_HUB_CONFIG connection_present='+Boolean(connection)+' matching_env_keys='+['DATABASE_URL','REACTION_DATABASE_URL','POSTGRES_URL','POSTGRESQL_URL','DB_URL'].filter(key=>Boolean(process.env[key])).join(','));
 const limits=new Map();
-const socialTopics=['general','sports','movies','music','gaming','questions','random'];
+const socialTopics=['general','politics','jewish','world','history','economics','science','questions'];
 const topics=new Set([...socialTopics,'senate','house','governors','election-night','news']);
 const respond=(r,n,x)=>{r.writeHead(n,{'Content-Type':'application/json','Cache-Control':'no-store'});r.end(JSON.stringify(x))};
 function fingerprint(req){return createHash('sha256').update(String(req.socket.remoteAddress||'unknown')).digest('hex').slice(0,24)}

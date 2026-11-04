@@ -4,7 +4,7 @@ import {randomUUID} from 'node:crypto';
 import {isEditorAdmin} from './editor-calls.mjs';
 
 const emojiKinds=new Set(['like','love','laugh','wow','usa','fire']);
-const categories=new Set(['general','sports','movies','music','gaming','questions','random','senate','house','governors','election-night','news']);
+const categories=new Set(['general','politics','jewish','world','history','economics','science','questions','senate','house','governors','election-night','news']);
 const listeners=new Set();
 const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(data))};
 const originOK=req=>!req.headers.origin||req.headers.origin==='https://'+req.headers.host||req.headers.origin==='http://'+req.headers.host;
