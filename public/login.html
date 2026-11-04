@@ -56,5 +56,5 @@ login.onsubmit=e=>{e.preventDefault();submit(login,'login')};
 signup.onsubmit=e=>{e.preventDefault();submit(signup,'signup')};
 activate.onsubmit=e=>{e.preventDefault();submit(activate,'activate-pin')};
 if(location.hash==='#existing-account')change('activate');
-fetch('/api/members/session',{credentials:'same-origin',cache:'no-store'}).then(r=>r.json()).then(x=>{if(x.user)location.replace('/#members')}).catch(()=>{});
+fetch('/api/members/session',{credentials:'same-origin',cache:'no-store'}).then(r=>r.json()).then(x=>{if(x.user)location.replace('/#profile')}).catch(()=>{});
 </script></body></html>
