@@ -107,16 +107,18 @@ try{
  assert.equal(readReactions.code,200,'Reaction reading: '+JSON.stringify(readReactions.data));
  assert.equal(readReactions.data.posts.some(p=>p.id===reaction.data.id),true);
 
+ const archived=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{topic:'senate',message:'Keep these old posts in our archive.'}});
+ assert.equal(archived.code,201);
  const oldHidden=await call('/api/community/posts?scope=social',{cookie:memberCookie});
  assert.equal(oldHidden.code,200,'Social feed is readable');
- assert.equal(oldHidden.data.posts.some(p=>p.id===reaction.data.id),false,'Old election content is archived, not shown in Lounge');
+ assert.equal(oldHidden.data.posts.some(p=>p.id===archived.data.id),false,'Old election content is archived, not shown in Lounge');
  const socialPost=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{topic:'sports',message:'Sharing favorite sports highlights with my friends.'}});
  assert.equal(socialPost.code,201,'Everyday sport posts can be created');
  const socialFeed=await call('/api/community/posts?scope=social',{cookie:memberCookie});
  assert.equal(socialFeed.data.posts.some(p=>p.id===socialPost.data.id),true,'New social posts appear');
- assert.equal(socialFeed.data.posts.some(p=>p.id===reaction.data.id),false,'Historical posts remain hidden from new feed');
+ assert.equal(socialFeed.data.posts.some(p=>p.id===archived.data.id),false,'Historical posts remain hidden from new feed');
  const originalFeed=await call('/api/community/posts',{cookie:memberCookie});
- assert.equal(originalFeed.data.posts.some(p=>p.id===reaction.data.id),true,'Archived posts are preserved in the database');
+ assert.equal(originalFeed.data.posts.some(p=>p.id===archived.data.id),true,'Archived posts are preserved in the database');
  const discoverBefore=await call('/api/lounge/people');
  assert.equal(discoverBefore.code,200,'Friend directory publicly readable');
  assert.equal(discoverBefore.data.people.length,0,'Friends visibility is opt-in');
@@ -251,7 +253,7 @@ try{
  const hide=await call('/api/community/admin/posts/'+reaction.data.id+'/hide',{method:'POST',cookie:ownerCookie});
  assert.equal(hide.code,200,'Owner can moderate messages');
  const afterHide=await call('/api/community/posts');
- assert.equal(afterHide.data.posts.some(p=>p.id===reaction.data.id),false);
+ assert.equal(afterHide.data.posts.some(p=>p.id===archived.data.id),false);
  const hideMedia=await call('/api/community/admin/posts/'+media.data.id+'/hide',{method:'POST',cookie:ownerCookie});
  assert.equal(hideMedia.code,200,'Owner can hide media posts');
  const hiddenPhoto=await fetch(base+'/api/community/images/'+media.data.imageId);
