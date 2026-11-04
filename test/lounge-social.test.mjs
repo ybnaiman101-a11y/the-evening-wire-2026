@@ -19,7 +19,7 @@ test('social frontend parses and keeps media, friends, polls and existing member
  assert.match(js,/\/api\/community\/posts\?scope=social/);
  assert.match(js,/\/api\/community\/polls\?scope=social/);
  assert.match(js,/\/api\/lounge\/visibility/);
- assert.match(js,/\/api\/lounge\/follow/);
+ assert.match(js,/\/api\/lounge\/.*unfollow/);
  assert.match(js,/\/api\/members\/avatar/);
  assert.match(js,/\/api\/members\/profile/);
  assert.match(js,/\/api\/members\/logout/);
