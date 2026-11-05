@@ -128,7 +128,7 @@ export async function clubRoute(req,res,path,legacyStories=[]){
   send(res,200,{...result,stories:fallback,unavailable:fallback.length===0,fallback:fallback.length>0,fallbackSource:'Existing Lounge news collector'});
   return true;
  }
- if(path==='/api/club/history'&&req.method==='GET'){const force=new URL(req.url,'http://localhost').searchParams.get('refresh')==='1';send(res,200,await historicalEventsReader({force}));return true}
+ if(path==='/api/club/history'&&req.method==='GET'){const force=new URL(req.url,'http://localhost').searchParams.get('refresh')==='1';send(res,200,await historicalEventsReader({force,immediate:!force}));return true}
  if((path==='/api/club/daily'||path==='/api/club/quiz-today')&&req.method==='GET'){
   const daily={date:today(),quiz:quizToday(),debate:debateToday(),ready:true};
   send(res,200,path==='/api/club/quiz-today'?daily.quiz:daily);return true;
