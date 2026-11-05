@@ -91,7 +91,13 @@ async function route(){
  nav.querySelectorAll('[data-page]').forEach(n=>n.setAttribute('aria-current',n.dataset.page===page?'page':'false'));
  desk.onclick=null;desk.oninput=null;desk.onchange=null;desk.onsubmit=null;desk.onpaste=null;desk.ondragover=null;desk.ondrop=null;
  try{const x=await api('/api/members/session');if(token!==sequence)return;member=x.user||null}catch{member=null}
- if(page==='pulse'){hero.hidden=true;window.EWReactions?.chooseRoom(room);await window.EWReactions?.open();return}
+ if(page==='pulse'){
+  hero.hidden=true;
+  if(!window.EWReactions?.open)throw Error('The Pulse could not load. Please refresh the page.');
+  window.EWReactions.chooseRoom(room);
+  await window.EWReactions.open();
+  return
+ }
  if(page==='home')return home(token);
  if(page==='rooms')return roomsPage();
  if(page==='polls')return pollPage(token);
@@ -141,7 +147,27 @@ desk.addEventListener('change',async e=>{
  try{setStatus('Preparing picture…');const imageData=await prepareAvatar(file);await api('/api/members/avatar','POST',{imageData});await route()}
  catch(err){setStatus(err.message)}
 });
-window.addEventListener('hashchange',route);
-window.addEventListener('pageshow',()=>{if(!page)route()});
-route();
+// A failed panel must show an error instead of making every other tab seem dead.
+function navigate(){
+ return route().catch(error=>{
+  const message=String(error?.message||'Could not open that section.');
+  console.error('Lounge navigation:',message);
+  desk.innerHTML='<div class="lounge-empty"><strong>THIS TAB DID NOT OPEN</strong><p>'+esc(message)+'</p><p><a href="/#home">Return home</a> or refresh to try again.</p></div>';
+  hero.hidden=true;
+ })
+}
+// Navigate immediately on click, even when the tab hash has not changed.
+nav.addEventListener('click',event=>{
+ const link=event.target.closest('a[data-page]');
+ if(!link)return;
+ const href=link.getAttribute('href');
+ if(!href||!href.startsWith('/#'))return;
+ event.preventDefault();
+ if(location.pathname+location.hash!==href)history.pushState(null,'',href);
+ navigate();
+});
+window.addEventListener('hashchange',navigate);
+window.addEventListener('popstate',navigate);
+window.addEventListener('pageshow',()=>{if(!page)navigate()});
+navigate();
 })();
