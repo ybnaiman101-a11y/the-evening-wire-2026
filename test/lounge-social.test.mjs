@@ -18,8 +18,8 @@ test('All ten Lounge tabs are real navigable links that route to a valid page',(
  assert.match(js,/addEventListener\('popstate',navigate\)/);
  assert.match(html,/id="commandDesk"/);
  assert.match(html,/\/reactions\.js\?v=10/);
- assert.match(html,/\/lounge\.js\?v=5/);
- assert.match(html,/\/ask-ai\.js\?v=1/);
+ assert.match(html,/\/lounge\.js\?v=6/);
+ assert.match(html,/\/ask-ai\.js\?v=2/);
  assert.match(html,/\/owner\.js\?v=1/);
 });
 test('Discussion rooms are politics, Jewish life and meaningful conversations',()=>{
@@ -107,14 +107,25 @@ test('All Clubhouse tab controls have a direct route, render fallback, and acces
  assert.match(css,/lounge-welcome::after\{content:none!important\}/);
 });
 
-test('Ask AI is a distinct main tab with safe external fallback and optional server API',()=>{
+test('AI Search is a real on-site tab using local WebGPU inference and trusted reference search',()=>{
  const ask=read('public/ask-ai.js'),server=read('server.mjs'),api=read('ask-ai.mjs');
  assert.doesNotThrow(()=>new Script(ask,{filename:'public/ask-ai.js'}));
  assert.match(html,/data-page="ai"/);
- assert.match(html,/ask-ai\.js\?v=1/);
+ assert.match(html,/ask-ai\.js\?v=2/);
  assert.match(js,/LoungeAI\.open\(\)/);
- assert.match(ask,/https:\/\/chatgpt\.com\//);
+ assert.doesNotMatch(ask,/chatgpt\.com/);
+ assert.match(ask,/local-ai\.js/);
+ assert.match(ask,/api\/ai-search/);
  assert.match(server,/askAIRoute/);
+ assert.match(server,/aiSearchRoute/);
+ assert.match(server,/local-ai\.js/);
+ const local=read('public/local-ai.js'),search=read('ai-search.mjs');
+ assert.match(local,/CreateMLCEngine/);
+ assert.match(local,/navigator\.gpu/);
+ assert.match(local,/max_tokens/);
+ assert.match(search,/Wikipedia/);
+ assert.match(search,/Wikidata/);
+ assert.match(css,/overflow-wrap:anywhere/);
  assert.match(api,/OPENAI_API_KEY/);
  assert.match(api,/authenticatedMember/);
  assert.doesNotMatch(ask,/\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}/);
@@ -127,4 +138,14 @@ test('History reader and standalone quiz work independently of the old history e
  assert.match(client,/historyReload/);
  assert.match(client,/\/api\/club\/history/);
  assert.match(client,/historymark/);
+});
+
+test('On This Day has a verified source-linked on-device fallback and instant API path',()=>{
+ const app=read('public/club.js'),history=read('history-reader.mjs'),backend=read('club.mjs');
+ assert.match(app,/NOVEMBER5_HISTORY/);
+ assert.match(app,/usingBackup/);
+ assert.match(app,/Associated Press/);
+ assert.match(history,/immediate/);
+ assert.match(backend,/immediate:!force/);
+ assert.match(read('public/club.html'),/club\.js\?v=8/);
 });
