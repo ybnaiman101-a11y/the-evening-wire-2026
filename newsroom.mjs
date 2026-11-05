@@ -8,7 +8,12 @@ const FEEDS=[
  ['United States','NPR','https://feeds.npr.org/1001/rss.xml'],
  ['United States','The Guardian','https://www.theguardian.com/us-news/rss'],
  ['World','Sky News','https://feeds.skynews.com/feeds/rss/home.xml'],
- ['World','Google News','https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-US&gl=US&ceid=US:en']
+ ['World','Google News','https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-US&gl=US&ceid=US:en'],
+ ['World','BBC Top Stories','https://feeds.bbci.co.uk/news/rss.xml'],
+ ['United States','Fox News','https://moxie.foxnews.com/google-publisher/latest.xml'],
+ ['World','CBS News','https://www.cbsnews.com/latest/rss/main'],
+ ['Business','New York Times','https://rss.nytimes.com/services/xml/rss/nyt/Business.xml'],
+ ['United States','New York Post','https://nypost.com/feed/']
 ];
 const decode=s=>String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi,'$1').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&apos;|&#39;|&#x27;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&#x([a-f\d]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16)));
 const plain=s=>decode(s).replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
