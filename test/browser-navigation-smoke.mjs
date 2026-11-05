@@ -57,7 +57,7 @@ function probe(kind){
   '   const b=document.querySelector("[data-owner-view="+id+"]");',
   '   if(!b){problems.push("OWNER PANEL MISSING "+id);continue;}',
   '   b.click();',
-  '   if(b.getAttribute("aria-pressed")!=="true"||!document.querySelector(".owner-content"))problems.push("OWNER PANEL BROKEN "+id);',
+  '   if(document.querySelector("[data-owner-view="+id+"]")?.getAttribute("aria-pressed")!=="true"||!document.querySelector(".owner-content"))problems.push("OWNER PANEL BROKEN "+id);',
   '  }',
   ' }',
   ' document.body.dataset.browserQa=problems.length?"FAIL":"PASS";',
