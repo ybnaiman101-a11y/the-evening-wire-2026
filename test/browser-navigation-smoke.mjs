@@ -7,7 +7,17 @@ import {readFileSync,existsSync} from 'node:fs';
 import {resolve,extname} from 'node:path';
 import {spawn,execFileSync} from 'node:child_process';
 const root=resolve(import.meta.dirname,'../public');
-const fixture={date:'2026-11-05',signedIn:false,member:null,posts:[],polls:[],predictions:[],leaderboard:[],quiz:{date:'2026-11-05',question:'Test question?',options:['A','B','C','D'],answered:null},debate:{date:'2026-11-05',question:'Test question?'},bio:''};
+const fixture={date:'2026-11-05',signedIn:true,member:{id:'11111111-1111-4111-8111-111111111111',displayName:'Test Member'},bio:'Test bio',
+posts:[
+ {id:'11111111-1111-4111-8111-111111111112',kind:'room',room:'general',message:'Welcome to the Lounge',name:'Test Member',likes:2,parent_id:null,side:null,created_at:'2026-11-05T19:30:00Z',day_key:null},
+ {id:'11111111-1111-4111-8111-111111111113',kind:'question',room:'general',message:'What should we discuss?',name:'Test Member',likes:1,parent_id:null,side:null,created_at:'2026-11-05T19:30:00Z',day_key:null},
+ {id:'11111111-1111-4111-8111-111111111114',kind:'debate',room:'general',message:'I agree with the proposal',name:'Test Member',likes:0,parent_id:null,side:'yes',created_at:'2026-11-05T19:30:00Z',day_key:'2026-11-05'}
+],
+polls:[{id:'11111111-1111-4111-8111-111111111115',question:'Do you like our new Lounge?',options:'["Yes","No"]',counts:null,myVote:null,closed:false,closes_at:'2026-11-10T23:00:00Z',author:'Test Member'}],
+predictions:[{id:'11111111-1111-4111-8111-111111111116',question:'Will the team meet this month?',counts:null,myVote:null,closed:false,outcome:null,closes_at:'2026-11-10T23:00:00Z',author:'Test Member'}],
+leaderboard:[{id:'11111111-1111-4111-8111-111111111111',display_name:'Test Member',score:23,post_count:3,like_count:7,quiz_count:1,prediction_count:0}],
+quiz:{date:'2026-11-05',question:'What is the capital of Australia?',options:['Sydney','Canberra','Perth','Melbourne'],answered:null},
+debate:{date:'2026-11-05',question:'Can the members debate this topic?'}};
 const apiStub=[
  '<script>',
  'window.fetch=async function(input){',

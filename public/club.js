@@ -19,7 +19,7 @@ const channels=[
  ['world','🌍','World Affairs'],['history','📜','History & Geography'],['economics','📈','Economics & Markets'],
  ['science','🔬','Science & Ideas'],['questions','❔','Questions & Debates']
 ];
-let db=null,stories=[],admin=false,activeRoom='general',historyFacts=null,quizFeedback=null,loading=false;
+let db=null,stories=[],newsInfo={unavailable:false,errors:[],sourceResults:[],fallback:false,stale:false},admin=false,activeRoom='general',historyFacts=null,quizFeedback=null,loading=false;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=s=>{const d=new Date(s);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Recently'};
 const day=s=>new Date(s).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
@@ -30,6 +30,54 @@ function say(msg,error=false){flash.hidden=false;flash.textContent=(error?'⚠ '
 async function api(url,method='GET',data){
  const r=await fetch(url,{method,credentials:'same-origin',cache:'no-store',headers:data===undefined?{}:{'Content-Type':'application/json'},body:data===undefined?undefined:JSON.stringify(data)});
  let obj={};try{obj=await r.json()}catch{}if(!r.ok)throw Error(obj.error||'Could not connect. Try again.');return obj
+}
+
+function object(value){return value&&typeof value==='object'&&!Array.isArray(value)?value:{}}
+function records(value){return Array.isArray(value)?value.filter(row=>row&&typeof row==='object'&&!Array.isArray(row)):[]}
+function options(value){
+ if(Array.isArray(value))return value;
+ if(typeof value==='string'){try{const parsed=JSON.parse(value);return Array.isArray(parsed)?parsed:[]}catch{return []}}
+ return []
+}
+function normalizeDashboard(data){
+ const d=object(data),quiz=object(d.quiz),debate=object(d.debate);
+ return {...d,
+  date:String(d.date||new Date().toISOString().slice(0,10)),
+  posts:records(d.posts),
+  polls:records(d.polls).map(row=>({...row,options:options(row.options),counts:object(row.counts),myVote:row.myVote??null})),
+  predictions:records(d.predictions).map(row=>({...row,counts:object(row.counts),myVote:row.myVote??null})),
+  leaderboard:records(d.leaderboard),
+  quiz:{...quiz,question:quiz.question||'Today’s question will be available shortly.',options:options(quiz.options),answered:quiz.answered||null},
+  debate:{...debate,question:debate.question||'Today’s question will be available shortly.'},
+  signedIn:d.signedIn===true
+ }
+}
+function validNewsItem(item){
+ if(!item||typeof item!=='object'||typeof item.title!=='string'||item.title.length<8)return false;
+ if(typeof item.url!=='string'||!/^https:\/\//i.test(item.url))return false;
+ const date=Date.parse(item.published);
+ return Number.isFinite(date)&&date>Date.now()-72*3600000&&date<Date.now()+3600000
+}
+function chooseNews(newsResponse,legacyResponse){
+ const primary=object(newsResponse),fresh=records(primary.stories).filter(validNewsItem);
+ const secondary=records(object(legacyResponse).stories).filter(validNewsItem);
+ const fallback=fresh.length===0&&secondary.length>0;
+ const items=fallback?secondary:fresh;
+ const unique=new Map();
+ for(const item of items){
+  const title=item.title.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,90);
+  if(!unique.has(title))unique.set(title,{...item,source:String(item.source||'Publisher'),topic:String(item.topic||'News')})
+ }
+ stories=[...unique.values()].sort((a,b)=>Date.parse(b.published)-Date.parse(a.published)).slice(0,70);
+ newsInfo={
+  unavailable:stories.length===0,
+  stale:primary.stale===true,
+  fallback,
+  errors:Array.isArray(primary.errors)?primary.errors:[],
+  sourceResults:records(primary.sourceResults),
+  updatedAt:primary.updatedAt||null,
+  failed:primary.failed===true
+ }
 }
 function signed(){if(db?.signedIn)return true;location.href='/login';return false}
 function post(p){
@@ -97,11 +145,20 @@ function rooms(){
  +'<div class="surface" style="margin-top:20px"><h2>Clubhouse quick chat</h2><div class="row"><label style="min-width:220px">Room<select id="clubRoom">'+channels.map(r=>'<option value="'+r[0]+'" '+(r[0]===activeRoom?'selected':'')+'>'+esc(r[2])+'</option>').join('')+'</select></label></div><form id="roomForm"><textarea name="message" required minlength="3" maxlength="1200" placeholder="Share something with your Lounge friends…"></textarea><button type="submit">POST TO ROOM</button></form><div id="roomPosts">'+postsFor('room',activeRoom)+'</div></div>';
 }
 function news(){
- return head('The News Desk','Read the latest available publisher headlines, then discuss them with friends.')
- +'<section class="surface"><div class="row between"><h2>Latest news headlines</h2><button type="button" id="newsReload">↻ Refresh</button></div>'
- +(stories.length?stories.slice(0,30).map(x=>'<article class="post"><div class="row between"><span class="side">'+esc(x.source)+'</span><time class="muted">'+esc(fmt(x.published))+'</time></div><h3 style="line-height:1.4;margin-top:12px"><a href="'+esc(https(x.url))+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+' ↗</a></h3><p>'+esc(x.excerpt||'')+'</p><a class="smalllink" href="/#pulse/politics">DISCUSS IN THE PULSE ↗</a></article>').join(''):empty('No fresh publisher headlines are available right now.'))
- +'<p class="hint">Recent world, U.S., business and technology headlines are sourced from publisher feeds and linked to their original coverage.</p></section>';
+ const available=stories.length>0;
+ const feedInfo=newsInfo.fallback?'Using the existing publisher feed while the new sources recover.':newsInfo.stale?'Showing recently retrieved headlines while sources reconnect.':'Current publisher headlines, refreshed automatically.';
+ const top='<section class="surface"><div class="row between"><h2>Latest news headlines</h2><button type="button" id="newsReload">↻ Refresh headlines</button></div>'
+  +'<p class="hint" role="status">'+esc(available?feedInfo:'News sources are temporarily unavailable. This is a feed connection problem, not a lack of news.')+'</p>';
+ const outlets='<div class="notice"><strong>Open trusted newsrooms directly</strong><div class="buttonrow">'
+  +'<a class="smalllink" href="https://www.bbc.com/news" target="_blank" rel="noopener noreferrer">BBC News ↗</a>'
+  +'<a class="smalllink" href="https://www.npr.org/sections/news/" target="_blank" rel="noopener noreferrer">NPR News ↗</a>'
+  +'<a class="smalllink" href="https://www.theguardian.com/us-news" target="_blank" rel="noopener noreferrer">The Guardian ↗</a></div></div>';
+ const entries=available?stories.slice(0,35).map(x=>'<article class="post"><div class="row between"><span class="side">'+esc(x.source)+'</span><span class="chip">'+esc(x.topic||'News')+'</span><time class="muted">'+esc(fmt(x.published))+'</time></div><h3 style="line-height:1.4;margin-top:12px"><a href="'+esc(https(x.url))+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+' ↗</a></h3>'+(x.excerpt?'<p>'+esc(x.excerpt)+'</p>':'')+'<a class="smalllink" href="/#pulse/politics">DISCUSS IN THE PULSE ↗</a></article>').join(''):outlets;
+ const status='<p class="hint">Publisher attribution and original article links are provided. Headlines are never fabricated or labeled current after their freshness window.</p>';
+ return head('The News Desk','The latest available world, U.S., business and technology headlines, linked to publishers.')
+ +top+entries+status+'</section>'
 }
+
 function https(url){try{const u=new URL(url);return /^https?:$/.test(u.protocol)?u.href:'#'}catch{return '#'}}
 function trending(){
  const popular=[...db.posts].filter(p=>!p.parent_id&&p.kind!=='announcement').sort((a,b)=>Number(b.likes)-Number(a.likes)||Date.parse(b.created_at)-Date.parse(a.created_at)).slice(0,15);
@@ -132,22 +189,31 @@ function render(){
   main.innerHTML=db?views[page]():head('Clubhouse temporarily unavailable','Navigation is working, but saved data could not be loaded.')+'<div class="surface"><p>Try refreshing. Existing member data and messages are untouched.</p><button id="tryAgain">RETRY CONNECTION</button></div>';
  }catch(err){
   console.error('Clubhouse tab render failed:',page,err);
-  main.innerHTML=head(tabs.find(x=>x[0]===page)?.[2]||'Clubhouse','This section could not load its content.')+'<div class="surface"><p>There was a problem opening this section. Your posts and accounts have not been changed.</p><button id="tryAgain">RETRY CONNECTION</button></div>';
+  const detail=String(err?.message||'A section record was incomplete').slice(0,140);
+  main.innerHTML=head(tabs.find(x=>x[0]===page)?.[2]||'Clubhouse','This section could not load its content.')+'<div class="surface"><p>A display error occurred: '+esc(detail)+'</p><p>Your posts and accounts have not been changed.</p><button id="tryAgain">RETRY CONNECTION</button></div>';
  }
  if(page==='history'&&historyFacts===null)loadHistory();
 }
-async function refresh(quiet=false){
+async function refresh(quiet=false,forceNews=false){
  if(loading)return;
  loading=true;
  try{
-  const r=await Promise.allSettled([api('/api/club/dashboard'),api('/api/club/news'),api('/api/admin/session')]);
+  const r=await Promise.allSettled([
+   api('/api/club/dashboard'),
+   api('/api/club/news'+(forceNews?'?refresh=1':'')),
+   api('/api/admin/session'),
+   api('/api/stories')
+  ]);
   if(r[0].status!=='fulfilled')throw r[0].reason;
-  db=r[0].value;stories=r[1].status==='fulfilled'?r[1].value.stories||[]:[];
+  db=normalizeDashboard(r[0].value);
   admin=r[2].status==='fulfilled'&&r[2].value.authenticated===true;
+  chooseNews(r[1].status==='fulfilled'?r[1].value:{errors:['Dedicated news feed unavailable']},r[3].status==='fulfilled'?r[3].value:null);
   render();
-  if(!quiet)say('Clubhouse is ready.')
- }catch(e){if(!quiet)say(String(e.message||e),true);render()}
- finally{loading=false}
+  if(!quiet)say(stories.length?'Headlines loaded from publishers.':'News feed unavailable; direct publisher links are provided.',!stories.length);
+ }catch(e){
+  if(!quiet)say(String(e.message||e),true);
+  render()
+ }finally{loading=false}
 }
 async function loadHistory(){
  try{
@@ -161,7 +227,7 @@ document.addEventListener('click',async event=>{
  const b=event.target.closest('button');if(!b)return;
  try{
   if(b.id==='tryAgain'){await refresh();return}
-  if(b.id==='newsReload'){await refresh();say('News refreshed.');return}
+  if(b.id==='newsReload'){await refresh(false,true);return}
   if(b.dataset.replyToggle){const form=main.querySelector('[data-reply-form="'+b.dataset.replyToggle+'"]');if(form){form.hidden=!form.hidden;if(!form.hidden)form.querySelector('input')?.focus()}return}
   if(b.dataset.like){if(!signed())return;await api('/api/club/posts/'+b.dataset.like+'/like','POST',{});await refresh(true);return}
   if(b.dataset.pollVote){if(!signed())return;await api('/api/club/polls/'+b.dataset.pollVote+'/vote','POST',{choice:Number(b.dataset.choice)});say('Vote saved.');await refresh(true);return}
