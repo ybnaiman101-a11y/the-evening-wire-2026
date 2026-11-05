@@ -66,7 +66,7 @@ test('Clubhouse includes ten features and links to main Owner and Member Profile
  assert.match(html,/href="\/club"/);
  assert.match(js,/href="\/club"/);
  assert.match(server,/u\.pathname==='\/club'/);
- assert.match(server,/clubRoute\(req,res,u\.pathname\)/);
+ assert.match(server,/clubRoute\(req,res,u\.pathname,stories\)/);
  assert.match(server,/const publicAsset=.*'\/club\.js'/);
  for(const required of ['club_posts','club_polls','club_poll_votes','club_predictions','club_prediction_votes','club_quiz_answers','club_profiles']){
    assert.ok(club.includes(required),required+' persists in PostgreSQL');
@@ -117,7 +117,7 @@ test('Ask AI is a distinct main tab with safe external fallback and optional ser
  assert.match(server,/askAIRoute/);
  assert.match(api,/OPENAI_API_KEY/);
  assert.match(api,/authenticatedMember/);
- assert.doesNotMatch(ask,/sk-[A-Za-z0-9]/);
+ assert.doesNotMatch(ask,/\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}/);
 });
 test('History reader and standalone quiz work independently of the old history endpoint',()=>{
  const client=read('public/club.js'),back=read('club.mjs');
