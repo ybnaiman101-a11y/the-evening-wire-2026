@@ -365,7 +365,7 @@ const server=http.createServer(async (req,res)=>{
   u.pathname.startsWith('/api/challenge') ||
   u.pathname==='/api/updates'
  );
- const publicAsset=['/','/index.html','/club','/club.css','/club.js','/lounge.css','/lounge.js','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/reaction-hub-v2.css','/election-maps.js','/election-maps.css'].includes(u.pathname);
+ const publicAsset=['/','/index.html','/club','/club.css','/club.js','/owner.js','/lounge.css','/lounge.js','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/reaction-hub-v2.css','/election-maps.js','/election-maps.css'].includes(u.pathname);
  // The admin API implements its own administrator password checks.
  const adminEndpoint=u.pathname.startsWith('/api/admin/');
  // Routes which validate their own owner session must be reachable without a
@@ -445,6 +445,12 @@ const server=http.createServer(async (req,res)=>{
  if(u.pathname==='/members.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/members.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/editor-calls.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/editor-calls.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/reaction-hub-v2.css'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/reaction-hub-v2.css',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/css; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Reaction Hub styles unavailable'},404));return;}
+ if(u.pathname==='/owner.js'){
+  import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/owner.js',import.meta.url))).then(buf=>{
+   res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(buf)
+  }).catch(()=>json({error:'Owner dashboard script unavailable'},404));
+  return;
+ }
  if(u.pathname==='/club.js'||u.pathname==='/club.css'){
   const file=u.pathname.slice(1),ctype=file.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8';
   import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/'+file,import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':ctype,'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Clubhouse asset unavailable'},404));return;
