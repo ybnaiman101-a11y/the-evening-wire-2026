@@ -113,11 +113,21 @@ async function snapshot(member){
  return {date:today(),signedIn:!!member,member:member?{id:uid,displayName:member.displayName,avatarUrl:member.avatarUrl||null}:null,debate,quiz:{...quiz,answered:quizQ.rows.length?quizQ.rows[0]:null},bio:profileQ.rows[0]?.bio||'',posts:posts.map(p=>({...p,liked:myLikes.has(p.id)})),polls,predictions,leaderboard};
 }
 
-export async function clubRoute(req,res,path){
+export async function clubRoute(req,res,path,legacyStories=[]){
  if(!path.startsWith('/api/club/'))return false;
  if(!['GET','POST'].includes(req.method)){send(res,405,{error:'Method not allowed'});return true}
  if(req.method==='POST'&&!allowedOrigin(req)){send(res,403,{error:'Origin not allowed'});return true}
- if(path==='/api/club/news'&&req.method==='GET'){const force=new URL(req.url,'http://localhost').searchParams.get('refresh')==='1';send(res,200,await newsroom({force}));return true}
+ if(path==='/api/club/news'&&req.method==='GET'){
+  const force=new URL(req.url,'http://localhost').searchParams.get('refresh')==='1';
+  const result=await newsroom({force});
+  if(result.stories.length){send(res,200,result);return true}
+  // Secondary engine: independent publisher collection used by the existing site.
+  // Only expose public, attributed stories with genuine recent timestamps.
+  const cutoff=Date.now()-72*3600000;
+  const fallback=(Array.isArray(legacyStories)?legacyStories:[]).filter(x=>x&&typeof x.title==='string'&&typeof x.url==='string'&&/^https:\/\//i.test(x.url)&&Date.parse(x.published)>=cutoff&&Date.parse(x.published)<=Date.now()+3600000).sort((a,b)=>Date.parse(b.published)-Date.parse(a.published)).slice(0,50).map(x=>({title:x.title,url:x.url,published:x.published,source:x.source||'Publisher',topic:'United States',excerpt:String(x.excerpt||'').slice(0,220)}));
+  send(res,200,{...result,stories:fallback,unavailable:fallback.length===0,fallback:fallback.length>0,fallbackSource:'Existing Lounge news collector'});
+  return true;
+ }
  if(path==='/api/club/history'&&req.method==='GET'){const force=new URL(req.url,'http://localhost').searchParams.get('refresh')==='1';send(res,200,await historicalEventsReader({force}));return true}
  if((path==='/api/club/daily'||path==='/api/club/quiz-today')&&req.method==='GET'){
   const daily={date:today(),quiz:quizToday(),debate:debateToday(),ready:true};
