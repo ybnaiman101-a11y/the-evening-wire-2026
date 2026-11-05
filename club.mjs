@@ -5,6 +5,7 @@ import {postgresTLS,postgresConnectionString} from './postgres-tls.mjs';
 import {authenticatedMember} from './members.mjs';
 import {isEditorAdmin} from './editor-calls.mjs';
 import {newsroom} from './newsroom.mjs';
+import {historicalEventsReader} from './history-reader.mjs';
 
 const source=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
 const rooms=new Set(['general','politics','jewish','world','history','economics','science','questions']);
@@ -40,7 +41,10 @@ const quizzes=[
  ['What is the most abundant gas in Earth’s atmosphere?',['Oxygen','Nitrogen','Carbon dioxide','Argon'],1,'Nitrogen makes up about 78% of the atmosphere.'],
  ['Who was the first U.S. president?',['Thomas Jefferson','George Washington','John Adams','James Madison'],1,'George Washington became president in 1789.']
 ];
-const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const today=()=>{
+ const values=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+ return values.year+'-'+values.month+'-'+values.day;
+};
 const dayNumber=key=>Math.floor(Date.parse(key+'T00:00:00Z')/86400000);
 const debateToday=()=>({date:today(),question:debates[((dayNumber(today())%debates.length)+debates.length)%debates.length]});
 const quizToday=()=>{const d=today(),q=quizzes[((dayNumber(d)%quizzes.length)+quizzes.length)%quizzes.length];return {date:d,question:q[0],options:q[1]}};
@@ -109,26 +113,26 @@ async function snapshot(member){
  return {date:today(),signedIn:!!member,member:member?{id:uid,displayName:member.displayName,avatarUrl:member.avatarUrl||null}:null,debate,quiz:{...quiz,answered:quizQ.rows.length?quizQ.rows[0]:null},bio:profileQ.rows[0]?.bio||'',posts:posts.map(p=>({...p,liked:myLikes.has(p.id)})),polls,predictions,leaderboard};
 }
 
-let cachedHistory={date:'',at:0,events:[]};
-async function historicalEvents(){
- const date=today();
- if(cachedHistory.date===date&&Date.now()-cachedHistory.at<6*3600000)return cachedHistory;
- const mm=date.slice(5,7),dd=date.slice(8,10);
- try{
-  const res=await fetch('https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/'+mm+'/'+dd,{signal:AbortSignal.timeout(7000),headers:{'User-Agent':'TheLounge/1.0 (history clubhouse)'}});
-  if(!res.ok)throw Error('History HTTP '+res.status);
-  const x=await res.json();
-  cachedHistory={date,at:Date.now(),events:(Array.isArray(x.events)?x.events:[]).filter(e=>Number.isInteger(e.year)&&typeof e.text==='string').sort((a,b)=>b.year-a.year).slice(0,14).map(e=>({year:String(e.year),text:e.text.slice(0,650)}))};
- }catch(err){cachedHistory={date,at:Date.now(),events:[],error:String(err.message||err).slice(0,100)}}
- return cachedHistory;
-}
-
-export async function clubRoute(req,res,path){
+export async function clubRoute(req,res,path,legacyStories=[]){
  if(!path.startsWith('/api/club/'))return false;
  if(!['GET','POST'].includes(req.method)){send(res,405,{error:'Method not allowed'});return true}
  if(req.method==='POST'&&!allowedOrigin(req)){send(res,403,{error:'Origin not allowed'});return true}
- if(path==='/api/club/news'&&req.method==='GET'){const force=new URL(req.url,'http://localhost').searchParams.get('refresh')==='1';send(res,200,await newsroom({force}));return true}
- if(path==='/api/club/history'&&req.method==='GET'){send(res,200,await historicalEvents());return true}
+ if(path==='/api/club/news'&&req.method==='GET'){
+  const force=new URL(req.url,'http://localhost').searchParams.get('refresh')==='1';
+  const result=await newsroom({force});
+  if(result.stories.length){send(res,200,result);return true}
+  // Secondary engine: independent publisher collection used by the existing site.
+  // Only expose public, attributed stories with genuine recent timestamps.
+  const cutoff=Date.now()-72*3600000;
+  const fallback=(Array.isArray(legacyStories)?legacyStories:[]).filter(x=>x&&typeof x.title==='string'&&typeof x.url==='string'&&/^https:\/\//i.test(x.url)&&Date.parse(x.published)>=cutoff&&Date.parse(x.published)<=Date.now()+3600000).sort((a,b)=>Date.parse(b.published)-Date.parse(a.published)).slice(0,50).map(x=>({title:x.title,url:x.url,published:x.published,source:x.source||'Publisher',topic:'United States',excerpt:String(x.excerpt||'').slice(0,220)}));
+  send(res,200,{...result,stories:fallback,unavailable:fallback.length===0,fallback:fallback.length>0,fallbackSource:'Existing Lounge news collector'});
+  return true;
+ }
+ if(path==='/api/club/history'&&req.method==='GET'){const force=new URL(req.url,'http://localhost').searchParams.get('refresh')==='1';send(res,200,await historicalEventsReader({force}));return true}
+ if((path==='/api/club/daily'||path==='/api/club/quiz-today')&&req.method==='GET'){
+  const daily={date:today(),quiz:quizToday(),debate:debateToday(),ready:true};
+  send(res,200,path==='/api/club/quiz-today'?daily.quiz:daily);return true;
+ }
  try{await ensure()}catch(e){console.warn('CLUBHOUSE_DB_UNAVAILABLE',e.message);send(res,503,{error:'The Lounge database is not available. Existing messages have not been changed.'});return true}
  const route=path.slice('/api/club/'.length);
  try{

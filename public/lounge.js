@@ -26,7 +26,7 @@ function panel(title,intro,body){
 function empty(text){return '<div class="lounge-empty">✳ <p>'+esc(text)+'</p></div>'}
 async function latest(){const data=await api('/api/community/posts?scope=social');return data.posts||[]}
 async function home(token){
- desk.innerHTML=panel('Your corner of the internet','', '<div class="lounge-home-actions"><a href="/#pulse" class="lounge-action-main">⚡ OPEN THE PULSE</a><a href="/#friends">♡ FIND FRIENDS</a><a href="/#rooms">☷ EXPLORE ROOMS</a><a href="/club">✦ CLUBHOUSE · 12 FEATURES</a></div><div class="lounge-home-grid"><section class="lounge-surface"><h2>Fresh conversations</h2><div id="loungeHomePosts" class="lounge-post-stack">'+empty('Loading posts…')+'</div></section><aside class="lounge-surface"><h2>Find your crowd</h2><div class="lounge-home-rooms">'+rooms.slice(0,5).map(r=>'<a href="/#pulse/'+r[0]+'"><span>'+r[1]+'</span><strong>'+r[2]+'</strong><span>↗</span></a>').join('')+'</div><a href="/#rooms" class="lounge-inline-link">ALL ROOMS ↗</a><div class="lounge-promo"><span>✦</span><b>Share a little something.</b><p>Politics, history, big ideas and good conversation. Everyone is invited.</p></div></aside></div>');
+ desk.innerHTML=panel('Your corner of the internet','', '<div class="lounge-home-actions"><a href="/#pulse" class="lounge-action-main">⚡ OPEN THE PULSE</a><a href="/#friends">♡ FIND FRIENDS</a><a href="/#rooms">☷ EXPLORE ROOMS</a><a href="/club">✦ CLUBHOUSE · 12 FEATURES</a><a href="/#ai">✦ ASK AI</a></div><div class="lounge-home-grid"><section class="lounge-surface"><h2>Fresh conversations</h2><div id="loungeHomePosts" class="lounge-post-stack">'+empty('Loading posts…')+'</div></section><aside class="lounge-surface"><h2>Find your crowd</h2><div class="lounge-home-rooms">'+rooms.slice(0,5).map(r=>'<a href="/#pulse/'+r[0]+'"><span>'+r[1]+'</span><strong>'+r[2]+'</strong><span>↗</span></a>').join('')+'</div><a href="/#rooms" class="lounge-inline-link">ALL ROOMS ↗</a><div class="lounge-promo"><span>✦</span><b>Share a little something.</b><p>Politics, history, big ideas and good conversation. Everyone is invited.</p></div></aside></div>');
  try{const posts=await latest();if(token===sequence){const el=document.getElementById('loungeHomePosts');if(el)el.innerHTML=posts.length?posts.slice(0,12).map(card).join(''):empty('Your Lounge is ready. Start the first conversation!')}}catch(err){if(token===sequence)desk.querySelector('#loungeHomePosts').innerHTML=empty(err.message)}
 }
 function roomsPage(){
@@ -84,12 +84,17 @@ function setStatus(message){
 }
 function currentHash(){
  const raw=decodeURIComponent(location.hash.replace(/^#/,'')||'home').replace(/^\//,'');
- const [p,...rest]=raw.split('/');return {page:['home','pulse','rooms','polls','friends','discover','profile','owner'].includes(p)?p:'home',room:rest[0]||'all'}
+ const [p,...rest]=raw.split('/');return {page:['home','pulse','rooms','polls','friends','discover','profile','owner','ai'].includes(p)?p:'home',room:rest[0]||'all'}
 }
 async function route(){
  const token=++sequence,{page:next,room}=currentHash();page=next;hero.hidden=page!=='home';document.body.dataset.ewView=page==='pulse'?'reactions':page;
  nav.querySelectorAll('[data-page]').forEach(n=>n.setAttribute('aria-current',n.dataset.page===page?'page':'false'));
  desk.onclick=null;desk.oninput=null;desk.onchange=null;desk.onsubmit=null;desk.onpaste=null;desk.ondragover=null;desk.ondrop=null;
+ if(page==='ai'){
+  if(!window.LoungeAI?.open){desk.textContent='Ask AI is temporarily unavailable. Please refresh this page.';return}
+  window.LoungeAI.open();
+  return
+ }
  if(page==='owner'){
   if(!window.LoungeOwner?.open){desk.textContent='Owner Dashboard script could not load. Please reload the page.';return}
   await window.LoungeOwner.open();

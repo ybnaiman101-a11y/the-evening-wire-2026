@@ -5,6 +5,7 @@ import {liveResultsHub} from './live-results.mjs';
 import {communityRoute} from './community.mjs';
 import {loungeRoute} from './lounge.mjs';
 import {clubRoute} from './club.mjs';
+import {askAIRoute} from './ask-ai.mjs';
 import {memberRoute,authenticatedMember} from './members.mjs';
 import {trafficRoute} from './traffic.mjs';
 import {updateRoute} from './election-updates.mjs';
@@ -362,15 +363,16 @@ const server=http.createServer(async (req,res)=>{
   u.pathname.startsWith('/api/community/') ||
    u.pathname.startsWith('/api/lounge/') ||
   u.pathname.startsWith('/api/club/') ||
+  u.pathname==='/api/ask-ai/status' ||
   u.pathname.startsWith('/api/challenge') ||
   u.pathname==='/api/updates'
  );
- const publicAsset=['/','/index.html','/club','/club.css','/club.js','/owner.js','/lounge.css','/lounge.js','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/reaction-hub-v2.css','/election-maps.js','/election-maps.css'].includes(u.pathname);
+ const publicAsset=['/','/index.html','/club','/club.css','/club.js','/owner.js','/ask-ai.js','/lounge.css','/lounge.js','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/reaction-hub-v2.css','/election-maps.js','/election-maps.css'].includes(u.pathname);
  // The admin API implements its own administrator password checks.
  const adminEndpoint=u.pathname.startsWith('/api/admin/');
  // Routes which validate their own owner session must be reachable without a
  // separate ordinary member login. The route still checks its authorization.
- const delegatedAuth=u.pathname==='/api/traffic/summary'||u.pathname.startsWith('/api/club/')||u.pathname.startsWith('/api/lounge/')||u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')||u.pathname.startsWith('/api/challenge')||u.pathname.startsWith('/api/community/admin/');
+ const delegatedAuth=u.pathname.startsWith('/api/ask-ai')||u.pathname==='/api/traffic/summary'||u.pathname.startsWith('/api/club/')||u.pathname.startsWith('/api/lounge/')||u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')||u.pathname.startsWith('/api/challenge')||u.pathname.startsWith('/api/community/admin/');
  if(!visitor && !(publicRead||publicAsset||adminEndpoint||delegatedAuth)){
   return json({error:'Sign in or register to use this feature',login:'/login'},401);
  }
@@ -382,7 +384,10 @@ const server=http.createServer(async (req,res)=>{
  }
  if(u.pathname.startsWith('/api/traffic/')){trafficRoute(req,res,u.pathname).catch(err=>{console.error('Traffic API error',err);if(!res.headersSent)json({error:'Traffic temporarily unavailable'},503);else res.end()});return;}
 
- if(u.pathname.startsWith('/api/club/')){clubRoute(req,res,u.pathname).catch(err=>{console.error('Clubhouse API:',String(err?.message||err));if(!res.headersSent)json({error:'Clubhouse is temporarily unavailable'},503);else res.end()});return;}
+ if(u.pathname==='/api/ask-ai'||u.pathname==='/api/ask-ai/status'){
+  askAIRoute(req,res,u.pathname).catch(err=>{console.error('Ask AI API:',String(err?.message||err));if(!res.headersSent)json({error:'Ask AI connection unavailable'},503);else res.end()});return;
+ }
+ if(u.pathname.startsWith('/api/club/')){clubRoute(req,res,u.pathname,stories).catch(err=>{console.error('Clubhouse API:',String(err?.message||err));if(!res.headersSent)json({error:'Clubhouse is temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname.startsWith('/api/lounge/')){loungeRoute(req,res,u.pathname).catch(err=>{console.error('Lounge API:',String(err?.message||err));if(!res.headersSent)json({error:'Social feature temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname).catch(err=>{console.error('Community API request error:',String(err?.message||err));if(!res.headersSent)json({error:'Community service temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname==='/api/editor/calls'||u.pathname.startsWith('/api/admin/')){editorRoute(req,res,u.pathname).catch(err=>{console.error('Editor route error',err);if(!res.headersSent)json({error:'Editorial desk unavailable'},503);else res.end()});return;}
@@ -445,6 +450,11 @@ const server=http.createServer(async (req,res)=>{
  if(u.pathname==='/members.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/members.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/editor-calls.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/editor-calls.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/reaction-hub-v2.css'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/reaction-hub-v2.css',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/css; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Reaction Hub styles unavailable'},404));return;}
+ if(u.pathname==='/ask-ai.js'){
+  import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/ask-ai.js',import.meta.url))).then(buf=>{
+   res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(buf)
+  }).catch(()=>json({error:'Ask AI script unavailable'},404));return;
+ }
  if(u.pathname==='/owner.js'){
   import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/owner.js',import.meta.url))).then(buf=>{
    res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(buf)

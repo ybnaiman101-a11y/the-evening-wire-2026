@@ -5,9 +5,9 @@ import {Script} from 'node:vm';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const html=read('public/lounge.html'),js=read('public/lounge.js'),pulse=read('public/reactions.js'),css=read('public/lounge.css');
 const topics=['general','politics','jewish','world','history','economics','science','questions'];
-test('All nine Lounge tabs are real navigable links that route to a valid page',()=>{
+test('All ten Lounge tabs are real navigable links that route to a valid page',()=>{
  assert.match(html,/<title>THE LOUNGE/);
- for(const page of ['home','pulse','rooms','polls','friends','discover','profile','owner']){
+ for(const page of ['home','pulse','rooms','polls','friends','discover','ai','profile','owner']){
    assert.match(html,new RegExp('<a data-page="'+page+'" href="/#'+page+'"'));
    assert.match(js,new RegExp("'"+page+"'"));
  }
@@ -18,7 +18,8 @@ test('All nine Lounge tabs are real navigable links that route to a valid page',
  assert.match(js,/addEventListener\('popstate',navigate\)/);
  assert.match(html,/id="commandDesk"/);
  assert.match(html,/\/reactions\.js\?v=10/);
- assert.match(html,/\/lounge\.js\?v=4/);
+ assert.match(html,/\/lounge\.js\?v=5/);
+ assert.match(html,/\/ask-ai\.js\?v=1/);
  assert.match(html,/\/owner\.js\?v=1/);
 });
 test('Discussion rooms are politics, Jewish life and meaningful conversations',()=>{
@@ -44,7 +45,7 @@ test('Accounts, polls, profile photos, messages and nested replies remain functi
  assert.match(pulse,/host\.onpaste=async e=>/);
  assert.match(pulse,/data-hub-record-start="1"/);
  assert.match(css,/\.lounge-nav a/);
- assert.match(css,/repeat\(9,minmax\(0,1fr\)\)/);
+ assert.match(css,/repeat\(10,minmax\(0,1fr\)\)/);
 });
 test('Login and privacy pages still serve THE LOUNGE',()=>{
  const login=read('public/login.html'),about=read('public/about-security.html'),server=read('server.mjs');
@@ -65,7 +66,7 @@ test('Clubhouse includes ten features and links to main Owner and Member Profile
  assert.match(html,/href="\/club"/);
  assert.match(js,/href="\/club"/);
  assert.match(server,/u\.pathname==='\/club'/);
- assert.match(server,/clubRoute\(req,res,u\.pathname\)/);
+ assert.match(server,/clubRoute\(req,res,u\.pathname,stories\)/);
  assert.match(server,/const publicAsset=.*'\/club\.js'/);
  for(const required of ['club_posts','club_polls','club_poll_votes','club_predictions','club_prediction_votes','club_quiz_answers','club_profiles']){
    assert.ok(club.includes(required),required+' persists in PostgreSQL');
@@ -104,4 +105,26 @@ test('All Clubhouse tab controls have a direct route, render fallback, and acces
  assert.match(styles,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
  assert.match(styles,/hero::after\{content:none!important\}/);
  assert.match(css,/lounge-welcome::after\{content:none!important\}/);
+});
+
+test('Ask AI is a distinct main tab with safe external fallback and optional server API',()=>{
+ const ask=read('public/ask-ai.js'),server=read('server.mjs'),api=read('ask-ai.mjs');
+ assert.doesNotThrow(()=>new Script(ask,{filename:'public/ask-ai.js'}));
+ assert.match(html,/data-page="ai"/);
+ assert.match(html,/ask-ai\.js\?v=1/);
+ assert.match(js,/LoungeAI\.open\(\)/);
+ assert.match(ask,/https:\/\/chatgpt\.com\//);
+ assert.match(server,/askAIRoute/);
+ assert.match(api,/OPENAI_API_KEY/);
+ assert.match(api,/authenticatedMember/);
+ assert.doesNotMatch(ask,/\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}/);
+});
+test('History reader and standalone quiz work independently of the old history endpoint',()=>{
+ const client=read('public/club.js'),back=read('club.mjs');
+ assert.match(client,/api\/club\/daily/);
+ assert.match(back,/quizToday\(\)/);
+ assert.match(back,/historicalEventsReader/);
+ assert.match(client,/historyReload/);
+ assert.match(client,/\/api\/club\/history/);
+ assert.match(client,/historymark/);
 });
