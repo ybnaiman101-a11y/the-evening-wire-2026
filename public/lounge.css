@@ -149,3 +149,53 @@ button{cursor:pointer}
  .lounge-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:10px}
  .lounge-nav a{font-size:11px;min-height:54px;padding:9px 6px}
 }
+
+
+/* Owner Dashboard: private professional control room on the main Lounge page */
+.lounge-nav{grid-template-columns:repeat(9,minmax(0,1fr))}
+.owner-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin:13px 0}
+.owner-toolbar button,.owner-actions button,.owner-subnav button,.owner-post button{font:800 12px 'DM Sans',sans-serif;border:1px solid #594b79;background:#322c52;color:#f6ebff;border-radius:10px;padding:10px 12px;cursor:pointer}
+.owner-toolbar button:hover,.owner-actions button:hover,.owner-subnav button:hover,.owner-post button:hover{background:#533d75}
+.owner-primary{background:#784fbe!important;border-color:#a477dc!important;color:#fff!important}
+.owner-danger{background:#5c263b!important;border-color:#aa556b!important}
+.owner-card{background:linear-gradient(135deg,#231e3e,#191c33);border:1px solid #514866;border-radius:17px;padding:22px;margin:0 0 16px;box-shadow:0 11px 35px #0002;min-width:0}
+.owner-card h2{font:800 25px 'Outfit',sans-serif;margin:0 0 12px}
+.owner-card p{color:#c9bed8;line-height:1.65;font-size:13px}
+.owner-login{width:min(550px,100%);margin:23px auto;padding:30px}
+.owner-icon{font-size:42px;margin:10px 0 17px}
+.owner-login label,.owner-card label{display:grid;gap:7px;font-size:11px;font-weight:900;color:#d8c6f4;letter-spacing:.5px;margin:10px 0}
+.owner-login input,.owner-card input,.owner-card select,.owner-card textarea{background:#151427;border:1px solid #615773;border-radius:10px;color:#fff;padding:12px;width:100%;font:500 13px 'DM Sans',sans-serif;max-width:100%}
+.owner-card textarea{min-height:125px;resize:vertical}
+.owner-card form{display:grid;gap:12px}
+.owner-check{display:flex!important;gap:9px;align-items:center;font-weight:700!important}
+.owner-check input{width:auto!important}
+.owner-card button{border:1px solid #67558c;background:#433363;color:#fff;border-radius:10px;padding:11px 14px;font:800 12px 'DM Sans',sans-serif;cursor:pointer}
+.owner-card button:hover{background:#674e91}
+.owner-card button:disabled{opacity:.55;cursor:default}
+.owner-subnav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px;border:1px solid #54456c;background:#1a1932;border-radius:15px;margin:16px 0 19px}
+.owner-subnav button[aria-pressed=true]{background:#7444a1;border-color:#c290e1}
+.owner-stats,.owner-snapshot{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0 18px}
+.owner-stat{border:1px solid #504663;border-radius:14px;padding:18px 14px;background:linear-gradient(140deg,#282342,#25223b);min-width:0}
+.owner-stat span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;font-weight:900;color:#bcaed0}
+.owner-stat strong{display:block;font:900 clamp(22px,3vw,36px) 'Outfit',sans-serif;color:#f8e8ff;margin-top:8px}
+.owner-two{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.owner-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.owner-actions button{text-align:left}
+.owner-pill{font-size:11px;font-weight:900;color:#9beed8;background:#233e40;border:1px solid #428e75;border-radius:100px;padding:7px 11px;white-space:nowrap}
+.owner-section-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.owner-table-wrap{max-width:100%;overflow:auto}
+.owner-table{width:100%;border-collapse:collapse;min-width:480px;font-size:12px;color:#e8def0}
+.owner-table th{color:#b39ac9;text-align:left;font-size:10px;letter-spacing:1px}
+.owner-table th,.owner-table td{padding:12px 10px;border-bottom:1px solid #443b59}
+.owner-table td{overflow-wrap:anywhere}
+.owner-note{font-size:11px!important;color:#a59ab8!important}
+.owner-empty{padding:20px;border:1px dashed #5e5579;border-radius:12px;color:#a79ab9;text-align:center;font-size:13px}
+.owner-post{border:1px solid #4c4667;border-radius:12px;background:#1c1c34;padding:15px;margin:10px 0}
+.owner-post b{font-size:13px;color:#fff}
+.owner-post small{display:block;font-size:10px;color:#b6a6c5;margin-top:5px}
+.owner-post p{font-size:12px;overflow-wrap:anywhere;white-space:pre-wrap}
+.owner-row{display:flex;gap:8px;flex-wrap:wrap}
+.owner-banner{border:1px solid #a384a9;color:#e6d4ff;background:#3a2a48;border-radius:12px;padding:14px;font-size:12px;margin-bottom:12px}
+.owner-error{color:#ffb2be!important;font-weight:800}
+.owner-link{display:inline-block;color:#d7b7ff;font-size:12px;font-weight:900;margin:10px 14px 0 0}
+@media(max-width:900px){.lounge-nav{grid-template-columns:repeat(5,minmax(0,1fr))}.owner-stats,.owner-snapshot{grid-template-columns:repeat(2,minmax(0,1fr))}.owner-two{grid-template-columns:1fr}}
+@media(max-width:520px){.lounge-nav{grid-template-columns:repeat(3,minmax(0,1fr))}.owner-card{padding:16px}.owner-subnav{display:grid;grid-template-columns:repeat(2,1fr)}.owner-subnav button{min-height:45px}.owner-actions{grid-template-columns:1fr}.owner-stat{padding:15px 10px}}

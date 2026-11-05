@@ -9,12 +9,10 @@ const tabs=[
  ['quiz','🧠','Quiz Arena','A new question every day.'],
  ['predictions','🔮','Prediction Center','Make forecasts and build your accuracy record.'],
  ['rooms','💬','Hangout Rooms','Real conversations with friends.'],
- ['profiles','👤','Member Profiles','Your bio, photo, and friends.'],
  ['news','🗞','News Desk','Headlines and the conversations behind them.'],
  ['trending','↗',"What's Trending",'The most active posts and rooms.'],
  ['history','📜','On This Day','Discover something from the past.'],
- ['questions','❔','Ask the Lounge','Ask publicly or anonymously.'],
- ['owner','✦',"Owner's Corner",'Announcements and community controls.']
+ ['questions','❔','Ask the Lounge','Ask publicly or anonymously.']
 ];
 const channels=[
  ['general','💬','General Discussion'],['politics','🏛️','Politics'],['jewish','✡️','Hasidic & Jewish Life'],
@@ -47,8 +45,8 @@ function postsFor(kind,room=null){
  return mainPosts.map(p=>post(p)+all.filter(r=>r.parent_id===p.id).reverse().map(post).join('')).join('')||empty('No messages yet. Start the conversation!')
 }
 function home(){
- return '<div class="hero"><span class="eyebrow">WELCOME BACK TO YOUR SOCIAL CLUB</span><h1>Your people.<br><em>Your conversations.</em></h1><p>Debate, vote, compete, predict and discover something new together. The Pulse and your existing messages are still right where you left them.</p><div class="hero-actions"><a href="#debate">TODAY’S DEBATE ↗</a><a href="/#pulse">OPEN THE PULSE ↗</a></div></div>'
- +'<div class="pagehead"><div><span class="eyebrow">ALL 12 FEATURES</span><h1 style="font-size:29px">Explore the Clubhouse</h1></div><span class="chip">'+(db?.signedIn?'SIGNED IN':'GUEST VIEW')+'</span></div>'
+ return '<div class="hero"><span class="eyebrow">WELCOME BACK TO YOUR SOCIAL CLUB</span><h1>Your people.<br><em>Your conversations.</em></h1><p>Debate, vote, compete, predict and discover something new together. The Pulse, Member Profiles and the owner dashboard have their own main navigation tabs.</p><div class="hero-actions"><a href="#debate">TODAY’S DEBATE ↗</a><a href="/#pulse">OPEN THE PULSE ↗</a></div></div>'
+ +'<div class="pagehead"><div><span class="eyebrow">THE CLUBHOUSE</span><h1 style="font-size:29px">Explore the Clubhouse</h1></div><span class="chip">'+(db?.signedIn?'SIGNED IN':'GUEST VIEW')+'</span></div>'
  +'<div class="tiles">'+tabs.map(t=>'<a class="tile" href="#'+t[0]+'"><span class="tile-icon">'+t[1]+'</span><h3>'+esc(t[2])+'</h3><p>'+esc(t[3])+'</p></a>').join('')+'</div>';
 }
 function debate(){
@@ -98,11 +96,6 @@ function rooms(){
  +'<div class="room-grid">'+channels.map(r=>'<a class="room-link" href="/#pulse/'+r[0]+'"><b>'+r[1]+' '+esc(r[2])+'</b><small>Open the original live discussion ↗</small></a>').join('')+'</div>'
  +'<div class="surface" style="margin-top:20px"><h2>Clubhouse quick chat</h2><div class="row"><label style="min-width:220px">Room<select id="clubRoom">'+channels.map(r=>'<option value="'+r[0]+'" '+(r[0]===activeRoom?'selected':'')+'>'+esc(r[2])+'</option>').join('')+'</select></label></div><form id="roomForm"><textarea name="message" required minlength="3" maxlength="1200" placeholder="Share something with your Lounge friends…"></textarea><button type="submit">POST TO ROOM</button></form><div id="roomPosts">'+postsFor('room',activeRoom)+'</div></div>';
 }
-function profiles(){
- return head('Member Profiles','Keep the same account, profile picture, name, friends and messages you already have.')
- +'<div class="two"><section class="surface"><h2>About me</h2>'+(db.signedIn?'<p>Signed in as <b>'+esc(db.member.displayName)+'</b></p><form id="bioForm"><label>Profile biography<textarea maxlength="240" name="bio" placeholder="A little about yourself…">'+esc(db.bio)+'</textarea></label><button type="submit">SAVE MY BIO</button></form><p class="hint">Your profile photo and display name are managed on your existing Lounge profile.</p><a class="smalllink" href="/#profile">Manage picture and name ↗</a>':'<p>Sign in to create your profile.</p><a class="smalllink" href="/login">Sign in or join ↗</a>')+'</section><section class="surface"><h2>Find friends</h2><p>Browse the opt-in friends directory, follow members, and visit their profiles.</p><a class="smalllink" href="/#friends">OPEN FRIENDS DIRECTORY ↗</a></section></div>'
- +'<section class="surface"><h2>Clubhouse members</h2><div class="three">'+(db.leaderboard.length?db.leaderboard.slice(0,12).map(p=>'<div class="post"><div class="post-head">'+avatar(p)+'<b>'+esc(p.display_name)+'</b></div><p>'+esc(p.bio||'No biography yet')+'</p><span class="chip">'+p.score+' points</span></div>').join(''):empty('Members will appear here after they participate.'))+'</div></section>';
-}
 function news(){
  return head('The News Desk','Read the latest available publisher headlines, then discuss them with friends.')
  +'<section class="surface"><div class="row between"><h2>Latest news headlines</h2><button type="button" id="newsReload">↻ Refresh</button></div>'
@@ -116,7 +109,7 @@ function trending(){
  return head("What's Trending",'The conversations earning the most likes and attention from members.')
  +'<div class="two"><section class="surface"><h2>Trending conversations</h2>'+popular.map(post).join('')+'</section><section class="surface"><h2>Most active rooms</h2>'+roomCounts.map((r,i)=>'<div class="post row between"><a href="/#pulse/'+r.key+'">'+(i+1)+'. '+esc(r.name)+' ↗</a><span class="chip">'+r.count+' Clubhouse posts</span></div>').join('')+'<p class="hint">Activity is based on saved Clubhouse posts.</p></section></div>';
 }
-function history(){
+function historyPage(){
  const now=new Date(),mm=String(now.getMonth()+1).padStart(2,'0'),dd=String(now.getDate()).padStart(2,'0');
  return head('On This Day','A daily look at the events that shaped history.')
  +'<section class="surface"><h2>'+esc(now.toLocaleDateString('en-US',{month:'long',day:'numeric'}))+' through history</h2>'
@@ -128,17 +121,13 @@ function questions(){
  +'<section class="surface"><h2>Ask a question</h2><form id="questionForm"><label>Your question<textarea required minlength="3" maxlength="1200" name="message" placeholder="What would you like to ask the Lounge?"></textarea></label><label class="row"><input type="checkbox" name="anonymous" style="width:auto"> Post anonymously (your name will be hidden from other readers)</label><button type="submit">ASK THE LOUNGE</button></form><p class="hint">Anonymous posts remain linked privately to your account for moderation.</p></section>'
  +'<section class="surface"><h2>Recent questions</h2>'+postsFor('question')+'</section>';
 }
-function owner(){
- return head("Owner's Corner",'Announcements and community moderation — controlled by the Lounge owner.')
- +(admin?'<div class="surface"><h2>Publish an announcement</h2><form id="announcementForm"><label>Message<textarea name="message" required minlength="3" maxlength="1200" placeholder="Post an announcement for everyone…"></textarea></label><button type="submit">PUBLISH TO CLUBHOUSE</button></form><p class="hint">The owner may also hide individual posts using the Hide controls throughout the Clubhouse.</p></div>':
- '<div class="notice">Only the site owner can publish announcements and moderate. <a class="smalllink" href="/#profile">Unlock owner tools from your existing Lounge profile ↗</a></div>')
- +'<section class="surface"><h2>Official Lounge announcements</h2>'+postsFor('announcement')+'</section>';
-}
 function render(){
  // Every navigation click is a real route, with URL fragment and page content in sync.
- const raw=location.hash.slice(1).split('/')[0];const page=raw==='home'||tabs.some(t=>t[0]===raw)?raw:'home';
+ const raw=location.hash.slice(1).split('/')[0];
+ if(raw==='owner'||raw==='profiles'){location.replace('/#'+(raw==='owner'?'owner':'profile'));return;}
+ const page=raw==='home'||tabs.some(t=>t[0]===raw)?raw:'home';
  for(const link of nav.querySelectorAll('[data-tab]'))link.setAttribute('aria-current',link.dataset.tab===page?'page':'false');
- const views={home,debate,polls,leaderboard,quiz,predictions,rooms,profiles,news,trending,history,questions,owner};
+ const views={home,debate,polls,leaderboard,quiz,predictions,rooms,news,trending,history:historyPage,questions};
  try{
   main.innerHTML=db?views[page]():head('Clubhouse temporarily unavailable','Navigation is working, but saved data could not be loaded.')+'<div class="surface"><p>Try refreshing. Existing member data and messages are untouched.</p><button id="tryAgain">RETRY CONNECTION</button></div>';
  }catch(err){
@@ -186,7 +175,7 @@ main.addEventListener('change',e=>{if(e.target.id==='clubRoom'){activeRoom=e.tar
 document.addEventListener('submit',async event=>{
  const form=event.target;
  const id=form.id,replyId=form.dataset.replyForm;
- if(!['debateForm','pollForm','predictionForm','roomForm','bioForm','questionForm','announcementForm'].includes(id)&&!replyId)return;
+ if(!['debateForm','pollForm','predictionForm','roomForm','questionForm'].includes(id)&&!replyId)return;
  event.preventDefault();if(!signed())return;
  const submit=form.querySelector('[type=submit]');if(submit)submit.disabled=true;
  const v=new FormData(form);
@@ -195,9 +184,7 @@ document.addEventListener('submit',async event=>{
   if(id==='pollForm')await api('/api/club/polls','POST',{question:v.get('question'),options:['one','two','three','four'].map(x=>String(v.get(x)||'').trim()).filter(Boolean),closesAt:deadline(v.get('days'))});
   if(id==='predictionForm')await api('/api/club/predictions','POST',{question:v.get('question'),closesAt:deadline(v.get('days'))});
   if(id==='roomForm')await api('/api/club/posts','POST',{kind:'room',room:activeRoom,message:v.get('message')});
-  if(id==='bioForm')await api('/api/club/profile','POST',{bio:v.get('bio')});
   if(id==='questionForm')await api('/api/club/posts','POST',{kind:'question',message:v.get('message'),anonymous:v.get('anonymous')==='on'});
-  if(id==='announcementForm')await api('/api/club/posts','POST',{kind:'announcement',message:v.get('message')});
   if(replyId){
    const parent=db.posts.find(p=>p.id===replyId);
    if(!parent)throw Error('Conversation was not found');
@@ -214,7 +201,7 @@ document.addEventListener('click',event=>{
  const dest=a.getAttribute('href').slice(1);
  if(dest!=='home'&&!tabs.some(item=>item[0]===dest))return;
  event.preventDefault();
- if(location.hash!=='#'+dest)history.pushState(null,'','#'+dest);
+ if(location.hash!=='#'+dest)window.history.pushState(null,'','#'+dest);
  render();
  // Keep the selected section in view instead of leaving it under the sticky header.
  if(a.closest('#clubNav')&&window.matchMedia('(max-width:700px)').matches){

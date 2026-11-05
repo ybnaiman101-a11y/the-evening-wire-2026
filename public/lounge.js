@@ -73,7 +73,7 @@ async function prepareAvatar(file){
  }finally{picture.close()}
 }
 function profilePage(){
- desk.innerHTML=panel('My profile','Your corner. Your style.',member?'<div class="lounge-profile-card">'+avatar(member,'big')+'<div><h2>'+esc(member.displayName)+'</h2><p>'+esc(member.email)+'</p><label class="lounge-upload-avatar">📷 CHANGE PROFILE PICTURE <input id="loungeAvatar" type="file" accept="image/jpeg,image/png,image/webp" hidden></label> '+(member.avatarUrl?'<button data-avatar-remove="1">REMOVE PHOTO</button>':'')+'</div></div>'+
+ desk.innerHTML=panel('Member Profiles','Your profile, photo, name and friends directory.',member?'<div class="lounge-profile-card">'+avatar(member,'big')+'<div><h2>'+esc(member.displayName)+'</h2><p>'+esc(member.email)+'</p><label class="lounge-upload-avatar">📷 CHANGE PROFILE PICTURE <input id="loungeAvatar" type="file" accept="image/jpeg,image/png,image/webp" hidden></label> '+(member.avatarUrl?'<button data-avatar-remove="1">REMOVE PHOTO</button>':'')+'</div></div>'+
  '<div class="lounge-profile-grid"><section class="lounge-surface"><h2>Display name</h2><form id="loungeNameForm"><label>NAME<input name="displayName" minlength="2" maxlength="40" required value="'+esc(member.displayName)+'"></label><button type="submit">SAVE NAME</button></form></section><section class="lounge-surface"><h2>Account & settings</h2><p>Your existing login stays active on this device, just like before.</p><button type="button" data-signout="1" class="lounge-secondary-button">SIGN OUT</button><details class="lounge-owner-box"><summary>Owner sign-in</summary><form id="loungeOwnerForm"><label>ADMIN PASSWORD<input name="password" type="password" autocomplete="current-password" required></label><label class="lounge-inline-check"><input name="remember" type="checkbox" checked> Remember this device</label><button type="submit">UNLOCK OWNER TOOLS</button></form></details></section></div><p class="lounge-inline-link"><a href="/#friends">Manage Friends visibility ↗</a></p>':
  '<section class="lounge-guest-profile"><h2>Welcome in.</h2><p>Browsing is free. Join to post, react, follow friends, and set your profile picture.</p><a href="/login" class="lounge-action-main">SIGN IN OR JOIN</a></section>');
 }
@@ -84,13 +84,21 @@ function setStatus(message){
 }
 function currentHash(){
  const raw=decodeURIComponent(location.hash.replace(/^#/,'')||'home').replace(/^\//,'');
- const [p,...rest]=raw.split('/');return {page:['home','pulse','rooms','polls','friends','discover','profile'].includes(p)?p:'home',room:rest[0]||'all'}
+ const [p,...rest]=raw.split('/');return {page:['home','pulse','rooms','polls','friends','discover','profile','owner'].includes(p)?p:'home',room:rest[0]||'all'}
 }
 async function route(){
  const token=++sequence,{page:next,room}=currentHash();page=next;hero.hidden=page!=='home';document.body.dataset.ewView=page==='pulse'?'reactions':page;
  nav.querySelectorAll('[data-page]').forEach(n=>n.setAttribute('aria-current',n.dataset.page===page?'page':'false'));
  desk.onclick=null;desk.oninput=null;desk.onchange=null;desk.onsubmit=null;desk.onpaste=null;desk.ondragover=null;desk.ondrop=null;
+ if(page==='owner'){
+  if(!window.LoungeOwner?.open){desk.textContent='Owner Dashboard script could not load. Please reload the page.';return}
+  await window.LoungeOwner.open();
+  return
+ }
  try{const x=await api('/api/members/session');if(token!==sequence)return;member=x.user||null}catch{member=null}
+ if(member){
+  fetch('/api/traffic/ping',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({section:page==='pulse'?'reactions':page,view:true})}).catch(()=>{});
+ }
  if(page==='pulse'){
   hero.hidden=true;
   if(!window.EWReactions?.open)throw Error('The Pulse could not load. Please refresh the page.');
@@ -137,7 +145,7 @@ desk.addEventListener('submit',async e=>{
   }
   if(form.id==='loungeOwnerForm'){
    await api('/api/admin/login','POST',{password:String(fields.get('password')||''),rememberDevice:fields.get('remember')==='on'});
-   setStatus('Owner controls unlocked. Open THE PULSE to moderate or create polls.')
+   setStatus('Owner controls unlocked. Open the Owner Dashboard tab.')
   }
  }catch(err){setStatus(err.message)}finally{if(button)button.disabled=false}
 });
