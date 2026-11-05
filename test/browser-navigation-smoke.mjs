@@ -85,6 +85,8 @@ function probe(kind){
   '  else{searchField.value="capital of australia";searchField.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#loungeAIForm")?.requestSubmit();await new Promise(r=>setTimeout(r,260));if(!document.querySelector(".ai-source a")||!document.body.textContent.includes("Canberra"))problems.push("AI SOURCE SEARCH FAILED");}',
   '  const navLinks=[...document.querySelectorAll(".lounge-nav>a")];',
   '  if(navLinks.some(a=>a.scrollWidth>a.clientWidth+3))problems.push("NAV BUTTON TEXT OVERFLOW");',
+  '  document.querySelector("[data-page=owner]")?.click();',
+  '  await new Promise(r=>setTimeout(r,160));',
   '  if(!document.querySelector("[data-page=owner]")||!document.querySelector("[data-page=profile]"))problems.push("MAIN OWNER/PROFILES TAB MISSING");',
   '  for(const id of ["overview","members","traffic","posts","announcements","polls","predictions","security"]){',
   '   const b=document.querySelector("[data-owner-view="+id+"]");',
