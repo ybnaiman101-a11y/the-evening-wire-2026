@@ -112,8 +112,8 @@ try{
  const oldHidden=await call('/api/community/posts?scope=social',{cookie:memberCookie});
  assert.equal(oldHidden.code,200,'Social feed is readable');
  assert.equal(oldHidden.data.posts.some(p=>p.id===archived.data.id),false,'Old election content is archived, not shown in Lounge');
- const socialPost=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{topic:'sports',message:'Sharing favorite sports highlights with my friends.'}});
- assert.equal(socialPost.code,201,'Everyday sport posts can be created');
+ const socialPost=await call('/api/community/posts',{method:'POST',cookie:memberCookie,body:{topic:'politics',message:'Discussing political history and current affairs with my friends.'}});
+ assert.equal(socialPost.code,201,'Politics discussion posts can be created');
  const socialFeed=await call('/api/community/posts?scope=social',{cookie:memberCookie});
  assert.equal(socialFeed.data.posts.some(p=>p.id===socialPost.data.id),true,'New social posts appear');
  assert.equal(socialFeed.data.posts.some(p=>p.id===archived.data.id),false,'Historical posts remain hidden from new feed');

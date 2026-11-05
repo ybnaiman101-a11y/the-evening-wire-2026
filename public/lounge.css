@@ -25,7 +25,7 @@ button{cursor:pointer}
 .lounge-quickpost,.lounge-action-main,.welcome-cta{background:linear-gradient(110deg,#9c55d1,#e777b6);box-shadow:0 7px 19px #9b409f4d;color:#fff;border:1px solid #edabd8}
 .lounge-quickpost:hover,.welcome-cta:hover,.lounge-action-main:hover{color:#fff;filter:brightness(1.1)}
 .lounge-account{border:1px solid #80759e;color:#d9c9eb;background:#24213e}
-.lounge-nav{position:sticky;top:0;z-index:80;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;padding:10px clamp(12px,3vw,52px);background:#12132deb;border-bottom:1px solid #615179b0;backdrop-filter:blur(16px);box-shadow:0 10px 27px #0005}
+.lounge-nav{position:sticky;top:0;z-index:80;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px;padding:10px clamp(12px,3vw,52px);background:#12132deb;border-bottom:1px solid #615179b0;backdrop-filter:blur(16px);box-shadow:0 10px 27px #0005}
 .lounge-nav a{display:flex;gap:7px;align-items:center;justify-content:center;min-width:0;white-space:nowrap;border:1px solid #554e6b;border-radius:12px;background:#292640;color:#e5dff3;padding:12px 5px;font:800 11px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
 .lounge-nav a span{font-size:18px}
 .lounge-nav a:hover{background:#473658;border-color:#b58fe5;color:#fff}
