@@ -6,7 +6,7 @@ import {authenticatedMember} from './members.mjs';
 import {isEditorAdmin} from './editor-calls.mjs';
 const connection=process.env.DATABASE_URL||process.env.REACTION_DATABASE_URL||process.env.POSTGRES_URL||process.env.POSTGRESQL_URL||process.env.DB_URL||'';
 let pool=null,ready=false;
-const pages=new Set(['hq','news','senate','house','governor','calls','battleground','states','turnout','sources','mydesk','reactions','members','traffic','election-map','swing','predictions']);
+const pages=new Set(['hq','news','senate','house','governor','calls','battleground','states','turnout','sources','mydesk','reactions','members','traffic','election-map','swing','predictions','home','pulse','rooms','polls','friends','discover','profile','owner','clubhouse','debate','quiz','leaderboard','trending','history','questions']);
 const send=(res,n,o)=>{res.writeHead(n,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(o))};
 const init=(async()=>{
  if(!connection)return;
@@ -24,9 +24,10 @@ export async function trafficRoute(req,res,path){
  if(!path.startsWith('/api/traffic/'))return false;
  await init;
  const member=await authenticatedMember(req);
- if(!member){send(res,401,{error:'Member login required'});return true}
  if(!ready){send(res,503,{error:'Traffic statistics require the database'});return true}
  const part=path.slice('/api/traffic/'.length);
+ // Owner viewing aggregate stats is authorized by the separate owner session.
+ if(!member&&!(part==='summary'&&req.method==='GET')){send(res,401,{error:'Member login required'});return true}
  if(part==='ping'&&req.method==='POST'){
   const data=await read(req),section=pages.has(data.section)?data.section:'hq';
   // Referrer is a hostname, not a URL containing paths or tracking parameters.
