@@ -35,3 +35,19 @@ input,textarea,select{border:1px solid #475b79;border-radius:10px;background:#0b
 .smalllink{color:#8ceff3;text-decoration:underline;font-weight:800;font-size:12px}.notice{border-radius:11px;border:1px solid #58658a;background:#202949;padding:13px;color:#c0d1ec;font-size:12px;line-height:1.6}.notice strong{color:white}.historymark{background:linear-gradient(130deg,#342650,#233d5b);border:1px solid #60578d;border-radius:13px;padding:20px}.historymark time{font-size:11px;color:#9ae9f0;font-weight:900;letter-spacing:2px}.historymark p{font-size:15px;line-height:1.6}
 footer{max-width:1600px;margin:auto;border-top:1px solid #283a56;padding:22px 28px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;color:#92a7c0;font-size:11px}footer a{color:#90e6ef}
 @media(max-width:1100px){.shell{grid-template-columns:210px minmax(0,1fr)}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar{padding-left:8px}.main{padding:24px 19px}}@media(max-width:700px){.topbar{position:relative;flex-wrap:wrap}.topnav{gap:12px}.shell{display:block}.sidebar{border:0;padding:10px 12px 1px;overflow:auto}.sidebar-kicker,.sidebar-foot{display:none}.sidebar nav{display:flex;position:static;overflow:auto;padding-bottom:10px;scroll-snap-type:x mandatory}.sidebar nav a{white-space:nowrap;flex-shrink:0;padding:9px 12px;font-size:12px;scroll-snap-align:center}.main{padding:18px 12px 50px}.hero{padding:24px}.tiles{gap:10px}.tile{padding:17px;min-height:150px}.two,.three{grid-template-columns:1fr}.surface{padding:17px}.room-grid{grid-template-columns:1fr}.post time{white-space:normal}footer{padding:19px 14px}}
+
+/* Accessibility fix: 13 sections cannot fit inside a viewport-height sticky nav.
+   Scroll the sidebar independently so no tab gets trapped below the fold. */
+@media(min-width:701px){
+ .sidebar{position:sticky;top:82px;align-self:start;max-height:calc(100dvh - 82px);overflow-y:auto;overscroll-behavior:contain;scrollbar-color:#536e96 transparent;scrollbar-width:thin}
+ .sidebar nav{position:static}
+}
+@media(max-width:700px){
+ .sidebar{overflow:visible}
+ .sidebar nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible;gap:6px}
+ .sidebar nav a{white-space:normal;text-align:center;justify-content:center;min-height:48px;padding:9px 7px;font-size:11px}
+ .main{scroll-margin-top:10px}
+}
+@media(max-width:470px){.sidebar nav{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Remove oversized decorative background art that can look like ghost lettering. */
+.hero::after{content:none!important}
