@@ -16,18 +16,20 @@ posts:[
 polls:[{id:'11111111-1111-4111-8111-111111111115',question:'Do you like our new Lounge?',options:'["Yes","No"]',counts:null,myVote:null,closed:false,closes_at:'2026-11-10T23:00:00Z',author:'Test Member'}],
 predictions:[{id:'11111111-1111-4111-8111-111111111116',question:'Will the team meet this month?',counts:null,myVote:null,closed:false,outcome:null,closes_at:'2026-11-10T23:00:00Z',author:'Test Member'}],
 leaderboard:[{id:'11111111-1111-4111-8111-111111111111',display_name:'Test Member',score:23,post_count:3,like_count:7,quiz_count:1,prediction_count:0}],
-quiz:{date:'2026-11-05',question:'What is the capital of Australia?',options:['Sydney','Canberra','Perth','Melbourne'],answered:null},
+quiz:{},
 debate:{date:'2026-11-05',question:'Can the members debate this topic?'}};
 const apiStub=[
  '<script>',
  'window.fetch=async function(input){',
  ' const path=new URL(String(input),location.href).pathname;let data={ok:true};',
  " if(path==='/api/club/dashboard')data="+JSON.stringify(fixture)+';',
- " else if(path==='/api/club/news'||path==='/api/stories')data={stories:[]};",
+ " else if(path==='/api/club/news'||path==='/api/stories')data={stories:[{title:'Verified source headline for browser testing',url:'https://www.bbc.com/news/example',published:new Date().toISOString(),source:'BBC News',topic:'World',excerpt:'Sample news item only in test'}]};",
+ " else if(path==='/api/club/daily')data={date:'2026-11-05',quiz:{question:'Which planet is famous for its rings?',options:['Mercury','Saturn','Venus','Mars']},debate:{question:'Should elected officials debate publicly?'}};",
+ " else if(path==='/api/ask-ai/status')data={available:false,externalUrl:'https://chatgpt.com/'};",
  " else if(path==='/api/admin/session')data={authenticated:true};",
  " else if(path==='/api/admin/members')data={total:1,members:[{id:'00000000-0000-0000-0000-000000000001',displayName:'Test Member',email:'test@example.invalid',joinedAt:'2026-11-01T10:00:00Z',lastLoginAt:'2026-11-05T15:00:00Z'}]};",
  " else if(path==='/api/traffic/summary')data={onlineMembers:1,pageviews:12,uniqueMembers:1,sections:[{section:'home',views:5,visitors:1}],days:[],referrers:[],outboundSites:[]};",
- " else if(path==='/api/club/history')data={events:[]};",
+ " else if(path==='/api/club/history')data={events:[{year:'1605',text:'The Gunpowder Plot was discovered in England.',source:'Associated Press',url:'https://apnews.com/article/29cf83e87186da2f92acd6453ce57086'}],source:'Associated Press',fallback:true,sourceUrl:'https://apnews.com/article/29cf83e87186da2f92acd6453ce57086'};",
  " else if(path==='/api/members/session')data={user:null};",
  " else if(path==='/api/community/posts')data={posts:[],ready:true};",
  " else if(path==='/api/community/polls')data={polls:[]};",
@@ -39,7 +41,7 @@ const apiStub=[
  '</script>'
 ].join('\n');
 const clubTests=[['debate','Daily Debate'],['polls','Polling Station'],['leaderboard','Lounge Leaderboard'],['quiz','Quiz Arena'],['predictions','Prediction Center'],['rooms','Live Hangout Rooms'],['news','The News Desk'],['trending',"What's Trending"],['history','On This Day'],['questions','Ask the Lounge']];
-const mainTests=[['rooms','Find your room'],['polls','The opinion corner'],['friends','Friends & familiar faces'],['discover','Discover'],['profile','Member Profiles'],['owner','Owner Dashboard']];
+const mainTests=[['rooms','Find your room'],['polls','The opinion corner'],['friends','Friends & familiar faces'],['discover','Discover'],['ai','Ask AI'],['profile','Member Profiles'],['owner','Owner Dashboard']];
 function probe(kind){
  const tests=kind==='club'?clubTests:mainTests;
  const code=[
@@ -61,6 +63,18 @@ function probe(kind){
   '  if(location.hash!=="#"+id||!actual.includes(title))problems.push("BROKEN "+id+": "+actual+" / "+location.hash);',
   ' }',
   ' if('+JSON.stringify(kind)+'==="club"&&document.querySelector("#clubNav [data-tab=owner],#clubNav [data-tab=profiles]"))problems.push("OWNER PROFILE STILL IN CLUBHOUSE");',
+  ' if('+JSON.stringify(kind)+'==="club"){',
+  '  const quiz=document.querySelector("#clubContent .pagehead h1");',
+  '  document.querySelector("#clubNav [data-tab=quiz]")?.click();',
+  '  await new Promise(r=>setTimeout(r,140));',
+  '  if(!document.querySelector("[data-quiz-answer]")||!document.body.textContent.includes("Which planet is famous for its rings?"))problems.push("DAILY QUIZ STILL PLACEHOLDER");',
+  '  document.querySelector("#clubNav [data-tab=news]")?.click();',
+  '  await new Promise(r=>setTimeout(r,140));',
+  '  if(!document.querySelector(".post h3 a")||!document.body.textContent.includes("Verified source headline"))problems.push("NEWS STILL EMPTY");',
+  '  document.querySelector("#clubNav [data-tab=history]")?.click();',
+  '  await new Promise(r=>setTimeout(r,250));',
+  '  if(!document.querySelector(".historymark")||!document.body.textContent.includes("Gunpowder Plot"))problems.push("HISTORY STILL EMPTY");',
+  ' }',
   ' if('+JSON.stringify(kind)+'==="main"){',
   '  if(!document.querySelector("[data-page=owner]")||!document.querySelector("[data-page=profile]"))problems.push("MAIN OWNER/PROFILES TAB MISSING");',
   '  for(const id of ["overview","members","traffic","posts","announcements","polls","predictions","security"]){',
