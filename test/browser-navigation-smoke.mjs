@@ -20,16 +20,18 @@ quiz:{},
 debate:{date:'2026-11-05',question:'Can the members debate this topic?'}};
 const apiStub=[
  '<script>',
+ 'Object.defineProperty(navigator,"gpu",{value:undefined,configurable:true});',
  'window.fetch=async function(input){',
  ' const path=new URL(String(input),location.href).pathname;let data={ok:true};',
  " if(path==='/api/club/dashboard')data="+JSON.stringify(fixture)+';',
  " else if(path==='/api/club/news'||path==='/api/stories')data={stories:[{title:'Verified source headline for browser testing',url:'https://www.bbc.com/news/example',published:new Date().toISOString(),source:'BBC News',topic:'World',excerpt:'Sample news item only in test'}]};",
  " else if(path==='/api/club/daily')data={date:'2026-11-05',quiz:{question:'Which planet is famous for its rings?',options:['Mercury','Saturn','Venus','Mars']},debate:{question:'Should elected officials debate publicly?'}};",
- " else if(path==='/api/ask-ai/status')data={available:false,externalUrl:'https://chatgpt.com/'};",
+ " else if(path==='/api/ask-ai/status')data={available:false};",
+ " else if(path==='/api/ai-search')data={query:'capital of australia',results:[{title:'Canberra',url:'https://en.wikipedia.org/wiki/Canberra',source:'Wikipedia',snippet:'Canberra is the capital city of Australia.'}]};",
  " else if(path==='/api/admin/session')data={authenticated:true};",
  " else if(path==='/api/admin/members')data={total:1,members:[{id:'00000000-0000-0000-0000-000000000001',displayName:'Test Member',email:'test@example.invalid',joinedAt:'2026-11-01T10:00:00Z',lastLoginAt:'2026-11-05T15:00:00Z'}]};",
  " else if(path==='/api/traffic/summary')data={onlineMembers:1,pageviews:12,uniqueMembers:1,sections:[{section:'home',views:5,visitors:1}],days:[],referrers:[],outboundSites:[]};",
- " else if(path==='/api/club/history')data={events:[{year:'1605',text:'The Gunpowder Plot was discovered in England.',source:'Associated Press',url:'https://apnews.com/article/29cf83e87186da2f92acd6453ce57086'}],source:'Associated Press',fallback:true,sourceUrl:'https://apnews.com/article/29cf83e87186da2f92acd6453ce57086'};",
+ " else if(path==='/api/club/history')data={events:[],source:'Unavailable'};",
  " else if(path==='/api/members/session')data={user:null};",
  " else if(path==='/api/community/posts')data={posts:[],ready:true};",
  " else if(path==='/api/community/polls')data={polls:[]};",
@@ -41,7 +43,7 @@ const apiStub=[
  '</script>'
 ].join('\n');
 const clubTests=[['debate','Daily Debate'],['polls','Polling Station'],['leaderboard','Lounge Leaderboard'],['quiz','Quiz Arena'],['predictions','Prediction Center'],['rooms','Live Hangout Rooms'],['news','The News Desk'],['trending',"What's Trending"],['history','On This Day'],['questions','Ask the Lounge']];
-const mainTests=[['rooms','Find your room'],['polls','The opinion corner'],['friends','Friends & familiar faces'],['discover','Discover'],['ai','Ask AI'],['profile','Member Profiles'],['owner','Owner Dashboard']];
+const mainTests=[['rooms','Find your room'],['polls','The opinion corner'],['friends','Friends & familiar faces'],['discover','Discover'],['ai','AI Search'],['profile','Member Profiles'],['owner','Owner Dashboard']];
 function probe(kind){
  const tests=kind==='club'?clubTests:mainTests;
  const code=[
@@ -76,6 +78,15 @@ function probe(kind){
   '  if(!document.querySelector(".historymark")||!document.body.textContent.includes("Gunpowder Plot"))problems.push("HISTORY STILL EMPTY");',
   ' }',
   ' if('+JSON.stringify(kind)+'==="main"){',
+  '  document.querySelector("[data-page=ai]")?.click();',
+  '  await new Promise(r=>setTimeout(r,160));',
+  '  const searchField=document.querySelector("#loungeAIQuestion");',
+  '  if(!searchField)problems.push("AI SEARCH INPUT MISSING");',
+  '  else{searchField.value="capital of australia";searchField.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#loungeAIForm")?.requestSubmit();await new Promise(r=>setTimeout(r,260));if(!document.querySelector(".ai-source a")||!document.body.textContent.includes("Canberra"))problems.push("AI SOURCE SEARCH FAILED");}',
+  '  const navLinks=[...document.querySelectorAll(".lounge-nav>a")];',
+  '  if(navLinks.some(a=>a.scrollWidth>a.clientWidth+3))problems.push("NAV BUTTON TEXT OVERFLOW");',
+  '  document.querySelector("[data-page=owner]")?.click();',
+  '  await new Promise(r=>setTimeout(r,160));',
   '  if(!document.querySelector("[data-page=owner]")||!document.querySelector("[data-page=profile]"))problems.push("MAIN OWNER/PROFILES TAB MISSING");',
   '  for(const id of ["overview","members","traffic","posts","announcements","polls","predictions","security"]){',
   '   const b=document.querySelector("[data-owner-view="+id+"]");',

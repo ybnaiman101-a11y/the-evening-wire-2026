@@ -6,6 +6,7 @@ import {communityRoute} from './community.mjs';
 import {loungeRoute} from './lounge.mjs';
 import {clubRoute} from './club.mjs';
 import {askAIRoute} from './ask-ai.mjs';
+import {aiSearchRoute} from './ai-search.mjs';
 import {memberRoute,authenticatedMember} from './members.mjs';
 import {trafficRoute} from './traffic.mjs';
 import {updateRoute} from './election-updates.mjs';
@@ -364,10 +365,11 @@ const server=http.createServer(async (req,res)=>{
    u.pathname.startsWith('/api/lounge/') ||
   u.pathname.startsWith('/api/club/') ||
   u.pathname==='/api/ask-ai/status' ||
+  u.pathname==='/api/ai-search' ||
   u.pathname.startsWith('/api/challenge') ||
   u.pathname==='/api/updates'
  );
- const publicAsset=['/','/index.html','/club','/club.css','/club.js','/owner.js','/ask-ai.js','/lounge.css','/lounge.js','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/reaction-hub-v2.css','/election-maps.js','/election-maps.css'].includes(u.pathname);
+ const publicAsset=['/','/index.html','/club','/club.css','/club.js','/owner.js','/ask-ai.js','/local-ai.js','/lounge.css','/lounge.js','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/reaction-hub-v2.css','/election-maps.js','/election-maps.css'].includes(u.pathname);
  // The admin API implements its own administrator password checks.
  const adminEndpoint=u.pathname.startsWith('/api/admin/');
  // Routes which validate their own owner session must be reachable without a
@@ -384,6 +386,9 @@ const server=http.createServer(async (req,res)=>{
  }
  if(u.pathname.startsWith('/api/traffic/')){trafficRoute(req,res,u.pathname).catch(err=>{console.error('Traffic API error',err);if(!res.headersSent)json({error:'Traffic temporarily unavailable'},503);else res.end()});return;}
 
+ if(u.pathname==='/api/ai-search'){
+  aiSearchRoute(req,res,u.pathname,stories).catch(err=>{console.error('AI search:',String(err?.message||err));if(!res.headersSent)json({error:'Search is temporarily unavailable'},503);else res.end()});return;
+ }
  if(u.pathname==='/api/ask-ai'||u.pathname==='/api/ask-ai/status'){
   askAIRoute(req,res,u.pathname).catch(err=>{console.error('Ask AI API:',String(err?.message||err));if(!res.headersSent)json({error:'Ask AI connection unavailable'},503);else res.end()});return;
  }
@@ -450,6 +455,11 @@ const server=http.createServer(async (req,res)=>{
  if(u.pathname==='/members.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/members.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/editor-calls.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/editor-calls.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/reaction-hub-v2.css'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/reaction-hub-v2.css',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/css; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Reaction Hub styles unavailable'},404));return;}
+ if(u.pathname==='/local-ai.js'){
+  import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/local-ai.js',import.meta.url))).then(buf=>{
+   res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(buf)
+  }).catch(()=>json({error:'Local AI script unavailable'},404));return;
+ }
  if(u.pathname==='/ask-ai.js'){
   import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/ask-ai.js',import.meta.url))).then(buf=>{
    res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(buf)

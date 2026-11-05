@@ -51,3 +51,14 @@ test('Quiz is available independently of any database or external publisher',asy
  assert.ok(out.result.debate.question.length>15);
  assert.ok(!Object.hasOwn(out.result.quiz,'correctAnswer'));
 });
+
+test('November 5 local verified history returns instantly without waiting for blocked publishers',async()=>{
+ let resolveCall;
+ const never=new Promise(resolve=>{resolveCall=resolve});
+ const reader=createHistoryReader({clock:()=>midday,fetchImpl:async()=>never,logger:{warn(){}}});
+ const result=await Promise.race([reader({immediate:true}),new Promise((_,reject)=>setTimeout(()=>reject(Error('History fallback did not resolve promptly')),350))]);
+ assert.ok(result.events.length>=5);
+ assert.equal(result.source,'Associated Press');
+ assert.equal(result.fallback,true);
+ resolveCall({ok:false,status:503});
+});

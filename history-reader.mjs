@@ -46,8 +46,19 @@ export function normalizeHistoryEvents(payload,source='Wikipedia',currentYear=99
 }
 export function createHistoryReader({fetchImpl=fetch,clock=()=>new Date(),logger=console}={}){
  let cache={date:'',at:0,events:[],source:'',sourceUrl:'',fallback:false,error:null};
- return async function getHistory({force=false}={}){
+ let lastBackgroundAttempt=0;
+ return async function getHistory({force=false,immediate=false}={}){
   const {date,month,day}=eastern(clock()),stamp=Date.now();
+  // The Nov 5 fallback is already documented by AP. Return it instantly while
+  // refreshing Wikimedia in the background: no 8s-24s empty loading screen.
+  if(immediate&&month==='11'&&day==='05'){
+   if(cache.date!==date||!cache.events.length)cache={date,at:stamp,events:NOV5,source:'Associated Press',sourceUrl:AP_NOV_5,fallback:true,error:null};
+   if(stamp-lastBackgroundAttempt>4*3600000){
+    lastBackgroundAttempt=stamp;
+    void getHistory({force:true,immediate:false}).catch(err=>logger.warn('HISTORY_REFRESH_FAILED',String(err?.message||err)));
+   }
+   return cache;
+  }
   if(!force&&cache.date===date&&stamp-cache.at<(cache.events.length?4*3600000:90000))return cache;
   const errors=[];
   for(const feed of sources(month,day)){

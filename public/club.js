@@ -166,6 +166,17 @@ function trending(){
  return head("What's Trending",'The conversations earning the most likes and attention from members.')
  +'<div class="two"><section class="surface"><h2>Trending conversations</h2>'+popular.map(post).join('')+'</section><section class="surface"><h2>Most active rooms</h2>'+roomCounts.map((r,i)=>'<div class="post row between"><a href="/#pulse/'+r.key+'">'+(i+1)+'. '+esc(r.name)+' ↗</a><span class="chip">'+r.count+' Clubhouse posts</span></div>').join('')+'<p class="hint">Activity is based on saved Clubhouse posts.</p></section></div>';
 }
+// Verified against Associated Press Today in History (Nov 5, 2026).
+// Client-side backup: if all remote history APIs fail, this day is not blank.
+const NOVEMBER5_HISTORY=[
+ {year:'1605',text:'The Gunpowder Plot against the English Parliament was thwarted after Guy Fawkes was arrested.',source:'Associated Press',url:'https://apnews.com/article/29cf83e87186da2f92acd6453ce57086'},
+ {year:'1872',text:'Susan B. Anthony cast a ballot in a presidential election in defiance of laws prohibiting women from voting.',source:'Associated Press',url:'https://apnews.com/article/29cf83e87186da2f92acd6453ce57086'},
+ {year:'1912',text:'Woodrow Wilson was elected president of the United States.',source:'Associated Press',url:'https://apnews.com/article/29cf83e87186da2f92acd6453ce57086'},
+ {year:'1930',text:'Sinclair Lewis became the first American awarded the Nobel Prize in Literature.',source:'Associated Press',url:'https://apnews.com/article/29cf83e87186da2f92acd6453ce57086'},
+ {year:'1940',text:'Franklin D. Roosevelt won an unprecedented third term as U.S. president.',source:'Associated Press',url:'https://apnews.com/article/29cf83e87186da2f92acd6453ce57086'},
+ {year:'1968',text:'Richard Nixon won the U.S. presidential election.',source:'Associated Press',url:'https://apnews.com/article/29cf83e87186da2f92acd6453ce57086'},
+ {year:'1994',text:'George Foreman became boxing’s oldest heavyweight champion at age 45.',source:'Associated Press',url:'https://apnews.com/article/29cf83e87186da2f92acd6453ce57086'}
+];
 function historyPage(){
  const current=String(db?.date||new Date().toISOString().slice(0,10));
  const stamp=new Date(current+'T12:00:00');
@@ -173,15 +184,18 @@ function historyPage(){
  const info=historyInfo||{};
  const rawLink=info.url||'https://www.history.com/this-day-in-history/november-5';
  const sourceLink=https(rawLink);
- const loaded=Array.isArray(historyFacts)&&historyFacts.length>0;
- const list=loaded?historyFacts.map(e=>{
+ const backups=current.slice(5,10)==='11-05'?NOVEMBER5_HISTORY:[];
+ const visibleHistory=Array.isArray(historyFacts)&&historyFacts.length?historyFacts:backups;
+ const usingBackup=visibleHistory===backups&&backups.length>0;
+ const loaded=visibleHistory.length>0;
+ const list=loaded?visibleHistory.map(e=>{
   const link=https(e.url||sourceLink);
   return '<article class="historymark" style="margin:12px 0"><time>'+esc(e.year)+'</time><p>'+esc(e.text)+'</p><a class="smalllink" href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">SOURCE: '+esc(e.source||info.source||'History')+' ↗</a></article>';
  }).join(''):historyFacts===null?empty('Loading today’s historical events…'):
  '<div class="notice">Historical data sources are unavailable. Please try Refresh history. We won’t invent events to fill the list.</div>';
  return head('On This Day','A daily look at verified historical events.')
   +'<section class="surface"><div class="row between"><h2>'+esc(monthDay)+' through history</h2><button id="historyReload" type="button">↻ Refresh history</button></div>'
-  +(info.source?'<p class="hint">Events: '+esc(info.source)+(info.fallback?' (verified backup)':'')+'</p>':'')
+  +(usingBackup?'<p class="hint">Events: Associated Press (verified local backup; live feeds may be unavailable)</p>':info.source?'<p class="hint">Events: '+esc(info.source)+(info.fallback?' (verified backup)':'')+'</p>':'')
   +list
   +'<p class="hint">Read more from the cited publisher or historical source. Check original sources when researching detailed claims.</p>'
   +'<a class="smalllink" href="'+esc(sourceLink)+'" target="_blank" rel="noopener noreferrer">MORE EVENTS IN HISTORY ↗</a></section>';
