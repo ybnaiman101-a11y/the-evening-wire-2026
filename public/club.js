@@ -262,7 +262,7 @@ document.addEventListener('click',async event=>{
  try{
   if(b.id==='tryAgain'){await refresh();return}
   if(b.id==='dailyRetry'){await loadDaily();return}
-  if(b.id==='historyReload'){historyFacts=null;render();await loadHistory(true);return}
+  if(b.id==='historyReload'){await loadHistory(true);say(historyFacts?.length?'Historical events updated.':'Historical feed unavailable.',!historyFacts?.length);return}
   if(b.id==='newsReload'){await refresh(false,true);return}
   if(b.dataset.replyToggle){const form=main.querySelector('[data-reply-form="'+b.dataset.replyToggle+'"]');if(form){form.hidden=!form.hidden;if(!form.hidden)form.querySelector('input')?.focus()}return}
   if(b.dataset.like){if(!signed())return;await api('/api/club/posts/'+b.dataset.like+'/like','POST',{});await refresh(true);return}
