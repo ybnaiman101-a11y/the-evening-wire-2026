@@ -18,7 +18,7 @@ test('All seven Lounge tabs are real navigable links that route to a valid page'
  assert.match(js,/addEventListener\('popstate',navigate\)/);
  assert.match(html,/id="commandDesk"/);
  assert.match(html,/\/reactions\.js\?v=10/);
- assert.match(html,/\/lounge\.js\?v=2/);
+ assert.match(html,/\/lounge\.js\?v=3/);
 });
 test('Discussion rooms are politics, Jewish life and meaningful conversations',()=>{
  assert.doesNotThrow(()=>new Script(js,{filename:'public/lounge.js'}));
