@@ -1,0 +1,100 @@
+// Browser regression: loads the real HTML, JS and CSS in headless Chrome.
+// Real DOM event handlers and hit-testing are exercised; API responses are
+// mocked locally so no credentials or user data are needed.
+import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
+import {readFileSync,existsSync} from 'node:fs';
+import {resolve,extname} from 'node:path';
+import {spawn,execFileSync} from 'node:child_process';
+const root=resolve(import.meta.dirname,'../public');
+const fixture={date:'2026-11-05',signedIn:false,member:null,posts:[],polls:[],predictions:[],leaderboard:[],quiz:{date:'2026-11-05',question:'Test question?',options:['A','B','C','D'],answered:null},debate:{date:'2026-11-05',question:'Test question?'},bio:''};
+const apiStub=[
+ '<script>',
+ 'window.fetch=async function(input){',
+ ' const path=new URL(String(input),location.href).pathname;let data={ok:true};',
+ " if(path==='/api/club/dashboard')data="+JSON.stringify(fixture)+';',
+ " else if(path==='/api/club/news'||path==='/api/stories')data={stories:[]};",
+ " else if(path==='/api/admin/session')data={authenticated:false};",
+ " else if(path==='/api/club/history')data={events:[]};",
+ " else if(path==='/api/members/session')data={user:null};",
+ " else if(path==='/api/community/posts')data={posts:[],ready:true};",
+ " else if(path==='/api/community/polls')data={polls:[]};",
+ " else if(path==='/api/lounge/people')data={people:[]};",
+ " else if(path==='/api/lounge/me')data={user:null,visible:false};",
+ " else if(path==='/api/community/presence')data={online:0};",
+ ' return new Response(JSON.stringify(data),{status:200,headers:{"Content-Type":"application/json"}})',
+ '};',
+ '</script>'
+].join('\n');
+const clubTests=[['debate','Daily Debate'],['polls','Polling Station'],['leaderboard','Lounge Leaderboard'],['quiz','Quiz Arena'],['predictions','Prediction Center'],['rooms','Live Hangout Rooms'],['news','The News Desk'],['trending',"What's Trending"],['history','On This Day'],['questions','Ask the Lounge']];
+const mainTests=[['rooms','Find your room'],['polls','The opinion corner'],['friends','Friends & familiar faces'],['discover','Discover'],['profile','Member Profiles'],['owner','Owner Dashboard']];
+function probe(kind){
+ const tests=kind==='club'?clubTests:mainTests;
+ const code=[
+  '<script>',
+  'window.addEventListener("load",()=>setTimeout(async()=>{',
+  ' const items='+JSON.stringify(tests)+';',
+  ' const problems=[];',
+  ' for(const [id,title] of items){',
+  '  const selector='+JSON.stringify(kind==='club'?'#clubNav a[data-tab="':'a[data-page="')+'+id+\'"]\';',
+  '  const a=document.querySelector(selector);',
+  '  if(!a){problems.push("MISSING "+id);continue}',
+  '  a.scrollIntoView({block:"center",inline:"nearest",behavior:"instant"});',
+  '  const box=a.getBoundingClientRect();const hit=document.elementFromPoint(box.left+box.width/2,box.top+box.height/2);',
+  '  if(!hit?.closest(selector)){problems.push("COVERED "+id);continue}',
+  '  a.click();',
+  '  await new Promise(r=>setTimeout(r,110));',
+  '  const heading='+JSON.stringify(kind==='club'?'#clubContent .pagehead h1':'#commandDesk .lounge-panel-head h1')+';',
+  '  const actual=document.querySelector(heading)?.textContent||"";',
+  '  if(location.hash!=="#"+id||!actual.includes(title))problems.push("BROKEN "+id+": "+actual+" / "+location.hash);',
+  ' }',
+  ' if('+JSON.stringify(kind)+'==="club"&&document.querySelector("#clubNav [data-tab=owner],#clubNav [data-tab=profiles]"))problems.push("OWNER PROFILE STILL IN CLUBHOUSE");',
+  ' document.body.dataset.browserQa=problems.length?"FAIL":"PASS";',
+  ' const out=document.createElement("pre");out.id="browserQaResult";out.textContent=problems.join(" | ")||"ALL CLICKS PASSED";document.body.append(out);',
+  '},1100));',
+  '</script>'
+ ].join('\n');
+ return code;
+}
+const server=createServer((req,res)=>{
+ const pathname=new URL(req.url||'/','http://localhost').pathname;
+ const filename=pathname==='/club'?'/club.html':pathname==='/'?'/lounge.html':pathname;
+ const path=resolve(root,'.'+filename);
+ if(!path.startsWith(root+'/')||!existsSync(path)){res.writeHead(404);res.end('Not found');return}
+ let payload=readFileSync(path);
+ const ext=extname(path);
+ if(ext==='.html'){
+  const kind=pathname==='/club'?'club':'main';
+  payload=Buffer.from(payload.toString().replace('<script src=',apiStub+'\n'+probe(kind)+'\n<script src='));
+ }
+ const mime=ext==='.html'?'text/html':ext==='.js'?'text/javascript':ext==='.css'?'text/css':'application/octet-stream';
+ res.writeHead(200,{'Content-Type':mime,'Cache-Control':'no-store'});res.end(payload);
+});
+function binary(){
+ for(const name of ['google-chrome','google-chrome-stable','chromium','chromium-browser']){
+  try{const b=execFileSync('which',[name],{encoding:'utf8'}).trim();if(b)return b}catch{}
+ }
+ throw Error('Chrome or Chromium is required to test actual tab clicks');
+}
+async function runBrowser(url){
+ const child=spawn(binary(),['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--no-first-run','--no-default-browser-check','--virtual-time-budget=6500','--dump-dom',url]);
+ let html='',stderr='';
+ child.stdout.on('data',chunk=>html+=chunk.toString());
+ child.stderr.on('data',chunk=>stderr+=chunk.toString().slice(0,1000));
+ const result=await new Promise((accept,reject)=>{
+  const timer=setTimeout(()=>{child.kill('SIGKILL');reject(Error('Chrome timed out while testing '+url))},28000);
+  child.on('error',reject);
+  child.on('close',code=>{clearTimeout(timer);accept(code)});
+ });
+ if(result!==0)throw Error('Chrome exited '+result+' '+stderr.slice(-1000));
+ const status=html.match(/data-browser-qa="(PASS|FAIL)"/)?.[1];
+ const message=html.match(/<pre id="browserQaResult">([^<]*)<\/pre>/)?.[1]||'No test result was produced';
+ assert.equal(status,'PASS','Browser tab-click test '+url+' FAILED: '+message);
+ console.log('Browser tab clicks passed:',url);
+}
+await new Promise(ok=>server.listen(0,'127.0.0.1',ok));
+try{
+ const base='http://127.0.0.1:'+server.address().port;
+ await runBrowser(base+'/club');
+ await runBrowser(base+'/');
+}finally{await new Promise(ok=>server.close(ok))}
