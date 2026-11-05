@@ -19,7 +19,7 @@ const channels=[
  ['world','🌍','World Affairs'],['history','📜','History & Geography'],['economics','📈','Economics & Markets'],
  ['science','🔬','Science & Ideas'],['questions','❔','Questions & Debates']
 ];
-let db=null,stories=[],newsInfo={unavailable:false,errors:[],sourceResults:[],fallback:false,stale:false},admin=false,activeRoom='general',historyFacts=null,quizFeedback=null,loading=false;
+let db=null,stories=[],newsInfo={unavailable:false,errors:[],sourceResults:[],fallback:false,stale:false},admin=false,activeRoom='general',historyFacts=null,historyInfo={source:'',url:'',fallback:false,error:''},quizFeedback=null,loading=false;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=s=>{const d=new Date(s);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Recently'};
 const day=s=>new Date(s).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
@@ -120,11 +120,11 @@ function leaderboard(){
  +'<p class="hint">Points: post = 2, like received = 1, correct quiz = 10, correct resolved prediction = 20. Scores update from saved activity.</p></section>';
 }
 function quiz(){
- const q=db.quiz,answered=q.answered;
+ const q=db?.quiz||{question:'',options:[]},answered=q.answered;
  return head('Quiz Arena','Test your knowledge of history, science, geography and more. One question each day.')
  +'<section class="surface"><span class="eyebrow">DAILY CHALLENGE</span><h2 style="font-size:27px;margin:14px 0 18px">'+esc(q.question)+'</h2>'
  +(quizFeedback?'<p class="notice"><strong>'+(quizFeedback.correct?'Correct!':'Not quite.')+'</strong> '+esc(quizFeedback.explanation)+'</p>':'')
- +(answered?'<p class="result">✓ You already answered today. '+(answered.correct?'Correct — 10 points earned.':'Come back tomorrow for a new challenge.')+'</p>':'<div class="stack">'+q.options.map((o,i)=>'<button class="option" type="button" data-quiz-answer="'+i+'"><span>'+String.fromCharCode(65+i)+'. '+esc(o)+'</span></button>').join('')+'</div>')
+ +(answered?'<p class="result">✓ You already answered today. '+(answered.correct?'Correct — 10 points earned.':'Come back tomorrow for a new challenge.')+'</p>':q.options.length?'<div class="stack">'+q.options.map((o,i)=>'<button class="option" type="button" data-quiz-answer="'+i+'"><span>'+String.fromCharCode(65+i)+'. '+esc(o)+'</span></button>').join('')+'</div>':'<div class="notice">The quiz question did not load. <button type="button" id="dailyRetry">Reload today’s question</button></div>')
  +'<div class="hint">Questions rotate daily, and each account can answer once per day.</div></section>';
 }
 function predictions(){
@@ -167,11 +167,24 @@ function trending(){
  +'<div class="two"><section class="surface"><h2>Trending conversations</h2>'+popular.map(post).join('')+'</section><section class="surface"><h2>Most active rooms</h2>'+roomCounts.map((r,i)=>'<div class="post row between"><a href="/#pulse/'+r.key+'">'+(i+1)+'. '+esc(r.name)+' ↗</a><span class="chip">'+r.count+' Clubhouse posts</span></div>').join('')+'<p class="hint">Activity is based on saved Clubhouse posts.</p></section></div>';
 }
 function historyPage(){
- const now=new Date(),mm=String(now.getMonth()+1).padStart(2,'0'),dd=String(now.getDate()).padStart(2,'0');
- return head('On This Day','A daily look at the events that shaped history.')
- +'<section class="surface"><h2>'+esc(now.toLocaleDateString('en-US',{month:'long',day:'numeric'}))+' through history</h2>'
- +(historyFacts===null?empty('Loading historical events…'):historyFacts.length?historyFacts.map(e=>'<article class="historymark" style="margin:12px 0"><time>'+esc(e.year)+'</time><p>'+esc(e.text)+'</p></article>').join(''):empty('The historical feed is unavailable at the moment.'))
- +'<p class="hint">Events are sourced from Wikipedia’s On This Day feed when available, and should be checked against primary sources for detailed research.</p><a class="smalllink" href="https://en.wikipedia.org/wiki/Wikipedia:Selected_anniversaries" target="_blank" rel="noopener noreferrer">MORE EVENTS IN HISTORY ↗</a></section>';
+ const current=String(db?.date||new Date().toISOString().slice(0,10));
+ const stamp=new Date(current+'T12:00:00');
+ const monthDay=stamp.toLocaleDateString('en-US',{month:'long',day:'numeric'});
+ const info=historyInfo||{};
+ const rawLink=info.url||'https://www.history.com/this-day-in-history/november-5';
+ const sourceLink=https(rawLink);
+ const loaded=Array.isArray(historyFacts)&&historyFacts.length>0;
+ const list=loaded?historyFacts.map(e=>{
+  const link=https(e.url||sourceLink);
+  return '<article class="historymark" style="margin:12px 0"><time>'+esc(e.year)+'</time><p>'+esc(e.text)+'</p><a class="smalllink" href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">SOURCE: '+esc(e.source||info.source||'History')+' ↗</a></article>';
+ }).join(''):historyFacts===null?empty('Loading today’s historical events…'):
+ '<div class="notice">Historical data sources are unavailable. Please try Refresh history. We won’t invent events to fill the list.</div>';
+ return head('On This Day','A daily look at verified historical events.')
+  +'<section class="surface"><div class="row between"><h2>'+esc(monthDay)+' through history</h2><button id="historyReload" type="button">↻ Refresh history</button></div>'
+  +(info.source?'<p class="hint">Events: '+esc(info.source)+(info.fallback?' (verified backup)':'')+'</p>':'')
+  +list
+  +'<p class="hint">Read more from the cited publisher or historical source. Check original sources when researching detailed claims.</p>'
+  +'<a class="smalllink" href="'+esc(sourceLink)+'" target="_blank" rel="noopener noreferrer">MORE EVENTS IN HISTORY ↗</a></section>';
 }
 function questions(){
  return head('Ask the Lounge','Ask your friends a question, request advice, or begin a thoughtful discussion.')
@@ -202,10 +215,17 @@ async function refresh(quiet=false,forceNews=false){
    api('/api/club/dashboard'),
    api('/api/club/news'+(forceNews?'?refresh=1':'')),
    api('/api/admin/session'),
-   api('/api/stories')
+   api('/api/stories'),
+   api('/api/club/daily')
   ]);
   if(r[0].status!=='fulfilled')throw r[0].reason;
   db=normalizeDashboard(r[0].value);
+  // Quiz and debate must load even when the community dashboard is partially stale.
+  const daily=r[4].status==='fulfilled'?r[4].value:null;
+  if(daily&&daily.quiz&&typeof daily.quiz.question==='string'&&Array.isArray(daily.quiz.options)&&daily.quiz.options.length>=2){
+   db.quiz={...daily.quiz,answered:db.quiz?.answered||null};
+  }
+  if(daily?.debate?.question)db.debate=daily.debate;
   admin=r[2].status==='fulfilled'&&r[2].value.authenticated===true;
   chooseNews(r[1].status==='fulfilled'?r[1].value:{errors:['Dedicated news feed unavailable']},r[3].status==='fulfilled'?r[3].value:null);
   render();
@@ -215,18 +235,34 @@ async function refresh(quiet=false,forceNews=false){
   render()
  }finally{loading=false}
 }
-async function loadHistory(){
+async function loadHistory(force=false){
  try{
-  const obj=await api('/api/club/history');
-  historyFacts=Array.isArray(obj.events)?obj.events:[];
- }catch{historyFacts=[]}
- if(location.hash==='#history')render()
+  const result=await api('/api/club/history'+(force?'?refresh=1':''));
+  historyFacts=Array.isArray(result.events)?result.events.filter(e=>e&&e.text&&e.year):[];
+  historyInfo={source:String(result.source||''),url:String(result.sourceUrl||''),fallback:result.fallback===true,error:String(result.error||'')};
+ }catch(e){
+  historyFacts=[];historyInfo={source:'',url:'',fallback:false,error:String(e.message||e)};
+ }
+ if(location.hash==='#history')render();
+}
+async function loadDaily(){
+ try{
+  const daily=await api('/api/club/daily');
+  if(daily?.quiz?.question&&Array.isArray(daily.quiz.options)&&daily.quiz.options.length>=2){
+   if(!db)db=normalizeDashboard({});
+   db.quiz={...daily.quiz,answered:db.quiz?.answered||null};
+   if(daily.debate?.question)db.debate=daily.debate;
+   render();
+  }else say('Daily quiz data is unavailable.',true);
+ }catch(e){say('Daily quiz connection problem: '+String(e.message||e),true)}
 }
 function deadline(days){return new Date(Date.now()+Number(days)*86400000).toISOString()}
 document.addEventListener('click',async event=>{
  const b=event.target.closest('button');if(!b)return;
  try{
   if(b.id==='tryAgain'){await refresh();return}
+  if(b.id==='dailyRetry'){await loadDaily();return}
+  if(b.id==='historyReload'){historyFacts=null;render();await loadHistory(true);return}
   if(b.id==='newsReload'){await refresh(false,true);return}
   if(b.dataset.replyToggle){const form=main.querySelector('[data-reply-form="'+b.dataset.replyToggle+'"]');if(form){form.hidden=!form.hidden;if(!form.hidden)form.querySelector('input')?.focus()}return}
   if(b.dataset.like){if(!signed())return;await api('/api/club/posts/'+b.dataset.like+'/like','POST',{});await refresh(true);return}
