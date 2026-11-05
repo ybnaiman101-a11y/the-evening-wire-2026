@@ -13,7 +13,9 @@ test('All seven Lounge tabs are real navigable links that route to a valid page'
  }
  assert.doesNotMatch(html,/<button data-page=/);
  assert.doesNotMatch(html,/data-page="media"|Photos &amp; Videos/);
- assert.match(js,/addEventListener\('hashchange',route\)/);
+ assert.match(js,/addEventListener\('hashchange',navigate\)/);
+ assert.match(js,/nav.addEventListener\('click'/);
+ assert.match(js,/addEventListener\('popstate',navigate\)/);
  assert.match(html,/id="commandDesk"/);
  assert.match(html,/\/reactions\.js\?v=10/);
  assert.match(html,/\/lounge\.js\?v=2/);
@@ -73,4 +75,20 @@ test('Clubhouse includes working navigation for all twelve additions',()=>{
  assert.match(club,/api\/club\/history/);
  assert.match(page,/The Pulse/);
  assert.doesNotMatch(page,/Sports|Gaming|Movies/i);
+});
+
+test('All Clubhouse tab controls have a direct route, render fallback, and accessible sidebar',()=>{
+ const page=read('public/club.html'),app=read('public/club.js'),styles=read('public/club.css');
+ for(const feature of ['home','debate','polls','leaderboard','quiz','predictions','rooms','profiles','news','trending','history','questions','owner']){
+   assert.match(page,new RegExp('href="#'+feature+'"'));
+ }
+ assert.match(app,/event.target.closest\('a\[href\^="#"\]'\)/);
+ assert.match(app,/history.pushState\(null,''/);
+ assert.match(app,/window.addEventListener\('popstate',render\)/);
+ assert.match(app,/Clubhouse tab render failed/);
+ assert.match(styles,/max-height:calc\(100dvh - 82px\)/);
+ assert.match(styles,/overflow-y:auto/);
+ assert.match(styles,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(styles,/hero::after\{content:none!important\}/);
+ assert.match(css,/lounge-welcome::after\{content:none!important\}/);
 });
