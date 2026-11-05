@@ -1,85 +1,85 @@
-/* THE LOUNGE / Ask AI main-page panel. */
+/* THE LOUNGE — integrated on-device AI search, without external chat redirects. */
 (function(){
 'use strict';
 const desk=document.getElementById('commandDesk');if(!desk)return;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let configured=false,checking=false,question='',answer='',error='',asking=false;
-const active=()=>document.body.dataset.ewView==='ai';
-const standardPrompts=[
- 'Explain an important event that happened on this day in history.',
- 'What are the main arguments for and against term limits for Congress?',
- 'Give me a five-question world geography quiz.',
- 'Explain how the stock market works in simple terms.'
+const suggestions=[
+ 'Why did the Roman Empire fall?',
+ 'What is the capital of Australia, and why?',
+ 'Explain the relationship between inflation and interest rates.',
+ 'What were the main causes of World War I?'
 ];
+let question='',answer='',results=[],message='',busy=false,searchDone=false,model='',lastError='';
+const active=()=>document.body.dataset.ewView==='ai';
+function sourcesHtml(){
+ if(!searchDone)return '';
+ if(!results.length)return '<div class="owner-empty">No verified reference results were returned. You can still ask the local model, but its answers will not be live-verified.</div>';
+ return '<div class="ai-search-results">'+results.map((r,i)=>'<article class="ai-source"><span class="ai-source-label">SOURCE '+(i+1)+' · '+esc(r.source)+'</span><h3><a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer">'+esc(r.title)+' ↗</a></h3>'+(r.snippet?'<p>'+esc(r.snippet)+'</p>':'')+'</article>').join('')+'</div>'
+}
 function view(){
  if(!active())return;
- desk.innerHTML='<div class="lounge-panel-head"><span class="lounge-eyebrow">THE LOUNGE / ASK AI</span><h1>Ask AI <span aria-hidden="true">✦</span></h1><p>Have a question about history, politics, science, geography or anything else? Ask an AI assistant.</p></div>'
- +'<section class="lounge-surface ai-panel"><div class="ai-topline"><span class="ai-badge">'+(configured?'● AI CONNECTED':'◌ CHATGPT AVAILABLE')+'</span><span class="ai-subtext">'+(configured?'Answers appear here inside the Lounge.':'ChatGPT opens separately until the owner adds an API key.')+'</span></div>'
- +'<form id="loungeAIForm"><label for="loungeAIQuestion">YOUR QUESTION</label><textarea name="question" id="loungeAIQuestion" rows="5" maxlength="2000" minlength="3" placeholder="Ask about a historical event, a country, a current issue, or anything else…" required>'+esc(question)+'</textarea>'
- +'<div class="ai-actions"><button type="submit" class="ai-primary" '+(asking?'disabled':'')+'>'+(asking?'ASKING AI…':configured?'ASK AI NOW':'COPY QUESTION & OPEN CHATGPT')+'</button>'
- +'<button type="button" data-ai-copy>Copy question</button><a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">OPEN CHATGPT ↗</a></div></form>'
- +'<p class="ai-notice" role="status" aria-live="polite">'+esc(error||(configured?'AI answers may be mistaken. Verify significant facts before sharing.':'In-Lounge AI responses require an OpenAI API key configured by the site owner in Railway. No key is currently connected.'))+'</p></section>'
- +'<section class="lounge-surface ai-answer" '+(answer?'':'hidden')+'><h2>AI answer</h2><div id="loungeAIAnswer"></div><p class="ai-disclaimer">AI-generated information should be verified for important decisions.</p></section>'
- +'<section class="lounge-surface ai-prompts"><h2>Try asking</h2><div class="ai-suggestions">'+standardPrompts.map((q,i)=>'<button type="button" data-ai-suggestion="'+i+'">'+esc(q)+'</button>').join('')+'</div></section>';
+ const gpu=!!navigator.gpu;
+ desk.innerHTML='<div class="lounge-panel-head"><span class="lounge-eyebrow">THE LOUNGE / PRIVATE RESEARCH DESK</span><h1>AI Search <span aria-hidden="true">✦</span></h1><p>Find source links and ask an AI model right here inside The Lounge. It runs on your device—not another chat website.</p></div>'
+ +'<section class="lounge-surface ai-panel"><div class="ai-topline"><span class="ai-badge">'+(gpu?'● ON-DEVICE AI AVAILABLE':'◌ REFERENCE SEARCH AVAILABLE')+'</span><span class="ai-subtext">'+(gpu?'Compact open-source AI · processed locally in your browser':'AI generation requires a WebGPU-capable computer/browser; reference search still works')+'</span></div>'
+ +'<form id="loungeAIForm"><label for="loungeAIQuestion">SEARCH AND ASK A QUESTION</label><textarea name="question" id="loungeAIQuestion" rows="4" maxlength="2000" minlength="2" placeholder="Search history, politics, countries, science, economics and more…" required>'+esc(question)+'</textarea>'
+ +'<div class="ai-actions"><button type="submit" class="ai-primary" '+(busy?'disabled':'')+'>'+(busy?'SEARCHING / THINKING…':'SEARCH WITH LOUNGE AI')+'</button><button type="button" data-ai-clear '+(busy?'disabled':'')+'>CLEAR</button></div></form>'
+ +'<p class="ai-notice" id="aiStatus" role="status" aria-live="polite">'+esc(message||(gpu?'The local AI model downloads once to your browser on first use; it may be several hundred MB. Source lookup uses Wikipedia and available publisher headlines.':'Search works without AI. For on-device answers, use a current WebGPU-enabled browser with graphics acceleration.'))+'</p></section>'
+ +(searchDone?'<section class="lounge-surface ai-references"><h2>Reference search results</h2>'+sourcesHtml()+'</section>':'')
+ +(answer?'<section class="lounge-surface ai-answer"><h2>AI-generated answer</h2><p class="ai-notice">Generated locally by '+esc(model||'an open-source AI model')+'. Verify significant facts using the links above.</p><div id="loungeAIAnswer"></div></section>':'')
+ +(lastError?'<section class="lounge-surface ai-error" role="alert"><h2>Local AI unavailable</h2><p>'+esc(lastError)+'</p><p>Source links above remain available. A faster computer or Chrome with WebGPU enabled may be needed.</p></section>':'')
+ +'<section class="lounge-surface ai-prompts"><h2>Try these searches</h2><div class="ai-suggestions">'+suggestions.map((s,i)=>'<button type="button" data-ai-suggestion="'+i+'">'+esc(s)+'</button>').join('')+'</div><p class="ai-disclaimer">Small on-device models can make mistakes. Live coverage is limited to the listed reference sources, not the whole internet. No AI provider key is required.</p></section>';
  if(answer){const el=desk.querySelector('#loungeAIAnswer');if(el)el.textContent=answer}
 }
-async function check(){
- if(checking)return;checking=true;
- try{const r=await fetch('/api/ask-ai/status',{credentials:'same-origin',cache:'no-store'});const data=await r.json();configured=r.ok&&data.available===true}
- catch{configured=false;error='Unable to check the AI service. ChatGPT can still open separately.'}
- finally{checking=false;view()}
-}
-function open(){if(!active())return;view();check()}
-async function copy(){
- const el=desk.querySelector('#loungeAIQuestion');
- const text=(el?.value||question||'').trim();
- if(!text){error='Write a question first.';view();return false}
- question=text;
- try{
-  if(!navigator.clipboard?.writeText)throw Error('Clipboard not available');
-  await navigator.clipboard.writeText(text);
-  error='Question copied. Paste it into ChatGPT.';view();return true;
- }catch{
-  error='Your browser could not copy automatically. Select your question and copy it manually before opening ChatGPT.';view();return false
- }
-}
-desk.addEventListener('click',async event=>{
+function notice(text){
+ message=String(text||'').slice(0,260);
  if(!active())return;
- const suggestion=event.target.closest('[data-ai-suggestion]');
- if(suggestion){
-  const item=standardPrompts[Number(suggestion.dataset.aiSuggestion)];
-  if(item){question=item;error='';answer='';view();desk.querySelector('#loungeAIQuestion')?.focus()}
-  return
- }
- if(event.target.closest('[data-ai-copy]')){await copy();return}
-});
-desk.addEventListener('input',event=>{
- if(!active()||event.target.id!=='loungeAIQuestion')return;
- question=event.target.value;
-});
-desk.addEventListener('submit',async event=>{
- if(!active()||event.target.id!=='loungeAIForm')return;
- event.preventDefault();
- if(asking)return;
- const el=event.target.querySelector('textarea');
- question=(el?.value||'').trim();
- if(question.length<3||question.length>2000){error='Write a question between 3 and 2,000 characters.';view();return}
- if(!configured){
-  // Open during the actual click event, before any await, to avoid popup blockers.
-  window.open('https://chatgpt.com/','_blank','noopener,noreferrer');
-  await copy();
-  return
- }
- asking=true;answer='';error='';view();
+ const el=desk.querySelector('#aiStatus');if(el)el.textContent=message;
+}
+async function run(){
+ if(busy)return;
+ const query=question.trim();
+ if(query.length<2||query.length>2000){lastError='Enter a question at least two characters long.';view();return}
+ busy=true;answer='';results=[];searchDone=false;lastError='';notice('Searching available reference sources…');view();
  try{
-  const r=await fetch('/api/ask-ai',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({question}),signal:AbortSignal.timeout(38000)});
+  const r=await fetch('/api/ai-search?q='+encodeURIComponent(query.slice(0,160)),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(14000)});
   const data=await r.json().catch(()=>({}));
-  if(!r.ok)throw Error(data.error||'AI request could not be completed.');
-  answer=String(data.answer||'').slice(0,10000);
-  if(!answer)throw Error('No answer was returned.');
+  if(!r.ok)throw Error(data.error||'Reference search request failed.');
+  results=Array.isArray(data.results)?data.results.filter(x=>x&&x.title&&x.url).slice(0,12):[];
+  searchDone=true;notice(results.length?results.length+' reference results found. Preparing on-device AI…':'No matching reference links were found. Checking the local AI model…');view();
  }catch(e){
-  error=String(e.message||'AI request failed. Try again.');
- }finally{asking=false;view()}
+  searchDone=true;results=[];notice('Reference search could not connect: '+String(e.message||e)+'. Local AI may still answer from general knowledge.');view();
+ }
+ if(!navigator.gpu){
+  lastError='Your browser has no WebGPU support, so a local language model cannot run here. Source search is ready above.';
+  busy=false;view();return
+ }
+ try{
+  const module=await import('/local-ai.js?v=1');
+  const r=await module.answerLocally(query,results,notice);
+  answer=String(r.answer||'');model=r.model||'Open-source model';lastError='';
+ }catch(e){
+  lastError=String(e?.message||e);
+ }finally{busy=false;view()}
+}
+desk.addEventListener('input',e=>{
+ if(active()&&e.target.id==='loungeAIQuestion')question=e.target.value
 });
+desk.addEventListener('click',e=>{
+ if(!active())return;
+ const choice=e.target.closest('[data-ai-suggestion]');
+ if(choice){
+  const q=suggestions[Number(choice.dataset.aiSuggestion)];
+  if(q&&!busy){question=q;answer='';results=[];searchDone=false;lastError='';message='';view();desk.querySelector('#loungeAIQuestion')?.focus()}
+  return
+ }
+ if(e.target.closest('[data-ai-clear]')&&!busy){question='';answer='';results=[];searchDone=false;lastError='';message='';view()}
+});
+desk.addEventListener('submit',e=>{
+ if(!active()||e.target.id!=='loungeAIForm')return;
+ e.preventDefault();
+ question=e.target.querySelector('textarea')?.value||question;
+ void run()
+});
+function open(){if(active())view()}
 window.LoungeAI={open};
 })();
