@@ -221,3 +221,11 @@ button{cursor:pointer}
 .ai-suggestions button{text-align:left;background:#1b2842}
 @media(max-width:1000px){.lounge-nav{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media(max-width:520px){.lounge-nav{grid-template-columns:repeat(2,minmax(0,1fr))}.ai-suggestions{grid-template-columns:1fr}.ai-panel textarea{min-height:145px}}
+
+/* Navbar fit: tabs must never draw text past the button edge. */
+.lounge-nav{grid-template-columns:repeat(10,minmax(0,1fr));gap:8px;box-sizing:border-box}
+.lounge-nav>a{box-sizing:border-box;display:flex;flex-wrap:wrap;white-space:normal;overflow:hidden;overflow-wrap:anywhere;word-break:normal;text-align:center;line-height:1.25;min-height:54px;padding:10px 7px;font-size:clamp(10px,.75vw,12px);gap:5px}
+.lounge-nav>a span{font-size:16px;flex:none}
+@media(max-width:1280px){.lounge-nav{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:700px){.lounge-nav{grid-template-columns:repeat(3,minmax(0,1fr));padding:8px;gap:7px}.lounge-nav>a{min-height:57px;font-size:11px;padding:9px 5px}}
+@media(max-width:410px){.lounge-nav{grid-template-columns:repeat(2,minmax(0,1fr))}}
