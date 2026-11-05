@@ -45,7 +45,7 @@ function postsFor(kind,room=null){
  return mainPosts.map(p=>post(p)+all.filter(r=>r.parent_id===p.id).reverse().map(post).join('')).join('')||empty('No messages yet. Start the conversation!')
 }
 function home(){
- return '<div class="hero"><span class="eyebrow">WELCOME BACK TO YOUR SOCIAL CLUB</span><h1>Your people.<br><em>Your conversations.</em></h1><p>Debate, vote, compete, predict and discover something new together. The Pulse, Member Profiles and the owner's dashboard have their own main navigation tabs.</p><div class="hero-actions"><a href="#debate">TODAY’S DEBATE ↗</a><a href="/#pulse">OPEN THE PULSE ↗</a></div></div>'
+ return '<div class="hero"><span class="eyebrow">WELCOME BACK TO YOUR SOCIAL CLUB</span><h1>Your people.<br><em>Your conversations.</em></h1><p>Debate, vote, compete, predict and discover something new together. The Pulse, Member Profiles and the owner dashboard have their own main navigation tabs.</p><div class="hero-actions"><a href="#debate">TODAY’S DEBATE ↗</a><a href="/#pulse">OPEN THE PULSE ↗</a></div></div>'
  +'<div class="pagehead"><div><span class="eyebrow">THE CLUBHOUSE</span><h1 style="font-size:29px">Explore the Clubhouse</h1></div><span class="chip">'+(db?.signedIn?'SIGNED IN':'GUEST VIEW')+'</span></div>'
  +'<div class="tiles">'+tabs.map(t=>'<a class="tile" href="#'+t[0]+'"><span class="tile-icon">'+t[1]+'</span><h3>'+esc(t[2])+'</h3><p>'+esc(t[3])+'</p></a>').join('')+'</div>';
 }
