@@ -20,6 +20,7 @@ quiz:{},
 debate:{date:'2026-11-05',question:'Can the members debate this topic?'}};
 const apiStub=[
  '<script>',
+ 'Object.defineProperty(navigator,"gpu",{value:undefined,configurable:true});',
  'window.fetch=async function(input){',
  ' const path=new URL(String(input),location.href).pathname;let data={ok:true};',
  " if(path==='/api/club/dashboard')data="+JSON.stringify(fixture)+';',
