@@ -41,7 +41,7 @@ test('Accounts, polls, profile photos, messages and nested replies remain functi
  assert.match(pulse,/host\.onpaste=async e=>/);
  assert.match(pulse,/data-hub-record-start="1"/);
  assert.match(css,/\.lounge-nav a/);
- assert.match(css,/repeat\(7,minmax\(0,1fr\)\)/);
+ assert.match(css,/repeat\(8,minmax\(0,1fr\)\)/);
 });
 test('Login and privacy pages still serve THE LOUNGE',()=>{
  const login=read('public/login.html'),about=read('public/about-security.html'),server=read('server.mjs');
@@ -50,4 +50,27 @@ test('Login and privacy pages still serve THE LOUNGE',()=>{
  assert.match(login,/Remember this device for 90 days/);
  assert.match(about,/Friends directory is optional/);
  assert.match(server,/return res\.end\(loungePage\)/);
+});
+
+test('Clubhouse includes working navigation for all twelve additions',()=>{
+ const page=read('public/club.html'),app=read('public/club.js'),server=read('server.mjs'),club=read('club.mjs');
+ assert.doesNotThrow(()=>new Script(app,{filename:'public/club.js'}));
+ for(const feature of ['debate','polls','leaderboard','quiz','predictions','rooms','profiles','news','trending','history','questions','owner']){
+   assert.match(page,new RegExp('href="#'+feature+'"'));
+   assert.match(app,new RegExp("'"+feature+"'"));
+ }
+ assert.match(html,/href="\/club"/);
+ assert.match(js,/href="\/club"/);
+ assert.match(server,/u\.pathname==='\/club'/);
+ assert.match(server,/clubRoute\(req,res,u\.pathname\)/);
+ assert.match(server,/const publicAsset=.*'\/club\.js'/);
+ for(const required of ['club_posts','club_polls','club_poll_votes','club_predictions','club_prediction_votes','club_quiz_answers','club_profiles']){
+   assert.ok(club.includes(required),required+' persists in PostgreSQL');
+ }
+ assert.match(club,/authenticatedMember\(req\)/);
+ assert.match(club,/isEditorAdmin\(req\)/);
+ assert.match(club,/api\/club\/news/);
+ assert.match(club,/api\/club\/history/);
+ assert.match(page,/The Pulse/);
+ assert.doesNotMatch(page,/Sports|Gaming|Movies/i);
 });
