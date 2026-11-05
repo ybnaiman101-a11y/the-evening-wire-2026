@@ -387,7 +387,7 @@ const server=http.createServer(async (req,res)=>{
  if(u.pathname==='/api/ask-ai'||u.pathname==='/api/ask-ai/status'){
   askAIRoute(req,res,u.pathname).catch(err=>{console.error('Ask AI API:',String(err?.message||err));if(!res.headersSent)json({error:'Ask AI connection unavailable'},503);else res.end()});return;
  }
- if(u.pathname.startsWith('/api/club/')){clubRoute(req,res,u.pathname).catch(err=>{console.error('Clubhouse API:',String(err?.message||err));if(!res.headersSent)json({error:'Clubhouse is temporarily unavailable'},503);else res.end()});return;}
+ if(u.pathname.startsWith('/api/club/')){clubRoute(req,res,u.pathname,stories).catch(err=>{console.error('Clubhouse API:',String(err?.message||err));if(!res.headersSent)json({error:'Clubhouse is temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname.startsWith('/api/lounge/')){loungeRoute(req,res,u.pathname).catch(err=>{console.error('Lounge API:',String(err?.message||err));if(!res.headersSent)json({error:'Social feature temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname).catch(err=>{console.error('Community API request error:',String(err?.message||err));if(!res.headersSent)json({error:'Community service temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname==='/api/editor/calls'||u.pathname.startsWith('/api/admin/')){editorRoute(req,res,u.pathname).catch(err=>{console.error('Editor route error',err);if(!res.headersSent)json({error:'Editorial desk unavailable'},503);else res.end()});return;}
