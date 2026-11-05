@@ -107,10 +107,59 @@ async function snapshot(member){
  const debate=debateToday(),quiz=quizToday();
  return {date:today(),signedIn:!!member,member:member?{id:uid,displayName:member.displayName,avatarUrl:member.avatarUrl||null}:null,debate,quiz:{...quiz,answered:quizQ.rows.length?quizQ.rows[0]:null},bio:profileQ.rows[0]?.bio||'',posts:posts.map(p=>({...p,liked:myLikes.has(p.id)})),polls,predictions,leaderboard};
 }
+
+// Source-backed editorial feed for the Lounge, separate from archived election coverage.
+// These are publisher/Google News RSS headlines, not original reporting or inferred facts.
+const newsFeeds=[
+ ['World','https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-US&gl=US&ceid=US:en'],
+ ['Business','https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en'],
+ ['Technology','https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en'],
+ ['United States','https://news.google.com/rss/headlines/section/topic/NATION?hl=en-US&gl=US&ceid=US:en']
+];
+const unescapeRSS=x=>String(x||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).trim();
+const xmlTag=(row,tag)=>{const found=row.match(new RegExp('<'+tag+'(?:\\s[^>]*)?>([\\s\\S]*?)<\\/'+tag+'>','i'));return found?unescapeRSS(found[1]):''};
+let cachedNews={at:0,stories:[],errors:[]};
+async function newsroom(){
+ if(Date.now()-cachedNews.at<10*60000)return cachedNews;
+ const result=await Promise.all(newsFeeds.map(async([topic,url])=>{
+  try{
+   const res=await fetch(url,{signal:AbortSignal.timeout(7000),headers:{'User-Agent':'TheLounge/1.0 (RSS reading room)'}});
+   if(!res.ok)throw Error('RSS HTTP '+res.status);
+   const xml=await res.text();if(xml.length>1500000)throw Error('Feed exceeded limit');
+   const stories=[];
+   for(const m of xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)){
+    const row=m[1],title=xmlTag(row,'title'),link=xmlTag(row,'link'),date=xmlTag(row,'pubDate'),source=xmlTag(row,'source')||'Publisher via Google News';
+    const time=Date.parse(date);
+    if(!title||!/^https:\/\//.test(link)||!Number.isFinite(time)||time<Date.now()-2*86400000||time>Date.now()+3600000)continue;
+    stories.push({title,url:link,published:new Date(time).toISOString(),source,topic});
+   }
+   return {stories:stories.slice(0,25),error:null};
+  }catch(err){return {stories:[],error:topic+': '+String(err.message||err).slice(0,80)}}
+ }));
+ const unique=new Map();for(const r of result)for(const x of r.stories)if(!unique.has(x.title))unique.set(x.title,x);
+ cachedNews={at:Date.now(),stories:[...unique.values()].sort((a,b)=>Date.parse(b.published)-Date.parse(a.published)).slice(0,70),errors:result.filter(x=>x.error).map(x=>x.error)};
+ return cachedNews;
+}
+let cachedHistory={date:'',at:0,events:[]};
+async function historicalEvents(){
+ const date=today();
+ if(cachedHistory.date===date&&Date.now()-cachedHistory.at<6*3600000)return cachedHistory;
+ const mm=date.slice(5,7),dd=date.slice(8,10);
+ try{
+  const res=await fetch('https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/'+mm+'/'+dd,{signal:AbortSignal.timeout(7000),headers:{'User-Agent':'TheLounge/1.0 (history clubhouse)'}});
+  if(!res.ok)throw Error('History HTTP '+res.status);
+  const x=await res.json();
+  cachedHistory={date,at:Date.now(),events:(Array.isArray(x.events)?x.events:[]).filter(e=>Number.isInteger(e.year)&&typeof e.text==='string').sort((a,b)=>b.year-a.year).slice(0,14).map(e=>({year:String(e.year),text:e.text.slice(0,650)}))};
+ }catch(err){cachedHistory={date,at:Date.now(),events:[],error:String(err.message||err).slice(0,100)}}
+ return cachedHistory;
+}
+
 export async function clubRoute(req,res,path){
  if(!path.startsWith('/api/club/'))return false;
  if(!['GET','POST'].includes(req.method)){send(res,405,{error:'Method not allowed'});return true}
  if(req.method==='POST'&&!allowedOrigin(req)){send(res,403,{error:'Origin not allowed'});return true}
+ if(path==='/api/club/news'&&req.method==='GET'){send(res,200,await newsroom());return true}
+ if(path==='/api/club/history'&&req.method==='GET'){send(res,200,await historicalEvents());return true}
  try{await ensure()}catch(e){console.warn('CLUBHOUSE_DB_UNAVAILABLE',e.message);send(res,503,{error:'The Lounge database is not available. Existing messages have not been changed.'});return true}
  const route=path.slice('/api/club/'.length);
  try{
