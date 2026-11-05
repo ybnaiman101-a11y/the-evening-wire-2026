@@ -107,7 +107,7 @@ function news(){
  return head('The News Desk','Read the latest available publisher headlines, then discuss them with friends.')
  +'<section class="surface"><div class="row between"><h2>Latest news headlines</h2><button type="button" id="newsReload">↻ Refresh</button></div>'
  +(stories.length?stories.slice(0,30).map(x=>'<article class="post"><div class="row between"><span class="side">'+esc(x.source)+'</span><time class="muted">'+esc(fmt(x.published))+'</time></div><h3 style="line-height:1.4;margin-top:12px"><a href="'+esc(https(x.url))+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+' ↗</a></h3><p>'+esc(x.excerpt||'')+'</p><a class="smalllink" href="/#pulse/politics">DISCUSS IN THE PULSE ↗</a></article>').join(''):empty('No fresh publisher headlines are available right now.'))
- +'<p class="hint">The existing news feed focuses on election and political coverage. Headlines are linked to their original publishers.</p></section>';
+ +'<p class="hint">Recent world, U.S., business and technology headlines are sourced from publisher feeds and linked to their original coverage.</p></section>';
 }
 function https(url){try{const u=new URL(url);return /^https?:$/.test(u.protocol)?u.href:'#'}catch{return '#'}}
 function trending(){
@@ -145,7 +145,7 @@ async function refresh(quiet=false){
  if(loading)return;
  loading=true;
  try{
-  const r=await Promise.allSettled([api('/api/club/dashboard'),api('/api/stories'),api('/api/admin/session')]);
+  const r=await Promise.allSettled([api('/api/club/dashboard'),api('/api/club/news'),api('/api/admin/session')]);
   if(r[0].status!=='fulfilled')throw r[0].reason;
   db=r[0].value;stories=r[1].status==='fulfilled'?r[1].value.stories||[]:[];
   admin=r[2].status==='fulfilled'&&r[2].value.authenticated===true;
@@ -156,10 +156,8 @@ async function refresh(quiet=false){
 }
 async function loadHistory(){
  try{
-  const now=new Date(),m=String(now.getMonth()+1).padStart(2,'0'),d=String(now.getDate()).padStart(2,'0');
-  const res=await fetch('https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/'+m+'/'+d,{cache:'no-store'});
-  if(!res.ok)throw Error('History feed unavailable');const obj=await res.json();
-  historyFacts=(obj.events||[]).filter(x=>x.year&&x.text).sort((a,b)=>b.year-a.year).slice(0,12).map(x=>({year:String(x.year),text:x.text}));
+  const obj=await api('/api/club/history');
+  historyFacts=Array.isArray(obj.events)?obj.events:[];
  }catch{historyFacts=[]}
  if(location.hash==='#history')render()
 }
