@@ -135,10 +135,16 @@ function owner(){
  +'<section class="surface"><h2>Official Lounge announcements</h2>'+postsFor('announcement')+'</section>';
 }
 function render(){
+ // Every navigation click is a real route, with URL fragment and page content in sync.
  const raw=location.hash.slice(1).split('/')[0];const page=raw==='home'||tabs.some(t=>t[0]===raw)?raw:'home';
  for(const link of nav.querySelectorAll('[data-tab]'))link.setAttribute('aria-current',link.dataset.tab===page?'page':'false');
  const views={home,debate,polls,leaderboard,quiz,predictions,rooms,profiles,news,trending,history,questions,owner};
- main.innerHTML=db?views[page]():head('Clubhouse temporarily unavailable','Navigation is working, but saved data could not be loaded.')+'<div class="surface"><p>Try refreshing. Existing member data and messages are untouched.</p><button id="tryAgain">RETRY CONNECTION</button></div>';
+ try{
+  main.innerHTML=db?views[page]():head('Clubhouse temporarily unavailable','Navigation is working, but saved data could not be loaded.')+'<div class="surface"><p>Try refreshing. Existing member data and messages are untouched.</p><button id="tryAgain">RETRY CONNECTION</button></div>';
+ }catch(err){
+  console.error('Clubhouse tab render failed:',page,err);
+  main.innerHTML=head(tabs.find(x=>x[0]===page)?.[2]||'Clubhouse','This section could not load its content.')+'<div class="surface"><p>There was a problem opening this section. Your posts and accounts have not been changed.</p><button id="tryAgain">RETRY CONNECTION</button></div>';
+ }
  if(page==='history'&&historyFacts===null)loadHistory();
 }
 async function refresh(quiet=false){
@@ -200,7 +206,23 @@ document.addEventListener('submit',async event=>{
   say('Saved to the Lounge.');await refresh(true)
  }catch(err){say(err.message,true)}finally{if(submit)submit.disabled=false}
 });
+// Do not rely on hashchange alone: clicking an already-selected tab should also open it.
+// Handle both the sidebar and homepage feature tiles, including mobile taps.
+document.addEventListener('click',event=>{
+ const a=event.target.closest('a[href^="#"]');
+ if(!a||!a.closest('#clubNav, #clubContent'))return;
+ const dest=a.getAttribute('href').slice(1);
+ if(dest!=='home'&&!tabs.some(item=>item[0]===dest))return;
+ event.preventDefault();
+ if(location.hash!=='#'+dest)history.pushState(null,'','#'+dest);
+ render();
+ // Keep the selected section in view instead of leaving it under the sticky header.
+ if(a.closest('#clubNav')&&window.matchMedia('(max-width:700px)').matches){
+  main.scrollIntoView({behavior:'auto',block:'start'});
+ }
+});
 window.addEventListener('hashchange',render);
+window.addEventListener('popstate',render);
 refresh(true);
 setInterval(()=>{if(document.visibilityState==='visible'&&db)refresh(true)},30000);
 })();
