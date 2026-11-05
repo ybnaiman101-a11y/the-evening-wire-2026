@@ -4,6 +4,7 @@ import {apSnapshot} from './ap-election-results.mjs';
 import {liveResultsHub} from './live-results.mjs';
 import {communityRoute} from './community.mjs';
 import {loungeRoute} from './lounge.mjs';
+import {clubRoute} from './club.mjs';
 import {memberRoute,authenticatedMember} from './members.mjs';
 import {trafficRoute} from './traffic.mjs';
 import {updateRoute} from './election-updates.mjs';
@@ -294,6 +295,7 @@ const page=process.env.EW_READ_ONLY_PREVIEW==='1'
    ? originalPage.replace('<body>','<body data-ew-local-database="true">')
    : originalPage;
 const loungePage=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/lounge.html',import.meta.url),'utf8'));
+const clubPage=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/club.html',import.meta.url),'utf8'));
  const loginPage=await import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/login.html',import.meta.url),'utf8'));
 liveResultsHub.start();
 const server=http.createServer(async (req,res)=>{
@@ -359,15 +361,16 @@ const server=http.createServer(async (req,res)=>{
   u.pathname.startsWith('/api/geo/') ||
   u.pathname.startsWith('/api/community/') ||
    u.pathname.startsWith('/api/lounge/') ||
+  u.pathname.startsWith('/api/club/') ||
   u.pathname.startsWith('/api/challenge') ||
   u.pathname==='/api/updates'
  );
- const publicAsset=['/','/index.html','/lounge.css','/lounge.js','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/reaction-hub-v2.css','/election-maps.js','/election-maps.css'].includes(u.pathname);
+ const publicAsset=['/','/index.html','/club','/club.css','/club.js','/lounge.css','/lounge.js','/studio.css','/studio.js','/race-catalog.js','/election-updates.js','/traffic.js','/members.js','/editor-calls.js','/reactions.js','/reaction-hub-v2.css','/election-maps.js','/election-maps.css'].includes(u.pathname);
  // The admin API implements its own administrator password checks.
  const adminEndpoint=u.pathname.startsWith('/api/admin/');
  // Routes which validate their own owner session must be reachable without a
  // separate ordinary member login. The route still checks its authorization.
- const delegatedAuth=u.pathname.startsWith('/api/lounge/')||u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')||u.pathname.startsWith('/api/challenge')||u.pathname.startsWith('/api/community/admin/');
+ const delegatedAuth=u.pathname.startsWith('/api/club/')||u.pathname.startsWith('/api/lounge/')||u.pathname==='/api/updates'||u.pathname.startsWith('/api/updates/')||u.pathname.startsWith('/api/challenge')||u.pathname.startsWith('/api/community/admin/');
  if(!visitor && !(publicRead||publicAsset||adminEndpoint||delegatedAuth)){
   return json({error:'Sign in or register to use this feature',login:'/login'},401);
  }
@@ -379,6 +382,7 @@ const server=http.createServer(async (req,res)=>{
  }
  if(u.pathname.startsWith('/api/traffic/')){trafficRoute(req,res,u.pathname).catch(err=>{console.error('Traffic API error',err);if(!res.headersSent)json({error:'Traffic temporarily unavailable'},503);else res.end()});return;}
 
+ if(u.pathname.startsWith('/api/club/')){clubRoute(req,res,u.pathname).catch(err=>{console.error('Clubhouse API:',String(err?.message||err));if(!res.headersSent)json({error:'Clubhouse is temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname.startsWith('/api/lounge/')){loungeRoute(req,res,u.pathname).catch(err=>{console.error('Lounge API:',String(err?.message||err));if(!res.headersSent)json({error:'Social feature temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname.startsWith('/api/community/')){communityRoute(req,res,u.pathname).catch(err=>{console.error('Community API request error:',String(err?.message||err));if(!res.headersSent)json({error:'Community service temporarily unavailable'},503);else res.end()});return;}
  if(u.pathname==='/api/editor/calls'||u.pathname.startsWith('/api/admin/')){editorRoute(req,res,u.pathname).catch(err=>{console.error('Editor route error',err);if(!res.headersSent)json({error:'Editorial desk unavailable'},503);else res.end()});return;}
@@ -441,6 +445,10 @@ const server=http.createServer(async (req,res)=>{
  if(u.pathname==='/members.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/members.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/editor-calls.js'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/editor-calls.js',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-cache'});res.end(b)}).catch(()=>json({error:'Asset unavailable'},404));return;}
  if(u.pathname==='/reaction-hub-v2.css'){import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/reaction-hub-v2.css',import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':'text/css; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Reaction Hub styles unavailable'},404));return;}
+ if(u.pathname==='/club.js'||u.pathname==='/club.css'){
+  const file=u.pathname.slice(1),ctype=file.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8';
+  import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/'+file,import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':ctype,'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Clubhouse asset unavailable'},404));return;
+ }
  if(u.pathname==='/lounge.js'||u.pathname==='/lounge.css'){
   const file=u.pathname==='/lounge.js'?'lounge.js':'lounge.css',ctype=file.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8';
   import('node:fs/promises').then(fs=>fs.readFile(new URL('./public/'+file,import.meta.url))).then(b=>{res.writeHead(200,{'Content-Type':ctype,'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(b)}).catch(()=>json({error:'Site asset unavailable'},404));return;
@@ -469,6 +477,9 @@ const server=http.createServer(async (req,res)=>{
   const ping=setInterval(()=>{try{res.write(': keepalive\n\n')}catch{}},25000);
   req.on('close',()=>{clearInterval(ping);clients.delete(res)});
   return;
+ }
+ if(u.pathname==='/club'){
+  res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'});return res.end(clubPage);
  }
  if(u.pathname==='/'||u.pathname==='/index.html'){
   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'});return res.end(loungePage);
