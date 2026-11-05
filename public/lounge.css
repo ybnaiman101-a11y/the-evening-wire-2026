@@ -199,3 +199,25 @@ button{cursor:pointer}
 .owner-link{display:inline-block;color:#d7b7ff;font-size:12px;font-weight:900;margin:10px 14px 0 0}
 @media(max-width:900px){.lounge-nav{grid-template-columns:repeat(5,minmax(0,1fr))}.owner-stats,.owner-snapshot{grid-template-columns:repeat(2,minmax(0,1fr))}.owner-two{grid-template-columns:1fr}}
 @media(max-width:520px){.lounge-nav{grid-template-columns:repeat(3,minmax(0,1fr))}.owner-card{padding:16px}.owner-subnav{display:grid;grid-template-columns:repeat(2,1fr)}.owner-subnav button{min-height:45px}.owner-actions{grid-template-columns:1fr}.owner-stat{padding:15px 10px}}
+
+/* Ask AI — main Lounge panel */
+.lounge-nav{grid-template-columns:repeat(10,minmax(0,1fr))}
+.ai-panel{max-width:1000px;border-color:#4a6c86;background:linear-gradient(140deg,#1c2843,#111d33)}
+.ai-panel form{display:grid;gap:12px}.ai-panel label{font-size:11px;color:#abccdf;font-weight:900;letter-spacing:1.4px}
+.ai-panel textarea{min-height:155px;width:100%;resize:vertical;background:#10172c;color:#f4f8ff;border:1px solid #4f6d8e;border-radius:13px;padding:18px;font:500 15px 'DM Sans',sans-serif;line-height:1.6}
+.ai-topline,.ai-actions{display:flex;gap:13px;align-items:center;flex-wrap:wrap;margin:0 0 17px}
+.ai-badge{padding:7px 12px;border-radius:99px;color:#a3eaf7;border:1px solid #4c90a0;background:#15334b;font-size:10px;font-weight:900;letter-spacing:1.2px}
+.ai-subtext{font-size:12px;color:#b5c6de}
+.ai-actions{margin-top:3px}
+.ai-actions button,.ai-actions a,.ai-suggestions button{padding:13px 15px;border-radius:11px;background:#24395c;color:#f2f8ff;border:1px solid #4d7090;font:800 12px 'DM Sans',sans-serif;cursor:pointer;text-decoration:none}
+.ai-actions button:hover,.ai-actions a:hover,.ai-suggestions button:hover{background:#33557a}
+.ai-actions .ai-primary{background:linear-gradient(110deg,#564fc2,#3974a1);border-color:#898bf0}
+.ai-actions button:disabled{opacity:.5;cursor:wait}
+.ai-notice{color:#bdd0e6!important;font-size:12px!important;line-height:1.6}
+.ai-answer{border-color:#51778e;margin:20px 0}.ai-answer h2,.ai-prompts h2{font:800 23px 'Outfit',sans-serif}
+#loungeAIAnswer{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.85;color:#e8f2fe}
+.ai-disclaimer{font-size:11px;color:#adbed6}
+.ai-suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.ai-suggestions button{text-align:left;background:#1b2842}
+@media(max-width:1000px){.lounge-nav{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:520px){.lounge-nav{grid-template-columns:repeat(2,minmax(0,1fr))}.ai-suggestions{grid-template-columns:1fr}.ai-panel textarea{min-height:145px}}
