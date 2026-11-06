@@ -89,6 +89,12 @@ function probe(kind){
   '  if(getComputedStyle(chatPanel).overflowY!=="visible")problems.push("CHAT STILL HAS SECOND SCROLLBAR");',
   '  if(getComputedStyle(composer).position!=="static")problems.push("COMPOSER STILL FLOATS WHILE SCROLLING");',
   '  if(document.querySelector("#aiReasoning")?.value!=="medium")problems.push("STANDARD REASONING NOT DEFAULT");',
+
+  '  const firstIdeas=[...document.querySelectorAll("[data-chat-example]")].map(b=>b.textContent.trim());',
+  '  if(firstIdeas.length!==4)problems.push("ROTATING SUGGESTIONS NOT FOUR");',
+  '  const refreshIdeas=document.querySelector("[data-chat-more]");',
+  '  if(!refreshIdeas)problems.push("MORE IDEAS BUTTON MISSING");',
+  '  else{refreshIdeas.click();const nextIdeas=[...document.querySelectorAll("[data-chat-example]")].map(b=>b.textContent.trim());if(nextIdeas.length!==4||nextIdeas.every((t,i)=>t===firstIdeas[i]))problems.push("SUGGESTIONS DID NOT ROTATE");const first=nextIdeas[0].replace(/\\s*↗\\s*$/,"").trim();document.querySelector("[data-chat-example]")?.click();if(document.querySelector("#loungeAIQuestion")?.value!==first)problems.push("ROTATED SUGGESTION NOT CLICKABLE");}',
   '  const searchField=document.querySelector("#loungeAIQuestion");',
   '  if(!searchField)problems.push("AI SEARCH INPUT MISSING");',
   '  else{searchField.value="capital of australia";searchField.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#loungeAIForm")?.requestSubmit();await new Promise(r=>setTimeout(r,500));if(document.querySelector(".ai-references, .ai-source"))problems.push("UNWANTED REFERENCE CARDS DISPLAYED");if(!document.querySelector(".lc-answer")||!document.querySelector("#loungeAIAnswer")?.textContent.includes("answered by OpenAI"))problems.push("OPENAI ANSWER NOT DISPLAYED");}',
