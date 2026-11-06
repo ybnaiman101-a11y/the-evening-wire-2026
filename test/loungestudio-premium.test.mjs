@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {imageRequest,decodeImageResponse,IMAGE_MODEL} from '../lounge-images.mjs';
 import {openAIRequest} from '../ask-ai.mjs';
 
-test('Premium chat uses GPT-6 Astra with high reasoning, storage disabled, useful output allowance',()=>{
+test('Premium chat uses GPT-6.1 Sol with high reasoning, storage disabled, useful output allowance',()=>{
  const request=openAIRequest({question:'Explain the causes of the Roman Empire collapse.'});
- assert.equal(request.model,'gpt-6-astra');
+ assert.equal(request.model,'gpt-6.1-sol');
  assert.equal(request.reasoning.effort,'high');
  assert.equal(request.store,false);
  assert.ok(request.max_output_tokens>=4000);
