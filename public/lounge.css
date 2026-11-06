@@ -478,3 +478,10 @@ body[data-ew-view="ai"] .lc-sr-only{position:absolute;width:1px;height:1px;paddi
  body[data-ew-view="ai"] .lc-setting{font-size:0}
  body[data-ew-view="ai"] .lc-setting select{font-size:10px;min-width:89px}
 }
+
+/* Fresh topic suggestions with a manual refresh action. */
+body[data-ew-view="ai"] .lc-ideas-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:27px 0 10px;color:#b8b8b8;font-size:12px;font-weight:650;text-align:left}
+body[data-ew-view="ai"] .lc-ideas-heading button{background:transparent;color:#d8d8d8;border:1px solid #535353;border-radius:9px;padding:8px 12px;font:650 11px 'DM Sans',sans-serif;cursor:pointer}
+body[data-ew-view="ai"] .lc-ideas-heading button:hover{background:#393939;border-color:#868686}
+body[data-ew-view="ai"] .lc-ideas-heading+.lc-prompts{margin-top:4px}
+@media(max-width:550px){body[data-ew-view="ai"] .lc-ideas-heading{margin-top:20px}}
