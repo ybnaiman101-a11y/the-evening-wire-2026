@@ -19,7 +19,7 @@ test('All ten Lounge tabs are real navigable links that route to a valid page',(
  assert.match(html,/id="commandDesk"/);
  assert.match(html,/\/reactions\.js\?v=10/);
  assert.match(html,/\/lounge\.js\?v=6/);
- assert.match(html,/\/ask-ai\.js\?v=2/);
+ assert.match(html,/\/ask-ai\.js\?v=3/);
  assert.match(html,/\/owner\.js\?v=1/);
 });
 test('Discussion rooms are politics, Jewish life and meaningful conversations',()=>{
