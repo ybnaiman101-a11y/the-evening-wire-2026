@@ -6,6 +6,7 @@ import {communityRoute} from './community.mjs';
 import {loungeRoute} from './lounge.mjs';
 import {clubRoute} from './club.mjs';
 import {askAIRoute} from './ask-ai.mjs';
+import {generateLoungeImage} from './lounge-images.mjs';
 import {aiSearchRoute} from './ai-search.mjs';
 import {memberRoute,authenticatedMember} from './members.mjs';
 import {trafficRoute} from './traffic.mjs';
@@ -388,6 +389,9 @@ const server=http.createServer(async (req,res)=>{
 
  if(u.pathname==='/api/ai-search'){
   aiSearchRoute(req,res,u.pathname,stories).catch(err=>{console.error('AI search:',String(err?.message||err));if(!res.headersSent)json({error:'Search is temporarily unavailable'},503);else res.end()});return;
+ }
+ if(u.pathname==='/api/ask-ai/image'){
+  generateLoungeImage(req,res,u.pathname).catch(err=>{console.error('Image generation API:',String(err?.message||err));if(!res.headersSent)json({error:'Image generation temporarily unavailable'},503);else res.end()});return;
  }
  if(u.pathname==='/api/ask-ai'||u.pathname==='/api/ask-ai/status'){
   askAIRoute(req,res,u.pathname).catch(err=>{console.error('Ask AI API:',String(err?.message||err));if(!res.headersSent)json({error:'Ask AI connection unavailable'},503);else res.end()});return;
