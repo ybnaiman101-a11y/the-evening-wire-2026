@@ -30,7 +30,7 @@ jobs:
           fi
           grep 'PUBLIC_LAUNCH_BLOCKED' /tmp/production-preflight.log
       - name: Test live feeds and webpage JavaScript
-        run: node --test test/live-results.test.mjs test/ui-inline.test.mjs test/railway-postgres-tls.test.mjs test/lounge-social.test.mjs test/newsroom.test.mjs test/history-club-daily.test.mjs test/ai-search.test.mjs
+        run: node --test test/live-results.test.mjs test/ui-inline.test.mjs test/railway-postgres-tls.test.mjs test/lounge-social.test.mjs test/newsroom.test.mjs test/history-club-daily.test.mjs test/ai-search.test.mjs test/openai-api.test.mjs test/loungestudio-premium.test.mjs
       - name: Test real Chrome clicks across Lounge and Clubhouse
         run: node test/browser-navigation-smoke.mjs
       - name: Test local database remains functional and not overwritten
