@@ -23,11 +23,12 @@ const apiStub=[
  'Object.defineProperty(navigator,"gpu",{value:undefined,configurable:true});',
  'window.fetch=async function(input){',
  ' const path=new URL(String(input),location.href).pathname;let data={ok:true};',
+ " if(path==='/api/ask-ai/image'){const bytes=Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+iVPoAAAAASUVORK5CYII='),c=>c.charCodeAt(0));return new Response(bytes,{status:200,headers:{'Content-Type':'image/png','X-Lounge-Image-Model':'gpt-image-2.6-sunburst'}})}",
  " if(path==='/api/club/dashboard')data="+JSON.stringify(fixture)+';',
  " else if(path==='/api/club/news'||path==='/api/stories')data={stories:[{title:'Verified source headline for browser testing',url:'https://www.bbc.com/news/example',published:new Date().toISOString(),source:'BBC News',topic:'World',excerpt:'Sample news item only in test'}]};",
  " else if(path==='/api/club/daily')data={date:'2026-11-05',quiz:{question:'Which planet is famous for its rings?',options:['Mercury','Saturn','Venus','Mars']},debate:{question:'Should elected officials debate publicly?'}};",
- " else if(path==='/api/ask-ai/status')data={available:true,model:'gpt-6-luna'};",
- " else if(path==='/api/ask-ai')data={answer:'Canberra is the capital of Australia, answered by OpenAI.',model:'gpt-6-luna'};",
+ " else if(path==='/api/ask-ai/status')data={available:true,model:'gpt-6-astra',imageModel:'gpt-image-2.6-sunburst'};",
+ " else if(path==='/api/ask-ai')data={answer:'## Answer\\n\\n**Canberra** is the capital of Australia, answered by OpenAI.',model:'gpt-6-astra'};",
  " else if(path==='/api/ai-search')data={query:'capital of australia',results:[{title:'Canberra',url:'https://en.wikipedia.org/wiki/Canberra',source:'Wikipedia',snippet:'Canberra is the capital city of Australia.'}]};",
  " else if(path==='/api/admin/session')data={authenticated:true};",
  " else if(path==='/api/admin/members')data={total:1,members:[{id:'00000000-0000-0000-0000-000000000001',displayName:'Test Member',email:'test@example.invalid',joinedAt:'2026-11-01T10:00:00Z',lastLoginAt:'2026-11-05T15:00:00Z'}]};",
@@ -44,7 +45,7 @@ const apiStub=[
  '</script>'
 ].join('\n');
 const clubTests=[['debate','Daily Debate'],['polls','Polling Station'],['leaderboard','Lounge Leaderboard'],['quiz','Quiz Arena'],['predictions','Prediction Center'],['rooms','Live Hangout Rooms'],['news','The News Desk'],['trending',"What's Trending"],['history','On This Day'],['questions','Ask the Lounge']];
-const mainTests=[['rooms','Find your room'],['polls','The opinion corner'],['friends','Friends & familiar faces'],['discover','Discover'],['ai','AI Search'],['profile','Member Profiles'],['owner','Owner Dashboard']];
+const mainTests=[['rooms','Find your room'],['polls','The opinion corner'],['friends','Friends & familiar faces'],['discover','Discover'],['ai','AI Studio'],['profile','Member Profiles'],['owner','Owner Dashboard']];
 function probe(kind){
  const tests=kind==='club'?clubTests:mainTests;
  const code=[
@@ -62,7 +63,7 @@ function probe(kind){
   '  a.click();',
   '  await new Promise(r=>setTimeout(r,110));',
   '  const heading='+JSON.stringify(kind==='club'?'#clubContent .pagehead h1':'#commandDesk .lounge-panel-head h1')+';',
-  '  const actual=document.querySelector(heading)?.textContent||"";',
+  '  const actual=document.querySelector(id==="ai"?"#commandDesk .ai-studio-header h1":heading)?.textContent||"";',
   '  if(location.hash!=="#"+id||!actual.includes(title))problems.push("BROKEN "+id+": "+actual+" / "+location.hash);',
   ' }',
   ' if('+JSON.stringify(kind)+'==="club"&&document.querySelector("#clubNav [data-tab=owner],#clubNav [data-tab=profiles]"))problems.push("OWNER PROFILE STILL IN CLUBHOUSE");',
@@ -84,6 +85,12 @@ function probe(kind){
   '  const searchField=document.querySelector("#loungeAIQuestion");',
   '  if(!searchField)problems.push("AI SEARCH INPUT MISSING");',
   '  else{searchField.value="capital of australia";searchField.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#loungeAIForm")?.requestSubmit();await new Promise(r=>setTimeout(r,500));if(document.querySelector(".ai-references, .ai-source"))problems.push("UNWANTED REFERENCE CARDS DISPLAYED");if(!document.querySelector(".ai-answer")||!document.querySelector("#loungeAIAnswer")?.textContent.includes("answered by OpenAI"))problems.push("OPENAI ANSWER NOT DISPLAYED");}',
+  '  if(!document.querySelector("#loungeAIAnswer h3")||!document.querySelector("#loungeAIAnswer strong"))problems.push("MARKDOWN ANSWER FORMATTING FAILED");',
+  '  document.querySelector("[data-ai-mode=image]")?.click();',
+  '  await new Promise(r=>setTimeout(r,70));',
+  '  const imageField=document.querySelector("#loungeAIQuestion");',
+  '  if(!imageField)problems.push("IMAGE PROMPT FIELD MISSING");',
+  '  else{imageField.value="A cinematic historical painting of ancient Rome";imageField.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#loungeAIForm")?.requestSubmit();await new Promise(r=>setTimeout(r,400));if(!document.querySelector(".ai-generated-image img")||!document.querySelector(".ai-generated-image a[download]"))problems.push("GENERATED IMAGE PREVIEW OR DOWNLOAD MISSING");}',
   '  const navLinks=[...document.querySelectorAll(".lounge-nav>a")];',
   '  if(navLinks.some(a=>a.scrollWidth>a.clientWidth+3))problems.push("NAV BUTTON TEXT OVERFLOW");',
   '  document.querySelector("[data-page=owner]")?.click();',
