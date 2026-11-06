@@ -49,6 +49,16 @@ async function run(){
  }catch(e){
   searchDone=true;results=[];notice('Reference search could not connect: '+String(e.message||e)+'. Local AI may still answer from general knowledge.');view();
  }
+ if(openaiReady){
+  try{
+   const response=await fetch('/api/ask-ai',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:query})});
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||'Could not get an OpenAI answer.');
+   answer=String(data.answer||'');model=data.model||'OpenAI';
+  }catch(error){lastError=String(error.message||error)}
+  finally{busy=false;view()}
+  return;
+ }
  if(!navigator.gpu){
   lastError='Your browser has no WebGPU support, so a local language model cannot run here. Source search is ready above.';
   busy=false;view();return
