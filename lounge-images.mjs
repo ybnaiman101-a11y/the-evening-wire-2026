@@ -2,6 +2,7 @@
 // Calls OpenAI from the server; browser clients never receive the API key.
 import {authenticatedMember} from './members.mjs';
 import {isEditorAdmin} from './editor-calls.mjs';
+import {publicAIProblem,recordOpenAIProblem,clearOpenAIProblem} from './ai-health.mjs';
 
 const IMAGE_ENDPOINT='https://api.openai.com/v1/images/generations';
 export const IMAGE_MODEL='gpt-image-2.6-sunburst';
@@ -73,13 +74,11 @@ export async function generateLoungeImage(req,res,path){
    rollback(identity);
    const code=String(data?.error?.code||data?.error?.type||'unknown').slice(0,90);
    console.warn('LOUNGE_IMAGE_API_ERROR',JSON.stringify({status:response.status,code}));
-   let reason='Image generation could not be completed. Please try again.';
-   if(response.status===401)reason='The OpenAI API key was rejected. Please check the Railway key.';
-   if(response.status===403||response.status===404)reason='Your OpenAI API project may not have access to this image model.';
-   if(response.status===429)reason='OpenAI image generation has reached a rate or billing limit.';
-   if(response.status===400)reason='OpenAI rejected the image request or this model setting.';
+   recordOpenAIProblem(response.status,code,'image');
+   const reason=publicAIProblem(response.status,code,'image');
    json(res,502,{error:reason});return true;
   }
+  clearOpenAIProblem();
   const png=decodeImageResponse(data);
   res.writeHead(200,{
    'Content-Type':'image/png',

@@ -306,3 +306,40 @@ button{cursor:pointer}
 .ai-privacy{font-size:10px;line-height:1.6;color:#9aacc8;margin:14px 6px 2px}
 @media(max-width:820px){.ai-studio{padding:13px;border-radius:16px}.ai-studio-header{padding:15px 10px}.ai-studio-status{align-items:flex-start}.ai-mode-switch .ai-reset{margin-left:0}.ai-conversation{padding:12px;max-height:72vh}.ai-message{padding:14px}.ai-message-user{max-width:90%}.ai-message-assistant{max-width:100%}.ai-composer{padding:14px;bottom:0}.ai-idea-grid{grid-template-columns:1fr}}
 @media(max-width:420px){.ai-studio-status{width:100%}.ai-mode-switch button{flex:1;padding:11px 8px;font-size:11px}.ai-composer-footer .ai-primary{width:100%}.ai-message-identity small{max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+
+
+/* AI Studio: one natural page scroll. No independent conversation scrollbar,
+   no floating composer sliding over the replies. */
+body[data-ew-view="ai"] .ai-conversation{
+ max-height:none!important;
+ height:auto!important;
+ min-height:240px;
+ overflow:visible!important;
+ overflow-y:visible!important;
+ overscroll-behavior:auto;
+ border:0;
+ border-radius:0;
+ background:transparent;
+ padding:14px 0 22px;
+ scrollbar-width:auto;
+}
+body[data-ew-view="ai"] .ai-composer{
+ position:static!important;
+ bottom:auto!important;
+ z-index:auto;
+ margin-top:8px;
+}
+body[data-ew-view="ai"] .ai-message{scroll-margin-top:20px}
+body[data-ew-view="ai"] .ai-studio{overflow:visible}
+.ai-error-inline .ai-billing-link{
+ display:inline-flex;align-items:center;
+ margin-top:12px;padding:10px 14px;
+ background:#322f5e;border:1px solid #9694e4;
+ border-radius:10px;color:#f6edff;
+ font-weight:800;text-decoration:none
+}
+.ai-error-inline .ai-billing-link:hover{background:#494383}
+@media(max-width:820px){
+ body[data-ew-view="ai"] .ai-conversation{max-height:none!important;overflow:visible!important}
+ body[data-ew-view="ai"] .ai-composer{position:static!important;bottom:auto!important}
+}
