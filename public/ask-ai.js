@@ -4,7 +4,53 @@
 const host=document.getElementById('commandDesk');if(!host)return;
 const KEY='lounge_chat_threads_v1',BILLING='https://platform.openai.com/settings/organization/billing/overview';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ideas={chat:['Explain the causes of World War I.','How does the stock market work?','Quiz me on world geography.','Why did the Roman Empire fall?'],image:['Ancient Jerusalem at sunset, photorealistic','A detailed vintage world map','A futuristic city at night, cinematic','Mountains under the northern lights']};
+const ideas={
+ chat:[
+  ['What were the major turning points in World War II?','How do central banks fight inflation?','Which countries have the youngest populations?','How does an MRI machine work?'],
+  ['Why did the Ottoman Empire collapse?','How are U.S. congressional districts drawn?','What happens during a stock split?','Quiz me on flags from around the world.'],
+  ['How did the British Empire expand and decline?','What is the difference between GDP and GDP per capita?','Why do earthquakes occur?','Tell me about the ancient Silk Road.'],
+  ['What was everyday life like in ancient Rome?','How do U.S. Senate elections work?','Why do currencies rise or fall?','Test me on world capitals.'],
+  ['How did the Cold War reshape international borders?','What makes a country democratic?','How do black holes form?','Explain compound interest with examples.'],
+  ['What made the Mongol Empire so powerful?','What determines the price of oil?','How does the Electoral College work?','Which rivers shaped the earliest civilizations?'],
+  ['How did Jewish communities live in medieval Europe?','How do vaccines train the immune system?','Why do bond yields change?','What led to the fall of Constantinople?'],
+  ['How did the Industrial Revolution change society?','What is the difference between a recession and a depression?','Which countries have the most islands?','How does a nuclear reactor produce electricity?'],
+  ['What caused the French Revolution?','What drives housing prices?','Explain the geography of the Caucasus.','Why do stars have different colors?'],
+  ['Compare the Roman and Persian empires.','How does a company go public?','Why was the Panama Canal built?','How does GPS calculate your location?'],
+  ['What was the Ottoman–Safavid rivalry?','Why do some elections use proportional representation?','How do semiconductor chips work?','Quiz me on ancient civilizations.'],
+  ['Why did the Soviet Union collapse?','What are some of the world’s most unusual borders?','What drives long-term stock returns?','Explain evolution and its evidence.'],
+  ['How did Germany unify in 1871?','How does the Federal Reserve set policy?','Why are deserts common near 30 degrees latitude?','Test me on Middle Eastern history.'],
+  ['How did the New Deal change the United States?','What causes a trade deficit?','What is dark matter?','What were the major Jewish migrations of the 1800s?'],
+  ['How did the Han dynasty influence China?','What does market capitalization mean?','Why do monsoons form?','Which countries changed their names in the last century?'],
+  ['What made the Renaissance possible?','How do state and federal powers differ?','How do satellites remain in orbit?','Give me a challenging flags and capitals quiz.']
+ ],
+ image:[
+  ['A realistic aerial view of ancient Jerusalem at sunrise','An ornate antique world map on parchment','A quiet mountain village covered in fresh snow','A cinematic futuristic city at dusk'],
+  ['An illustrated atlas of the ancient Roman Empire','A dramatic thunderstorm over the ocean','A golden-domed historical library with towering shelves','A tranquil forest illuminated by fireflies'],
+  ['A detailed photorealistic Viking harbor at dawn','A travel-poster view of the Swiss Alps','A Victorian astronomical observatory filled with instruments','A colorful market street in Marrakech'],
+  ['A satellite-style view of the Nile delta','An Art Deco poster celebrating scientific discovery','A surreal desert landscape with enormous stone arches','A peaceful coastal lighthouse at sunrise'],
+  ['An architectural reconstruction of ancient Babylon','A detailed engraved map of medieval trade routes','A cinematic aurora above a frozen lake','A futuristic clean-energy research laboratory'],
+  ['A magnificent medieval castle in autumn','A hyperrealistic image of Saturn and its rings','An old-world nautical map of the Atlantic','A bustling railway station in the 1920s'],
+  ['A photorealistic cityscape of New York in the 1930s','A golden-hour aerial photograph of rice terraces','An illustrated timeline poster of early aviation','A quiet cobblestone street in Prague'],
+  ['A richly detailed Renaissance scientific workshop','A cinematic waterfall deep in a tropical rainforest','A vintage travel poster of the Mediterranean','A realistic panorama of the Great Wall of China'],
+  ['An ancient Persian palace with intricate blue tiles','An educational illustration of the solar system','A dramatic alpine pass in winter','A historic sailing ship navigating rough seas'],
+  ['A futuristic space station orbiting Earth','A historic European market square in spring','A beautiful topographic map of South America','An atmospheric desert caravan under a starry sky'],
+  ['A photorealistic Roman forum at midday','A detailed antique map of the Middle East','A mountain lake reflecting autumn trees','A cinematic scene inside a 19th-century train'],
+  ['A luminous nebula seen through a space telescope','An illustrated architectural plan of a medieval city','A peaceful countryside farmhouse at sunrise','A sweeping aerial view of Iceland’s volcanic landscape']
+ ]
+};
+const IDEA_CURSOR='lounge_chat_suggestion_index_v1_';
+const ideaIndex={chat:-1,image:-1},visibleIdeas={chat:[],image:[]};
+function rotateIdeas(kind){
+ const bank=ideas[kind];if(!bank?.length)return;
+ let previous=ideaIndex[kind];
+ if(previous<0){
+  try{const stored=localStorage.getItem(IDEA_CURSOR+kind);if(stored!==null&&Number.isInteger(Number(stored)))previous=Number(stored)}catch{}
+ }
+ const next=(previous+1)%bank.length;
+ ideaIndex[kind]=next;
+ visibleIdeas[kind]=bank[next];
+ try{localStorage.setItem(IDEA_CURSOR+kind,String(next))}catch{}
+}
 const active=()=>document.body.dataset.ewView==='ai';
 let threads=readThreads(),activeId=threads[0]?.id||null,mode='chat',reasoning='medium',aspect='1024x1024',drafts={chat:'',image:''},busy=false,error='',note='',connected=false,billing=false,model='GPT-6.1 Sol',imageModel='GPT Image 2.6 Sunburst';
 const urls=new Set();
@@ -60,7 +106,7 @@ function leftPanel(){
  +'<div class="lc-sidebar-bottom">✦ <span>Powered by OpenAI<small>Chats saved in this browser</small></span></div></aside>'
 }
 function start(){
- return '<section class="lc-welcome"><div class="lc-welcome-icon">✦</div><h2>How can I help you today?</h2><p>Ask a question, start a discussion, or create an image.</p><div class="lc-prompts">'+ideas[mode].map((q,i)=>'<button type="button" data-chat-example="'+i+'">'+esc(q)+' <span>↗</span></button>').join('')+'</div></section>'
+ return '<section class="lc-welcome"><div class="lc-welcome-icon">✦</div><h2>How can I help you today?</h2><p>Ask a question, start a discussion, or create an image.</p><div class="lc-ideas-heading"><span>Ideas to explore</span><button type="button" data-chat-more title="Show four different suggestions">↻ More ideas</button></div><div class="lc-prompts">'+(visibleIdeas[mode].length?visibleIdeas[mode]:ideas[mode][0]).map((q,i)=>'<button type="button" data-chat-example="'+i+'">'+esc(q)+' <span>↗</span></button>').join('')+'</div></section>'
 }
 function conversation(){
  const t=current();if(!t?.messages.length)return start();
@@ -121,7 +167,7 @@ async function send(){
   drafts[task]=q;note='Your message is still in the box to try again.';
  }finally{busy=false;render();scrollToEnd()}
 }
-function newChat(){if(busy)return;create();drafts={chat:'',image:''};mode='chat';error='';note='';render()}
+function newChat(){if(busy)return;create();drafts={chat:'',image:''};mode='chat';rotateIdeas('chat');error='';note='';render()}
 function switchTo(k){if(busy||!threads.some(t=>t.id===k))return;activeId=k;drafts={chat:'',image:''};error='';note='';render()}
 function deleteChat(k){
  if(busy)return;const t=threads.find(t=>t.id===k);if(!t)return;
@@ -141,10 +187,11 @@ host.addEventListener('keydown',e=>{
 host.addEventListener('click',e=>{
  if(!active())return;const b=e.target.closest('button');if(!b)return;
  if(b.hasAttribute('data-chat-new')){newChat();return}
+ if(b.hasAttribute('data-chat-more')&&!busy){rotateIdeas(mode);render();return}
  if(b.dataset.chatOpen){switchTo(b.dataset.chatOpen);return}
  if(b.dataset.chatDelete){deleteChat(b.dataset.chatDelete);return}
- if(b.dataset.aiMode&&!busy){mode=b.dataset.aiMode;error='';note='';render();return}
- if(b.dataset.chatExample!==undefined&&!busy){const q=ideas[mode][Number(b.dataset.chatExample)];if(q){drafts[mode]=q;render();host.querySelector('#loungeAIQuestion')?.focus()}return}
+ if(b.dataset.aiMode&&!busy){mode=b.dataset.aiMode;rotateIdeas(mode);error='';note='';render();return}
+ if(b.dataset.chatExample!==undefined&&!busy){const q=(visibleIdeas[mode].length?visibleIdeas[mode]:ideas[mode][0])[Number(b.dataset.chatExample)];if(q){drafts[mode]=q;render();host.querySelector('#loungeAIQuestion')?.focus()}return}
  if(b.dataset.chatCopy!==undefined){
   const m=current()?.messages[Number(b.dataset.chatCopy)];
   if(m?.kind==='text'&&navigator.clipboard?.writeText)void navigator.clipboard.writeText(m.text).then(()=>{const n=host.querySelector('.lc-hint');if(n)n.textContent='Answer copied.'}).catch(()=>{})
@@ -165,5 +212,5 @@ async function check(){
  }catch{connected=false;error='Could not check the OpenAI API connection.'}
  if(active())render()
 }
-window.LoungeAI={open(){if(active()){render();void check()}}};
+window.LoungeAI={open(){if(active()){rotateIdeas(mode);render();void check()}}};
 })();
