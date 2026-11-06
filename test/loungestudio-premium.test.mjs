@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 import {imageRequest,decodeImageResponse,IMAGE_MODEL} from '../lounge-images.mjs';
 import {openAIRequest} from '../ask-ai.mjs';
 
-test('Premium chat uses GPT-6.1 Sol with high reasoning, storage disabled, useful output allowance',()=>{
+test('Premium chat uses GPT-6.1 Sol with fast standard reasoning, storage disabled and sufficient output allowance',()=>{
  const request=openAIRequest({question:'Explain the causes of the Roman Empire collapse.'});
  assert.equal(request.model,'gpt-6.1-sol');
- assert.equal(request.reasoning.effort,'high');
+ assert.equal(request.reasoning.effort,'medium');
+ assert.equal(openAIRequest({question:'Explain the causes of the Roman Empire collapse.',reasoningEffort:'high'}).reasoning.effort,'high');
+ assert.equal(openAIRequest({question:'Hello',reasoningEffort:'unsupported'}).reasoning.effort,'medium');
  assert.equal(request.store,false);
- assert.ok(request.max_output_tokens>=4000);
+ assert.ok(request.max_output_tokens>=3500);
  assert.match(request.instructions,/detailed|detail/i);
 });
 test('Premium image requests use GPT Image 2.6 Sunburst with high quality',()=>{
