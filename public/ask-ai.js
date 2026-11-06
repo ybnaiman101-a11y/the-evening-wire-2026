@@ -90,6 +90,16 @@ desk.addEventListener('submit',e=>{
  question=e.target.querySelector('textarea')?.value||question;
  void run()
 });
-function open(){if(active())view()}
+async function checkConnection(){
+ try{
+  const response=await fetch('/api/ask-ai/status',{credentials:'same-origin',cache:'no-store'});
+  const status=await response.json();
+  openaiReady=response.ok&&status.available===true;
+  openaiModel=openaiReady?String(status.model||'OpenAI'):'';
+  message=openaiReady?'OpenAI connected. Answers will appear directly on this page.':'OpenAI API setup is pending. Add OPENAI_API_KEY to the website’s Railway Variables.';
+ }catch{openaiReady=false;message='Could not check the OpenAI connection. Reference search remains available.'}
+ if(active())view();
+}
+function open(){if(active()){view();void checkConnection()}}
 window.LoungeAI={open};
 })();
