@@ -7,7 +7,7 @@ const ideas={
  chat:['Why did the Roman Empire fall?','Explain the causes of World War I in detail.','How do interest rates affect stock markets?','Give me a challenging geography quiz.'],
  image:['A cinematic reconstruction of ancient Rome at sunset','A highly detailed historical world-map poster','An extraordinary photorealistic mountain landscape','A futuristic American city at night, cinematic']
 };
-let mode='chat',drafts={chat:'',image:''},aspect='1024x1024',messages=[],history=[],busy=false,notice='',error='',connected=false,model='GPT-6 Astra',imageModel='GPT Image 2.6 Sunburst';
+let mode='chat',drafts={chat:'',image:''},aspect='1024x1024',messages=[],history=[],busy=false,notice='',error='',connected=false,billingRequired=false,model='GPT-6 Astra',imageModel='GPT Image 2.6 Sunburst';
 const urls=new Set();
 const active=()=>document.body.dataset.ewView==='ai';
 function inline(s){
@@ -42,10 +42,10 @@ function transcript(){
 }
 function draw(){
  if(!active())return;
- host.innerHTML='<section class="ai-studio"><header class="ai-studio-header"><div><span class="lounge-eyebrow">THE LOUNGE · OPENAI</span><h1>AI Studio <span>✦</span></h1><p>A powerful AI conversation and image-creation space.</p></div><div class="ai-studio-status"><strong>'+(connected?'● Connected':'◌ Connecting')+'</strong><small>'+escape(model)+' · Premium</small></div></header>'
+ host.innerHTML='<section class="ai-studio"><header class="ai-studio-header"><div><span class="lounge-eyebrow">THE LOUNGE · OPENAI</span><h1>AI Studio <span>✦</span></h1><p>A powerful AI conversation and image-creation space.</p></div><div class="ai-studio-status"><strong>'+(billingRequired?'● API credits needed':connected?'● API key configured':'◌ Connecting')+'</strong><small>'+escape(model)+' · Premium</small></div></header>'
  +'<nav class="ai-mode-switch" aria-label="AI Studio modes"><button type="button" data-ai-mode="chat" aria-pressed="'+(mode==='chat')+'">✦ Chat & Research</button><button type="button" data-ai-mode="image" aria-pressed="'+(mode==='image')+'">▣ Create Images</button><button type="button" class="ai-reset" data-ai-reset '+(busy?'disabled':'')+'>↻ New conversation</button></nav>'
  +'<div id="aiConversation" class="ai-conversation" aria-live="polite">'+transcript()+'</div>'
- +(error?'<div class="ai-error-inline" role="alert">'+escape(error)+'</div>':'')
+ +(error?'<div class="ai-error-inline" role="alert">'+escape(error)+(billingRequired?'<p><a class="ai-billing-link" href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener noreferrer">Add OpenAI API credits ↗</a></p>':'')+'</div>':'')
  +'<form id="loungeAIForm" class="ai-composer"><label for="loungeAIQuestion">'+(mode==='chat'?'ASK ANYTHING':'DESCRIBE THE IMAGE TO CREATE')+'</label><textarea id="loungeAIQuestion" name="question" rows="3" maxlength="2000" minlength="'+(mode==='chat'?3:10)+'" placeholder="'+(mode==='chat'?'Ask a question or continue the conversation…':'Describe the style, lighting, layout, subject and details…')+'" required '+(busy?'disabled':'')+'>'+escape(drafts[mode])+'</textarea>'
  +(mode==='image'?'<div class="ai-image-options"><label for="aiAspect">FORMAT</label><select id="aiAspect"><option value="1024x1024"'+(aspect==='1024x1024'?' selected':'')+'>Square</option><option value="1536x1024"'+(aspect==='1536x1024'?' selected':'')+'>Landscape</option><option value="1024x1536"'+(aspect==='1024x1536'?' selected':'')+'>Portrait</option></select><small>'+escape(imageModel)+' · High quality · Up to 3 per day</small></div>':'')
  +'<div class="ai-composer-footer"><p class="ai-composer-note" role="status">'+escape(notice||(mode==='chat'?'GPT-6 Astra · High-level reasoning':'Premium images use OpenAI API credits'))+'</p><button class="ai-primary" type="submit" '+(busy?'disabled':'')+'>'+(busy?'Working…':mode==='chat'?'Send message ↗':'Generate image ↗')+'</button></div></form>'
@@ -67,7 +67,7 @@ async function ask(){
    const answer=String(data.answer||'').trim();if(!answer)throw Error('OpenAI returned an empty answer.');
    messages.push({role:'assistant',kind:'text',text:answer,model:data.model||model});
    history.push({role:'user',content:q.slice(0,1200)},{role:'assistant',content:answer.slice(0,2200)});
-   history=history.slice(-8);notice='Answer ready';
+   history=history.slice(-8);billingRequired=false;notice='Answer ready';
   }else{
    const r=await fetch('/api/ask-ai/image',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:q,size:aspect}),signal:AbortSignal.timeout(145000)});
    if(!r.ok){const data=await r.json().catch(()=>({}));throw Error(data.error||'Image generation failed.')}
@@ -75,9 +75,9 @@ async function ask(){
    if(!blob.type.startsWith('image/')||blob.size<64)throw Error('Image data was invalid.');
    const url=URL.createObjectURL(blob);urls.add(url);
    messages.push({role:'assistant',kind:'image',url,prompt:q,model:r.headers.get('X-Lounge-Image-Model')||imageModel});
-   notice='Image created · Download PNG below';
+   billingRequired=false;notice='Image created · Download PNG below';
   }
- }catch(e){error=String(e?.message||e);drafts[task]=q;notice='Request not completed'}
+ }catch(e){error=String(e?.message||e);billingRequired=/credit balance is exhausted|API credits|billing credit|credit_balance_exhausted/i.test(error);drafts[task]=q;notice=billingRequired?'OpenAI needs more API credits':'Request not completed'}
  finally{busy=false;draw();bottom()}
 }
 function reset(){
@@ -108,6 +108,9 @@ async function check(){
  try{
   const r=await fetch('/api/ask-ai/status',{credentials:'same-origin',cache:'no-store'}),data=await r.json();
   connected=r.ok&&data.available===true;
+  billingRequired=data.billingRequired===true;
+  if(billingRequired)error='OpenAI API credits are exhausted. Add funds in OpenAI API Billing; both chat answers and image creation will be rejected until credits are available.';
+  else if(connected&&/credit|billing/i.test(error))error='';
   if(data.model)model=String(data.model);
   if(data.imageModel)imageModel=String(data.imageModel);
   if(!connected)error='OpenAI is not connected. Ask the owner to configure OPENAI_API_KEY in Railway.';
