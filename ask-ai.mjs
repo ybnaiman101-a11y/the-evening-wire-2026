@@ -1,8 +1,9 @@
 // The Lounge — OpenAI Responses API server integration.
 // Keep OPENAI_API_KEY in Railway Variables, never send it to a browser.
 import {authenticatedMember} from './members.mjs';
+import {isEditorAdmin} from './editor-calls.mjs';
 const ENDPOINT='https://api.openai.com/v1/responses';
-const MODEL_DEFAULT='gpt-5.4-mini';
+const MODEL_DEFAULT='gpt-6-luna';
 const usage=new Map();
 const send=(res,status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(body))};
 const text=(x,n)=>String(x||'').trim().slice(0,n);
@@ -67,10 +68,11 @@ export async function askAIRoute(req,res,path){
  const key=(process.env.OPENAI_API_KEY||'').trim();
  if(!key){send(res,503,{error:'OpenAI is not yet connected. Add OPENAI_API_KEY under the Lounge service’s Railway Variables. Reference search and on-device AI remain available.'});return true}
  const member=await authenticatedMember(req);
- if(!member){send(res,401,{error:'Sign in to The Lounge before using OpenAI.',login:'/login'});return true}
+ const owner=!member&&isEditorAdmin(req);
+ if(!member&&!owner){send(res,401,{error:'Sign in as a Lounge member or owner before using OpenAI.',login:'/login'});return true}
  let request;
  try{request=await receive(req)}catch(err){send(res,400,{error:String(err.message||'Invalid question')});return true}
- if(!quota(member.id)){send(res,429,{error:'You have reached the hourly limit of 12 OpenAI questions. Try again later.'});return true}
+ if(!quota(member?.id||'admin-owner')){send(res,429,{error:'You have reached the hourly limit of 12 OpenAI questions. Try again later.'});return true}
  const model=(process.env.OPENAI_MODEL||MODEL_DEFAULT).trim();
  try{
   const response=await fetch(ENDPOINT,{

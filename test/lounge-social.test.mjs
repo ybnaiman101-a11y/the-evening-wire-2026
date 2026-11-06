@@ -19,7 +19,7 @@ test('All ten Lounge tabs are real navigable links that route to a valid page',(
  assert.match(html,/id="commandDesk"/);
  assert.match(html,/\/reactions\.js\?v=10/);
  assert.match(html,/\/lounge\.js\?v=6/);
- assert.match(html,/\/ask-ai\.js\?v=2/);
+ assert.match(html,/\/ask-ai\.js\?v=3/);
  assert.match(html,/\/owner\.js\?v=1/);
 });
 test('Discussion rooms are politics, Jewish life and meaningful conversations',()=>{
@@ -107,14 +107,16 @@ test('All Clubhouse tab controls have a direct route, render fallback, and acces
  assert.match(css,/lounge-welcome::after\{content:none!important\}/);
 });
 
-test('AI Search is a real on-site tab using local WebGPU inference and trusted reference search',()=>{
+test('AI Search uses the OpenAI API and never imports the failed browser model',()=>{
  const ask=read('public/ask-ai.js'),server=read('server.mjs'),api=read('ask-ai.mjs');
  assert.doesNotThrow(()=>new Script(ask,{filename:'public/ask-ai.js'}));
  assert.match(html,/data-page="ai"/);
- assert.match(html,/ask-ai\.js\?v=2/);
+ assert.match(html,/ask-ai\.js\?v=3/);
  assert.match(js,/LoungeAI\.open\(\)/);
  assert.doesNotMatch(ask,/chatgpt\.com/);
- assert.match(ask,/local-ai\.js/);
+ assert.match(ask,/\/api\/ask-ai/);
+ assert.match(ask,/\/api\/ask-ai\/status/);
+ assert.doesNotMatch(ask,/local-ai\.js|web-llm|navigator\.gpu/);
  assert.match(ask,/api\/ai-search/);
  assert.match(server,/askAIRoute/);
  assert.match(server,/aiSearchRoute/);
