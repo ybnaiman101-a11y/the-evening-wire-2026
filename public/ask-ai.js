@@ -9,7 +9,7 @@ const suggestions=[
  'Explain the relationship between inflation and interest rates.',
  'What were the main causes of World War I?'
 ];
-let question='',answer='',results=[],message='',busy=false,searchDone=false,model='',lastError='';
+let question='',answer='',results=[],message='',busy=false,searchDone=false,model='',lastError='',openaiReady=false,openaiModel='',priorMessages=[];
 const active=()=>document.body.dataset.ewView==='ai';
 function sourcesHtml(){
  if(!searchDone)return '';
