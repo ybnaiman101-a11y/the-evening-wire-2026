@@ -2,6 +2,7 @@
 // Keep OPENAI_API_KEY in Railway Variables, never send it to a browser.
 import {authenticatedMember} from './members.mjs';
 import {isEditorAdmin} from './editor-calls.mjs';
+import {publicAIProblem,recordOpenAIProblem,clearOpenAIProblem,currentOpenAIHealth} from './ai-health.mjs';
 const ENDPOINT='https://api.openai.com/v1/responses';
 const MODEL_DEFAULT='gpt-6-astra';
 const usage=new Map();
@@ -10,7 +11,7 @@ const text=(x,n)=>String(x||'').trim().slice(0,n);
 const sameOrigin=req=>!req.headers?.origin||req.headers.origin==='https://'+req.headers.host||req.headers.origin==='http://'+req.headers.host;
 export function aiStatus(){
  const connected=!!(process.env.OPENAI_API_KEY||'').trim();
- return {available:connected,provider:'OpenAI API',model:connected?(process.env.OPENAI_MODEL||MODEL_DEFAULT):null,
+ return {available:connected,provider:'OpenAI API',...currentOpenAIHealth(),model:connected?(process.env.OPENAI_MODEL||MODEL_DEFAULT):null,
   requiresMemberLogin:true,limitPerHour:12,imageModel:process.env.OPENAI_IMAGE_MODEL||'gpt-image-2.6-sunburst',imageDailyLimit:3,
   message:connected?'Premium OpenAI AI and image generation are configured for The Lounge.':'Add OPENAI_API_KEY in Railway Variables to enable OpenAI answers and images.'}
 }
@@ -84,13 +85,11 @@ export async function askAIRoute(req,res,path){
   if(!response.ok){
    const code=result?.error?.code||result?.error?.type||'unknown';
    console.warn('LOUNGE_OPENAI_ERROR',JSON.stringify({status:response.status,code}).slice(0,250));
-   let reason='OpenAI could not answer right now. Please try again.';
-   if(response.status===401)reason='The saved OpenAI API key was rejected. The site owner should update OPENAI_API_KEY in Railway.';
-   if(response.status===429)reason='OpenAI has reached a rate or billing limit. The site owner should review API usage and billing.';
-   if(response.status===403)reason='This OpenAI API account does not have access to the configured model.';
-   if(response.status===400)reason='OpenAI rejected the request or model configuration. The site owner should check OPENAI_MODEL.';
+   recordOpenAIProblem(response.status,code,'chat');
+   const reason=publicAIProblem(response.status,code,'chat');
    send(res,502,{error:reason});return true
   }
+  clearOpenAIProblem();
   const answer=readAIAnswer(result);
   if(!answer){send(res,502,{error:'OpenAI returned no readable answer. Try again.'});return true}
   send(res,200,{answer:answer.slice(0,22000),provider:'OpenAI API',model:result.model||model,
