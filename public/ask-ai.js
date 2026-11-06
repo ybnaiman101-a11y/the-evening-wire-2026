@@ -7,7 +7,7 @@ const ideas={
  chat:['Why did the Roman Empire fall?','Explain the causes of World War I in detail.','How do interest rates affect stock markets?','Give me a challenging geography quiz.'],
  image:['A cinematic reconstruction of ancient Rome at sunset','A highly detailed historical world-map poster','An extraordinary photorealistic mountain landscape','A futuristic American city at night, cinematic']
 };
-let mode='chat',drafts={chat:'',image:''},aspect='1024x1024',messages=[],history=[],busy=false,notice='',error='',connected=false,billingRequired=false,model='GPT-6.1 Sol',imageModel='GPT Image 2.6 Sunburst';
+let mode='chat',drafts={chat:'',image:''},aspect='1024x1024',reasoning='medium',messages=[],history=[],busy=false,notice='',error='',connected=false,billingRequired=false,model='GPT-6.1 Sol',imageModel='GPT Image 2.6 Sunburst';
 const urls=new Set();
 const active=()=>document.body.dataset.ewView==='ai';
 function inline(s){
@@ -47,8 +47,9 @@ function draw(){
  +'<div id="aiConversation" class="ai-conversation" aria-live="polite">'+transcript()+'</div>'
  +(error?'<div class="ai-error-inline" role="alert">'+escape(error)+(billingRequired?'<p><a class="ai-billing-link" href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener noreferrer">Add OpenAI API credits ↗</a></p>':'')+'</div>':'')
  +'<form id="loungeAIForm" class="ai-composer"><label for="loungeAIQuestion">'+(mode==='chat'?'ASK ANYTHING':'DESCRIBE THE IMAGE TO CREATE')+'</label><textarea id="loungeAIQuestion" name="question" rows="3" maxlength="2000" minlength="'+(mode==='chat'?3:10)+'" placeholder="'+(mode==='chat'?'Ask a question or continue the conversation…':'Describe the style, lighting, layout, subject and details…')+'" required '+(busy?'disabled':'')+'>'+escape(drafts[mode])+'</textarea>'
+ +(mode==='chat'?'<div class="ai-reasoning-options"><label for="aiReasoning">ANSWER DEPTH</label><select id="aiReasoning" aria-label="Answer depth"><option value="medium"'+(reasoning==='medium'?' selected':'')+'>Standard · Faster</option><option value="high"'+(reasoning==='high'?' selected':'')+'>Deep analysis · Slower</option></select><small>Both use '+escape(model)+'. Choose Deep analysis only when needed.</small></div>':'')
  +(mode==='image'?'<div class="ai-image-options"><label for="aiAspect">FORMAT</label><select id="aiAspect"><option value="1024x1024"'+(aspect==='1024x1024'?' selected':'')+'>Square</option><option value="1536x1024"'+(aspect==='1536x1024'?' selected':'')+'>Landscape</option><option value="1024x1536"'+(aspect==='1024x1536'?' selected':'')+'>Portrait</option></select><small>'+escape(imageModel)+' · High quality · Up to 3 per day</small></div>':'')
- +'<div class="ai-composer-footer"><p class="ai-composer-note" role="status">'+escape(notice||(mode==='chat'?'GPT-6.1 Sol · High-level reasoning':'Premium images use OpenAI API credits'))+'</p><button class="ai-primary" type="submit" '+(busy?'disabled':'')+'>'+(busy?'Working…':mode==='chat'?'Send message ↗':'Generate image ↗')+'</button></div></form>'
+ +'<div class="ai-composer-footer"><p class="ai-composer-note" role="status">'+escape(notice||(mode==='chat'?(reasoning==='high'?'Deep analysis selected · may take longer':'GPT-6.1 Sol · Standard reasoning for faster responses'):'Premium images use OpenAI API credits'))+'</p><button class="ai-primary" type="submit" '+(busy?'disabled':'')+'>'+(busy?'Working…':mode==='chat'?'Send message ↗':'Generate image ↗')+'</button></div></form>'
  +'<p class="ai-privacy">This studio uses the site owner’s private OpenAI API. Chat and image requests are billed to the owner. Content is sent securely from The Lounge to OpenAI.</p></section>';
 }
 function status(s){notice=String(s||'').slice(0,200);const el=host.querySelector('.ai-composer-note');if(el)el.textContent=notice}
@@ -57,11 +58,11 @@ async function ask(){
  if(busy)return;
  const task=mode,q=drafts[task].trim(),min=task==='image'?10:3;
  if(q.length<min||q.length>2000){error='Please enter at least '+min+' characters.';draw();return}
- busy=true;error='';notice=task==='image'?'Creating your image…':'Thinking…';
+ busy=true;error='';notice=task==='image'?'Creating your image…':reasoning==='high'?'Sol is preparing a detailed analysis…':'Sol is preparing your answer…';
  messages.push({role:'user',kind:'prompt',text:q});drafts[task]='';draw();bottom();
  try{
   if(task==='chat'){
-   const r=await fetch('/api/ask-ai',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,history:history.slice(-8)}),signal:AbortSignal.timeout(110000)});
+   const r=await fetch('/api/ask-ai',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,history:history.slice(-8),reasoningEffort:reasoning}),signal:AbortSignal.timeout(158000)});
    const data=await r.json().catch(()=>({}));
    if(!r.ok)throw Error(data.error||'OpenAI could not answer.');
    const answer=String(data.answer||'').trim();if(!answer)throw Error('OpenAI returned an empty answer.');
@@ -77,7 +78,15 @@ async function ask(){
    messages.push({role:'assistant',kind:'image',url,prompt:q,model:r.headers.get('X-Lounge-Image-Model')||imageModel});
    billingRequired=false;notice='Image created · Download PNG below';
   }
- }catch(e){error=String(e?.message||e);billingRequired=/credit balance is exhausted|API credits|billing credit|credit_balance_exhausted/i.test(error);drafts[task]=q;notice=billingRequired?'OpenAI needs more API credits':'Request not completed'}
+ }catch(e){
+  const localTimeout=e?.name==='TimeoutError'||e?.name==='AbortError'||/timeout/i.test(String(e?.message||''));
+  error=localTimeout?'The request took too long to complete. Try Standard reasoning or a shorter question, then send it again.':String(e?.message||e);
+  billingRequired=/credit balance is exhausted|API credits|billing credit|credit_balance_exhausted/i.test(error);
+  drafts[task]=q;
+  const last=messages[messages.length-1];
+  if(last?.role==='user'&&last.text===q)messages.pop();
+  notice=billingRequired?'OpenAI needs more API credits':localTimeout?'OpenAI response timed out':'Request not completed';
+ }
  finally{busy=false;draw();bottom()}
 }
 function reset(){
@@ -85,7 +94,11 @@ function reset(){
  messages=[];history=[];drafts={chat:'',image:''};notice='';error='';draw()
 }
 host.addEventListener('input',e=>{if(active()&&e.target.id==='loungeAIQuestion')drafts[mode]=e.target.value});
-host.addEventListener('change',e=>{if(active()&&e.target.id==='aiAspect')aspect=e.target.value});
+host.addEventListener('change',e=>{
+ if(!active())return;
+ if(e.target.id==='aiAspect')aspect=e.target.value;
+ if(e.target.id==='aiReasoning')reasoning=e.target.value==='high'?'high':'medium';
+});
 host.addEventListener('keydown',e=>{
  if(!active()||e.target.id!=='loungeAIQuestion'||e.key!=='Enter'||e.shiftKey||e.isComposing)return;
  e.preventDefault();if(!busy)host.querySelector('#loungeAIForm')?.requestSubmit();
