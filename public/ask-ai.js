@@ -64,10 +64,11 @@ function start(){
 }
 function conversation(){
  const t=current();if(!t?.messages.length)return start();
+ const lastText=t.messages.reduce((last,m,i)=>m.role==='assistant'&&m.kind==='text'?i:last,-1);
  return '<div class="ai-transcript lc-transcript">'+t.messages.map((m,i)=>{
   if(m.role==='user')return '<article class="lc-user ai-message-user"><div class="lc-user-bubble">'+esc(m.text)+'</div></article>';
   if(m.kind==='image')return '<article class="lc-answer ai-answer"><div class="lc-ai-icon">✦</div><div class="lc-response"><div class="lc-response-label">Lounge Chat</div><div class="ai-generated-image lc-picture"><img src="'+esc(m.url)+'" alt="'+esc(m.prompt||'Generated image')+'"><div class="ai-image-actions"><a href="'+esc(m.url)+'" download="lounge-chat-image.png">↓ Download PNG</a><small>Images stay available until the page reloads</small></div></div></div></article>';
-  return '<article class="lc-answer ai-answer"><div class="lc-ai-icon">✦</div><div class="lc-response"><div class="lc-response-label">Lounge Chat <small>'+esc(m.model||model)+'</small></div><div class="lc-prose"'+(i===t.messages.length-1?' id="loungeAIAnswer"':'')+'>'+markdown(m.text)+'</div><div class="lc-actions"><button type="button" data-chat-copy="'+i+'">⧉ Copy</button></div></div></article>'
+  return '<article class="lc-answer ai-answer"><div class="lc-ai-icon">✦</div><div class="lc-response"><div class="lc-response-label">Lounge Chat <small>'+esc(m.model||model)+'</small></div><div class="lc-prose"'+(i===lastText?' id="loungeAIAnswer"':'')+'>'+markdown(m.text)+'</div><div class="lc-actions"><button type="button" data-chat-copy="'+i+'">⧉ Copy</button></div></div></article>'
  }).join('')+'</div>'
 }
 function inputArea(){
