@@ -103,7 +103,7 @@ function probe(kind){
   '  const oldChat=document.querySelector(".lc-thread.selected")?.dataset.chatOpen;',
   '  document.querySelector("[data-chat-new]")?.click();',
   '  if(!document.querySelector(".lc-welcome"))problems.push("NEW CHAT DID NOT CLEAR VIEW");',
-  '  if(oldChat){document.querySelector("[data-chat-open="+oldChat+"]")?.click();if(!document.querySelector("#loungeAIAnswer")?.textContent.includes("answered by OpenAI"))problems.push("RECENT CHAT NOT RESTORED");}else problems.push("CHAT THREAD NOT SAVED");',
+  '  if(oldChat){[...document.querySelectorAll("[data-chat-open]")].find(b=>b.dataset.chatOpen===oldChat)?.click();if(!document.querySelector("#loungeAIAnswer")?.textContent.includes("answered by OpenAI"))problems.push("RECENT CHAT NOT RESTORED");}else problems.push("CHAT THREAD NOT SAVED");',
   '  const navLinks=[...document.querySelectorAll(".lounge-nav>a")];',
   '  if(navLinks.some(a=>a.scrollWidth>a.clientWidth+3))problems.push("NAV BUTTON TEXT OVERFLOW");',
   '  document.querySelector("[data-page=owner]")?.click();',
