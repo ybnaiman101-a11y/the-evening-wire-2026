@@ -2,7 +2,7 @@
 // Keep OPENAI_API_KEY in Railway Variables, never send it to a browser.
 import {authenticatedMember} from './members.mjs';
 const ENDPOINT='https://api.openai.com/v1/responses';
-const MODEL_DEFAULT='gpt-5.4-mini';
+const MODEL_DEFAULT='gpt-6-luna';
 const usage=new Map();
 const send=(res,status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(body))};
 const text=(x,n)=>String(x||'').trim().slice(0,n);
