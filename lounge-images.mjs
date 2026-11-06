@@ -23,6 +23,7 @@ export function decodeImageResponse(data){
  if(typeof encoded!=='string'||encoded.length<100||!/^[a-zA-Z0-9+/=]+$/.test(encoded))throw Error('OpenAI did not return a valid image.');
  const buffer=Buffer.from(encoded,'base64');
  if(buffer.length<64||buffer.length>18*1024*1024)throw Error('The returned image was invalid or too large.');
+ if(!buffer.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex')))throw Error('OpenAI returned an unexpected image format.');
  return buffer;
 }
 async function body(req){
