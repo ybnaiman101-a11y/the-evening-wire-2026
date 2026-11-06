@@ -7,7 +7,7 @@ const ideas={
  chat:['Why did the Roman Empire fall?','Explain the causes of World War I in detail.','How do interest rates affect stock markets?','Give me a challenging geography quiz.'],
  image:['A cinematic reconstruction of ancient Rome at sunset','A highly detailed historical world-map poster','An extraordinary photorealistic mountain landscape','A futuristic American city at night, cinematic']
 };
-let mode='chat',drafts={chat:'',image:''},aspect='1024x1024',messages=[],history=[],busy=false,notice='',error='',connected=false,billingRequired=false,model='GPT-6 Astra',imageModel='GPT Image 2.6 Sunburst';
+let mode='chat',drafts={chat:'',image:''},aspect='1024x1024',messages=[],history=[],busy=false,notice='',error='',connected=false,billingRequired=false,model='GPT-6.1 Sol',imageModel='GPT Image 2.6 Sunburst';
 const urls=new Set();
 const active=()=>document.body.dataset.ewView==='ai';
 function inline(s){
@@ -48,7 +48,7 @@ function draw(){
  +(error?'<div class="ai-error-inline" role="alert">'+escape(error)+(billingRequired?'<p><a class="ai-billing-link" href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener noreferrer">Add OpenAI API credits ↗</a></p>':'')+'</div>':'')
  +'<form id="loungeAIForm" class="ai-composer"><label for="loungeAIQuestion">'+(mode==='chat'?'ASK ANYTHING':'DESCRIBE THE IMAGE TO CREATE')+'</label><textarea id="loungeAIQuestion" name="question" rows="3" maxlength="2000" minlength="'+(mode==='chat'?3:10)+'" placeholder="'+(mode==='chat'?'Ask a question or continue the conversation…':'Describe the style, lighting, layout, subject and details…')+'" required '+(busy?'disabled':'')+'>'+escape(drafts[mode])+'</textarea>'
  +(mode==='image'?'<div class="ai-image-options"><label for="aiAspect">FORMAT</label><select id="aiAspect"><option value="1024x1024"'+(aspect==='1024x1024'?' selected':'')+'>Square</option><option value="1536x1024"'+(aspect==='1536x1024'?' selected':'')+'>Landscape</option><option value="1024x1536"'+(aspect==='1024x1536'?' selected':'')+'>Portrait</option></select><small>'+escape(imageModel)+' · High quality · Up to 3 per day</small></div>':'')
- +'<div class="ai-composer-footer"><p class="ai-composer-note" role="status">'+escape(notice||(mode==='chat'?'GPT-6 Astra · High-level reasoning':'Premium images use OpenAI API credits'))+'</p><button class="ai-primary" type="submit" '+(busy?'disabled':'')+'>'+(busy?'Working…':mode==='chat'?'Send message ↗':'Generate image ↗')+'</button></div></form>'
+ +'<div class="ai-composer-footer"><p class="ai-composer-note" role="status">'+escape(notice||(mode==='chat'?'GPT-6.1 Sol · High-level reasoning':'Premium images use OpenAI API credits'))+'</p><button class="ai-primary" type="submit" '+(busy?'disabled':'')+'>'+(busy?'Working…':mode==='chat'?'Send message ↗':'Generate image ↗')+'</button></div></form>'
  +'<p class="ai-privacy">This studio uses the site owner’s private OpenAI API. Chat and image requests are billed to the owner. Content is sent securely from The Lounge to OpenAI.</p></section>';
 }
 function status(s){notice=String(s||'').slice(0,200);const el=host.querySelector('.ai-composer-note');if(el)el.textContent=notice}
