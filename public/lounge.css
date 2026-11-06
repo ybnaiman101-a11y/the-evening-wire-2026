@@ -343,3 +343,11 @@ body[data-ew-view="ai"] .ai-studio{overflow:visible}
  body[data-ew-view="ai"] .ai-conversation{max-height:none!important;overflow:visible!important}
  body[data-ew-view="ai"] .ai-composer{position:static!important;bottom:auto!important}
 }
+
+
+/* Sol answer depth: fast default, deliberate deep-analysis opt-in. */
+.ai-reasoning-options{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:13px}
+.ai-reasoning-options label{color:#b8ceec;font-size:10px;font-weight:900;letter-spacing:.8px}
+.ai-reasoning-options select{background:#151d33;border:1px solid #52668b;color:#fff;padding:11px 13px;border-radius:10px;min-width:200px;font:700 12px 'DM Sans',sans-serif;max-width:100%}
+.ai-reasoning-options small{color:#b3c2dc;font-size:11px;line-height:1.4}
+@media(max-width:520px){.ai-reasoning-options select{min-width:0;width:100%}}
