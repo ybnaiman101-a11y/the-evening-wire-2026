@@ -83,7 +83,7 @@ function probe(kind){
   '  await new Promise(r=>setTimeout(r,160));',
   '  const searchField=document.querySelector("#loungeAIQuestion");',
   '  if(!searchField)problems.push("AI SEARCH INPUT MISSING");',
-  '  else{searchField.value="capital of australia";searchField.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#loungeAIForm")?.requestSubmit();await new Promise(r=>setTimeout(r,500));if(!document.querySelector(".ai-source a"))problems.push("AI SOURCE SEARCH FAILED");if(!document.querySelector(".ai-answer")||!document.querySelector("#loungeAIAnswer")?.textContent.includes("answered by OpenAI"))problems.push("OPENAI ANSWER NOT DISPLAYED");}',
+  '  else{searchField.value="capital of australia";searchField.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#loungeAIForm")?.requestSubmit();await new Promise(r=>setTimeout(r,500));if(document.querySelector(".ai-references, .ai-source"))problems.push("UNWANTED REFERENCE CARDS DISPLAYED");if(!document.querySelector(".ai-answer")||!document.querySelector("#loungeAIAnswer")?.textContent.includes("answered by OpenAI"))problems.push("OPENAI ANSWER NOT DISPLAYED");}',
   '  const navLinks=[...document.querySelectorAll(".lounge-nav>a")];',
   '  if(navLinks.some(a=>a.scrollWidth>a.clientWidth+3))problems.push("NAV BUTTON TEXT OVERFLOW");',
   '  document.querySelector("[data-page=owner]")?.click();',
