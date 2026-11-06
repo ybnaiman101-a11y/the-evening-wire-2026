@@ -4,7 +4,7 @@ import {authenticatedMember} from './members.mjs';
 import {isEditorAdmin} from './editor-calls.mjs';
 import {publicAIProblem,recordOpenAIProblem,clearOpenAIProblem,currentOpenAIHealth} from './ai-health.mjs';
 const ENDPOINT='https://api.openai.com/v1/responses';
-const MODEL_DEFAULT='gpt-6-astra';
+const MODEL_DEFAULT='gpt-6.1-sol';
 const usage=new Map();
 const send=(res,status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(body))};
 const text=(x,n)=>String(x||'').trim().slice(0,n);
