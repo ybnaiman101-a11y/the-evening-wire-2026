@@ -49,26 +49,31 @@ async function run(){
  }catch(e){
   searchDone=true;results=[];notice('Reference search could not connect: '+String(e.message||e)+'. Local AI may still answer from general knowledge.');view();
  }
- if(openaiReady){
-  try{
-   const response=await fetch('/api/ask-ai',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:query})});
-   const data=await response.json();
-   if(!response.ok)throw Error(data.error||'Could not get an OpenAI answer.');
-   answer=String(data.answer||'');model=data.model||'OpenAI';
-  }catch(error){lastError=String(error.message||error)}
-  finally{busy=false;view()}
-  return;
- }
- if(!navigator.gpu){
-  lastError='Your browser has no WebGPU support, so a local language model cannot run here. Source search is ready above.';
-  busy=false;view();return
- }
  try{
-  const module=await import('/local-ai.js?v=1');
-  const r=await module.answerLocally(query,results,notice);
-  answer=String(r.answer||'');model=r.model||'Open-source model';lastError='';
- }catch(e){
-  lastError=String(e?.message||e);
+  notice('Sending question to OpenAI securely through The Lounge…');
+  const response=await fetch('/api/ask-ai',{
+   method:'POST',credentials:'same-origin',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({question:query,references:results.slice(0,5),history:priorMessages.slice(-8)}),
+   signal:AbortSignal.timeout(46000)
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok){
+   if(response.status===401)throw Error('Please sign in to The Lounge first. You can then ask AI questions here.');
+   throw Error(data.error||'OpenAI could not answer. Please try again.');
+  }
+  answer=String(data.answer||'').trim();
+  if(!answer)throw Error('OpenAI returned an empty answer.');
+  model=data.model||openaiModel||'OpenAI';
+  priorMessages.push({role:'user',content:query.slice(0,1200)},{role:'assistant',content:answer.slice(0,1200)});
+  priorMessages=priorMessages.slice(-8);
+  openaiReady=true;
+  lastError='';
+  message='Answer received from OpenAI.';
+ }catch(error){
+  lastError=String(error?.message||error);
+  message='OpenAI could not complete the request.';
+  if(/not connected|key|railway/i.test(lastError))openaiReady=false;
  }finally{busy=false;view()}
 }
 desk.addEventListener('input',e=>{
