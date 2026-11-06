@@ -1,134 +1,168 @@
-/* THE LOUNGE / Premium OpenAI chat and image studio. */
+/* LOUNGE CHAT — clean conversations and images using private OpenAI API. */
 (function(){
 'use strict';
 const host=document.getElementById('commandDesk');if(!host)return;
-const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ideas={
- chat:['Why did the Roman Empire fall?','Explain the causes of World War I in detail.','How do interest rates affect stock markets?','Give me a challenging geography quiz.'],
- image:['A cinematic reconstruction of ancient Rome at sunset','A highly detailed historical world-map poster','An extraordinary photorealistic mountain landscape','A futuristic American city at night, cinematic']
-};
-let mode='chat',drafts={chat:'',image:''},aspect='1024x1024',reasoning='medium',messages=[],history=[],busy=false,notice='',error='',connected=false,billingRequired=false,model='GPT-6.1 Sol',imageModel='GPT Image 2.6 Sunburst';
-const urls=new Set();
+const KEY='lounge_chat_threads_v1',BILLING='https://platform.openai.com/settings/organization/billing/overview';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ideas={chat:['Explain the causes of World War I.','How does the stock market work?','Quiz me on world geography.','Why did the Roman Empire fall?'],image:['Ancient Jerusalem at sunset, photorealistic','A detailed vintage world map','A futuristic city at night, cinematic','Mountains under the northern lights']};
 const active=()=>document.body.dataset.ewView==='ai';
-function inline(s){
- return escape(s).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/(^|[^\w])\*([^*\n]+)\*/g,'$1<em>$2</em>');
+let threads=readThreads(),activeId=threads[0]?.id||null,mode='chat',reasoning='medium',aspect='1024x1024',drafts={chat:'',image:''},busy=false,error='',note='',connected=false,billing=false,model='GPT-6.1 Sol',imageModel='GPT Image 2.6 Sunburst';
+const urls=new Set();
+function id(){return typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():'chat'+Date.now()+Math.random().toString(36).slice(2)}
+function readThreads(){
+ try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(v))return [];
+  return v.filter(t=>t&&typeof t.id==='string'&&Array.isArray(t.messages)&&typeof t.title==='string').slice(0,12).map(t=>({id:t.id,title:t.title.slice(0,65),messages:t.messages.filter(m=>m&&typeof m.text==='string'&&['user','assistant'].includes(m.role)&&m.kind!=='image').slice(-24).map(m=>({role:m.role,kind:m.kind==='text'?'text':'prompt',channel:m.channel==='image'?'image':'chat',text:m.text.slice(0,6500),model:String(m.model||'').slice(0,80)}))}));
+ }catch{return []}
 }
-function markdown(text){
- const lines=String(text||'').replace(/\r/g,'').split('\n');
- let out='',type='';
- const close=()=>{if(type){out+='</'+type+'>';type=''}};
+function save(){
+ try{localStorage.setItem(KEY,JSON.stringify(threads.slice(0,12).map(t=>({id:t.id,title:t.title,messages:t.messages.filter(m=>m.kind!=='image').slice(-24)}))))}catch{}
+}
+function current(){return threads.find(t=>t.id===activeId)||null}
+function create(){
+ const t={id:id(),title:'New chat',messages:[]};
+ threads.unshift(t);threads=threads.slice(0,12);activeId=t.id;save();return t
+}
+function ensure(){return current()||create()}
+function shortTitle(q){return q.length>42?q.slice(0,42)+'…':q}
+function inline(text){
+ return esc(text).replace(/\[([^\]\n]{1,100})\]\((https?:\/\/[^\s)]+)\)/g,(_,label,u)=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+label+'</a>')
+ .replace(/\x60([^\x60\n]{1,150})\x60/g,'<code>$1</code>')
+ .replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>')
+ .replace(/(^|[^\w])\*([^*\n]+)\*/g,'$1<em>$2</em>')
+}
+function markdown(src){
+ const lines=String(src||'').replace(/\r\n?/g,'\n').split('\n');let out='',list='',inCode=false,code=[],para=[];
+ const endPara=()=>{if(para.length){out+='<p>'+para.map(inline).join(' ')+'</p>';para=[]}};
+ const endList=()=>{if(list){out+='</'+list+'>';list=''}};
  for(const line of lines){
-  if(!line.trim()){close();continue}
-  const h=line.match(/^(#{1,3})\s+(.+)$/);
-  if(h){close();out+='<h3>'+inline(h[2])+'</h3>';continue}
-  const b=line.match(/^\s*[-*]\s+(.+)$/),n=line.match(/^\s*\d+[.)]\s+(.+)$/);
-  if(b||n){const next=b?'ul':'ol';if(type!==next){close();type=next;out+='<'+type+'>'}out+='<li>'+inline((b||n)[1])+'</li>';continue}
-  close();out+='<p>'+inline(line)+'</p>'
+  if(/^\s*\x60{3}/.test(line)){
+   endPara();endList();
+   if(inCode){out+='<pre class="lc-code"><code>'+esc(code.join('\n'))+'</code></pre>';code=[];inCode=false}else inCode=true;
+   continue
+  }
+  if(inCode){code.push(line);continue}
+  if(!line.trim()){endPara();endList();continue}
+  const heading=line.match(/^(#{1,4})\s+(.+)$/);
+  if(heading){endPara();endList();const n=Math.min(heading[1].length+1,5);out+='<h'+n+'>'+inline(heading[2])+'</h'+n+'>';continue}
+  if(/^\s*---+\s*$/.test(line)){endPara();endList();out+='<hr>';continue}
+  const bullet=line.match(/^\s*[-*]\s+(.+)$/),number=line.match(/^\s*\d+[.)]\s+(.+)$/);
+  if(bullet||number){endPara();const type=bullet?'ul':'ol';if(list!==type){endList();list=type;out+='<'+type+'>'}out+='<li>'+inline((bullet||number)[1])+'</li>';continue}
+  endList();
+  if(/^\s*>\s+/.test(line)){endPara();out+='<blockquote>'+inline(line.replace(/^\s*>\s+/,''))+'</blockquote>'}else para.push(line.trim())
  }
- close();return out||'<p>No answer was returned.</p>'
+ if(inCode)out+='<pre class="lc-code"><code>'+esc(code.join('\n'))+'</code></pre>';
+ endPara();endList();return out||'<p>No response text was returned.</p>'
 }
-function transcript(){
- if(!messages.length)return '<div class="ai-empty"><span class="ai-empty-symbol">✦</span><h2>What would you like to explore?</h2><p>Ask a question, have a conversation, or create original images. Everything appears together in this studio.</p><div class="ai-idea-grid">'+ideas[mode].map((p,i)=>'<button type="button" data-ai-idea="'+i+'">'+escape(p)+'</button>').join('')+'</div></div>';
- return '<div class="ai-transcript">'+messages.map((m,index)=>{
-  const user=m.role==='user',picture=m.kind==='image';
-  let inside='';
-  if(picture){
-   inside='<div class="ai-generated-image"><img src="'+escape(m.url)+'" alt="'+escape(m.prompt)+'"><div class="ai-image-actions"><a href="'+escape(m.url)+'" download="lounge-ai-image.png">↓ Download PNG</a><span>'+escape(m.model||imageModel)+'</span></div></div>';
-  }else if(!user){
-   inside='<div class="ai-answer-text" '+(index===messages.length-1?'id="loungeAIAnswer"':'')+'>'+markdown(m.text)+'</div><div class="ai-response-actions"><button type="button" data-ai-copy="'+index+'">Copy answer</button><small>AI answers may contain mistakes</small></div>';
-  }else inside='<div class="ai-user-text">'+escape(m.text)+'</div>';
-  return '<article class="ai-message '+(user?'ai-message-user':'ai-message-assistant')+(!user?' ai-answer':'')+'"><div class="ai-message-identity"><span class="ai-avatar">'+(user?'●':'✦')+'</span><strong>'+(user?'YOU':picture?'IMAGE':'AI')+'</strong><small>'+(user?'Your message':escape(m.model||model))+'</small></div><div class="ai-message-body">'+inside+'</div></article>'
+function leftPanel(){
+ return '<aside class="lc-sidebar" aria-label="Conversation history"><div class="lc-brand"><span class="lc-brand-icon">✦</span> LOUNGE CHAT</div>'
+ +'<button type="button" class="lc-new" data-chat-new>＋ <span>New chat</span></button>'
+ +'<div class="lc-history-label">Recent chats</div><div class="lc-threads">'+threads.map(t=>'<div class="lc-thread-row"><button type="button" class="lc-thread '+(activeId===t.id?'selected':'')+'" data-chat-open="'+esc(t.id)+'" title="'+esc(t.title)+'">'+esc(t.title)+'</button><button type="button" class="lc-delete" data-chat-delete="'+esc(t.id)+'" title="Delete conversation" aria-label="Delete '+esc(t.title)+'">×</button></div>').join('')+'</div>'
+ +'<div class="lc-sidebar-bottom">✦ <span>Powered by OpenAI<small>Chats saved in this browser</small></span></div></aside>'
+}
+function start(){
+ return '<section class="lc-welcome"><div class="lc-welcome-icon">✦</div><h2>How can I help you today?</h2><p>Ask a question, start a discussion, or create an image.</p><div class="lc-prompts">'+ideas[mode].map((q,i)=>'<button type="button" data-chat-example="'+i+'">'+esc(q)+' <span>↗</span></button>').join('')+'</div></section>'
+}
+function conversation(){
+ const t=current();if(!t?.messages.length)return start();
+ return '<div class="ai-transcript lc-transcript">'+t.messages.map((m,i)=>{
+  if(m.role==='user')return '<article class="lc-user ai-message-user"><div class="lc-user-bubble">'+esc(m.text)+'</div></article>';
+  if(m.kind==='image')return '<article class="lc-answer ai-answer"><div class="lc-ai-icon">✦</div><div class="lc-response"><div class="lc-response-label">Lounge Chat</div><div class="ai-generated-image lc-picture"><img src="'+esc(m.url)+'" alt="'+esc(m.prompt||'Generated image')+'"><div class="ai-image-actions"><a href="'+esc(m.url)+'" download="lounge-chat-image.png">↓ Download PNG</a><small>Images stay available until the page reloads</small></div></div></div></article>';
+  return '<article class="lc-answer ai-answer"><div class="lc-ai-icon">✦</div><div class="lc-response"><div class="lc-response-label">Lounge Chat <small>'+esc(m.model||model)+'</small></div><div class="lc-prose"'+(i===t.messages.length-1?' id="loungeAIAnswer"':'')+'>'+markdown(m.text)+'</div><div class="lc-actions"><button type="button" data-chat-copy="'+i+'">⧉ Copy</button></div></div></article>'
  }).join('')+'</div>'
 }
-function draw(){
- if(!active())return;
- host.innerHTML='<section class="ai-studio"><header class="ai-studio-header"><div><span class="lounge-eyebrow">THE LOUNGE · OPENAI</span><h1>AI Studio <span>✦</span></h1><p>A powerful AI conversation and image-creation space.</p></div><div class="ai-studio-status"><strong>'+(billingRequired?'● API credits needed':connected?'● API key configured':'◌ Connecting')+'</strong><small>'+escape(model)+' · Premium</small></div></header>'
- +'<nav class="ai-mode-switch" aria-label="AI Studio modes"><button type="button" data-ai-mode="chat" aria-pressed="'+(mode==='chat')+'">✦ Chat & Research</button><button type="button" data-ai-mode="image" aria-pressed="'+(mode==='image')+'">▣ Create Images</button><button type="button" class="ai-reset" data-ai-reset '+(busy?'disabled':'')+'>↻ New conversation</button></nav>'
- +'<div id="aiConversation" class="ai-conversation" aria-live="polite">'+transcript()+'</div>'
- +(error?'<div class="ai-error-inline" role="alert">'+escape(error)+(billingRequired?'<p><a class="ai-billing-link" href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener noreferrer">Add OpenAI API credits ↗</a></p>':'')+'</div>':'')
- +'<form id="loungeAIForm" class="ai-composer"><label for="loungeAIQuestion">'+(mode==='chat'?'ASK ANYTHING':'DESCRIBE THE IMAGE TO CREATE')+'</label><textarea id="loungeAIQuestion" name="question" rows="3" maxlength="2000" minlength="'+(mode==='chat'?3:10)+'" placeholder="'+(mode==='chat'?'Ask a question or continue the conversation…':'Describe the style, lighting, layout, subject and details…')+'" required '+(busy?'disabled':'')+'>'+escape(drafts[mode])+'</textarea>'
- +(mode==='chat'?'<div class="ai-reasoning-options"><label for="aiReasoning">ANSWER DEPTH</label><select id="aiReasoning" aria-label="Answer depth"><option value="medium"'+(reasoning==='medium'?' selected':'')+'>Standard · Faster</option><option value="high"'+(reasoning==='high'?' selected':'')+'>Deep analysis · Slower</option></select><small>Both use '+escape(model)+'. Choose Deep analysis only when needed.</small></div>':'')
- +(mode==='image'?'<div class="ai-image-options"><label for="aiAspect">FORMAT</label><select id="aiAspect"><option value="1024x1024"'+(aspect==='1024x1024'?' selected':'')+'>Square</option><option value="1536x1024"'+(aspect==='1536x1024'?' selected':'')+'>Landscape</option><option value="1024x1536"'+(aspect==='1024x1536'?' selected':'')+'>Portrait</option></select><small>'+escape(imageModel)+' · High quality · Up to 3 per day</small></div>':'')
- +'<div class="ai-composer-footer"><p class="ai-composer-note" role="status">'+escape(notice||(mode==='chat'?(reasoning==='high'?'Deep analysis selected · may take longer':'GPT-6.1 Sol · Standard reasoning for faster responses'):'Premium images use OpenAI API credits'))+'</p><button class="ai-primary" type="submit" '+(busy?'disabled':'')+'>'+(busy?'Working…':mode==='chat'?'Send message ↗':'Generate image ↗')+'</button></div></form>'
- +'<p class="ai-privacy">This studio uses the site owner’s private OpenAI API. Chat and image requests are billed to the owner. Content is sent securely from The Lounge to OpenAI.</p></section>';
+function inputArea(){
+ return '<form id="loungeAIForm" class="ai-composer lc-composer"><label class="lc-sr-only" for="loungeAIQuestion">'+(mode==='chat'?'Your message':'Image description')+'</label>'
+ +'<textarea id="loungeAIQuestion" name="question" rows="2" maxlength="2000" minlength="'+(mode==='chat'?3:10)+'" placeholder="'+(mode==='chat'?'Message Lounge Chat':'Describe the image you want to create')+'" required '+(busy?'disabled':'')+'>'+esc(drafts[mode])+'</textarea>'
+ +'<div class="lc-input-bottom"><div class="lc-tools"><button type="button" class="lc-tool" data-ai-mode="chat" aria-pressed="'+(mode==='chat')+'">✦ Chat</button><button type="button" class="lc-tool" data-ai-mode="image" aria-pressed="'+(mode==='image')+'">▧ Images</button>'
+ +(mode==='chat'?'<label class="lc-setting">Reasoning <select id="aiReasoning" aria-label="Answer depth"><option value="medium"'+(reasoning==='medium'?' selected':'')+'>Standard</option><option value="high"'+(reasoning==='high'?' selected':'')+'>Deep analysis</option></select></label>'
+ :'<label class="lc-setting">Size <select id="aiAspect" aria-label="Image size"><option value="1024x1024"'+(aspect==='1024x1024'?' selected':'')+'>Square</option><option value="1536x1024"'+(aspect==='1536x1024'?' selected':'')+'>Landscape</option><option value="1024x1536"'+(aspect==='1024x1536'?' selected':'')+'>Portrait</option></select></label>')
+ +'</div><button type="submit" class="lc-send" aria-label="'+(mode==='chat'?'Send message':'Generate image')+'" title="'+(mode==='chat'?'Send message':'Generate image')+'" '+(busy?'disabled':'')+'>'+(busy?'···':'↑')+'</button></div></form>'
 }
-function status(s){notice=String(s||'').slice(0,200);const el=host.querySelector('.ai-composer-note');if(el)el.textContent=notice}
-function bottom(){const latest=host.querySelector('.ai-message:last-child');if(latest)latest.scrollIntoView({block:'nearest',behavior:'smooth'});}
-async function ask(){
- if(busy)return;
- const task=mode,q=drafts[task].trim(),min=task==='image'?10:3;
- if(q.length<min||q.length>2000){error='Please enter at least '+min+' characters.';draw();return}
- busy=true;error='';notice=task==='image'?'Creating your image…':reasoning==='high'?'Sol is preparing a detailed analysis…':'Sol is preparing your answer…';
- messages.push({role:'user',kind:'prompt',text:q});drafts[task]='';draw();bottom();
+function render(){
+ if(!active())return;
+ host.innerHTML='<section class="ai-studio lc-shell">'+leftPanel()+'<main class="lc-main">'
+ +'<header class="ai-studio-header lc-header"><div><h1>Lounge Chat</h1><span>'+esc(model)+' <span aria-hidden="true">⌄</span></span></div><span class="lc-status '+(billing?'lc-billing':connected?'lc-connected':'')+'">'+(billing?'API credits needed':connected?'Connected':'Checking…')+'</span></header>'
+ +'<div class="ai-conversation lc-conversation" id="aiConversation">'+conversation()+'</div>'
+ +(busy?'<div class="lc-pending" role="status">✦ &nbsp; '+(mode==='image'?'Creating your image':'Thinking')+'<span class="lc-pending-dots"> · · ·</span></div>':'')
+ +(error?'<div class="ai-error-inline lc-error" role="alert">'+esc(error)+(billing?'<p><a class="ai-billing-link" href="'+BILLING+'" target="_blank" rel="noopener noreferrer">Add OpenAI API credits ↗</a></p>':'')+'</div>':'')
+ +'<div class="lc-bottom">'+inputArea()+'<p class="lc-hint">'+esc(note||(mode==='image'?'Create images with OpenAI · 3 per day':reasoning==='high'?'Deep analysis can take longer':'Lounge Chat can make mistakes. Verify important information.'))+'</p></div>'
+ +'</main></section>'
+}
+function scrollToEnd(){const t=host.querySelector('.lc-pending, .lc-answer:last-child, .lc-user:last-child');if(t)t.scrollIntoView({block:'nearest',behavior:'auto'})}
+async function send(){
+ if(busy)return;const task=mode,q=drafts[task].trim(),min=task==='chat'?3:10;
+ if(q.length<min||q.length>2000){error='Please enter at least '+min+' characters.';render();return}
+ const t=ensure();
+ const prior=t.messages.filter(m=>m.channel==='chat'&&m.kind!=='image').slice(-8).map(m=>({role:m.role,content:m.text.slice(0,1200)}));
+ busy=true;error='';note=task==='image'?'Generating image…':'Preparing your answer…';
+ t.messages.push({role:'user',kind:'prompt',channel:task,text:q});drafts[task]='';render();scrollToEnd();
  try{
   if(task==='chat'){
-   const r=await fetch('/api/ask-ai',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,history:history.slice(-8),reasoningEffort:reasoning}),signal:AbortSignal.timeout(158000)});
-   const data=await r.json().catch(()=>({}));
-   if(!r.ok)throw Error(data.error||'OpenAI could not answer.');
+   const res=await fetch('/api/ask-ai',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,history:prior,reasoningEffort:reasoning}),signal:AbortSignal.timeout(158000)});
+   const data=await res.json().catch(()=>({}));if(!res.ok)throw Error(data.error||'The AI could not answer.');
    const answer=String(data.answer||'').trim();if(!answer)throw Error('OpenAI returned an empty answer.');
-   messages.push({role:'assistant',kind:'text',text:answer,model:data.model||model});
-   history.push({role:'user',content:q.slice(0,1200)},{role:'assistant',content:answer.slice(0,2200)});
-   history=history.slice(-8);billingRequired=false;notice='Answer ready';
+   t.messages.push({role:'assistant',kind:'text',channel:'chat',text:answer,model:data.model||model});billing=false;note='';
   }else{
-   const r=await fetch('/api/ask-ai/image',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:q,size:aspect}),signal:AbortSignal.timeout(145000)});
-   if(!r.ok){const data=await r.json().catch(()=>({}));throw Error(data.error||'Image generation failed.')}
-   const blob=await r.blob();
-   if(!blob.type.startsWith('image/')||blob.size<64)throw Error('Image data was invalid.');
+   const res=await fetch('/api/ask-ai/image',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:q,size:aspect}),signal:AbortSignal.timeout(145000)});
+   if(!res.ok){const data=await res.json().catch(()=>({}));throw Error(data.error||'Image generation failed.')}
+   const blob=await res.blob();if(!blob.type.startsWith('image/')||blob.size<64)throw Error('Image data was invalid.');
    const url=URL.createObjectURL(blob);urls.add(url);
-   messages.push({role:'assistant',kind:'image',url,prompt:q,model:r.headers.get('X-Lounge-Image-Model')||imageModel});
-   billingRequired=false;notice='Image created · Download PNG below';
+   t.messages.push({role:'assistant',kind:'image',channel:'image',url,prompt:q,model:res.headers.get('X-Lounge-Image-Model')||imageModel});billing=false;note='Image ready · Download PNG above';
   }
- }catch(e){
-  const localTimeout=e?.name==='TimeoutError'||e?.name==='AbortError'||/timeout/i.test(String(e?.message||''));
-  error=localTimeout?'The request took too long to complete. Try Standard reasoning or a shorter question, then send it again.':String(e?.message||e);
-  billingRequired=/credit balance is exhausted|API credits|billing credit|credit_balance_exhausted/i.test(error);
-  drafts[task]=q;
-  const last=messages[messages.length-1];
-  if(last?.role==='user'&&last.text===q)messages.pop();
-  notice=billingRequired?'OpenAI needs more API credits':localTimeout?'OpenAI response timed out':'Request not completed';
- }
- finally{busy=false;draw();bottom()}
+  if(t.title==='New chat')t.title=q.length>44?q.slice(0,44)+'…':q;
+  const index=threads.indexOf(t);if(index>0){threads.splice(index,1);threads.unshift(t)}
+  save();
+ }catch(ex){
+  const timed=ex?.name==='TimeoutError'||ex?.name==='AbortError'||/timeout/i.test(String(ex?.message||''));
+  error=timed?'OpenAI took too long. Try Standard reasoning or a shorter message.':String(ex?.message||ex);
+  billing=/credit balance is exhausted|API credits|billing credit|credit_balance_exhausted/i.test(error);
+  const last=t.messages[t.messages.length-1];if(last?.role==='user'&&last.text===q)t.messages.pop();
+  drafts[task]=q;note='Your message is still in the box to try again.';
+ }finally{busy=false;render();scrollToEnd()}
 }
-function reset(){
- for(const u of urls)URL.revokeObjectURL(u);urls.clear();
- messages=[];history=[];drafts={chat:'',image:''};notice='';error='';draw()
+function newChat(){if(busy)return;create();drafts={chat:'',image:''};mode='chat';error='';note='';render()}
+function switchTo(k){if(busy||!threads.some(t=>t.id===k))return;activeId=k;drafts={chat:'',image:''};error='';note='';render()}
+function deleteChat(k){
+ if(busy)return;const t=threads.find(t=>t.id===k);if(!t)return;
+ for(const m of t.messages)if(m.kind==='image'&&urls.has(m.url)){URL.revokeObjectURL(m.url);urls.delete(m.url)}
+ threads=threads.filter(t=>t.id!==k);if(activeId===k)activeId=threads[0]?.id||null;save();render()
 }
 host.addEventListener('input',e=>{if(active()&&e.target.id==='loungeAIQuestion')drafts[mode]=e.target.value});
 host.addEventListener('change',e=>{
  if(!active())return;
- if(e.target.id==='aiAspect')aspect=e.target.value;
  if(e.target.id==='aiReasoning')reasoning=e.target.value==='high'?'high':'medium';
+ if(e.target.id==='aiAspect')aspect=e.target.value
 });
 host.addEventListener('keydown',e=>{
  if(!active()||e.target.id!=='loungeAIQuestion'||e.key!=='Enter'||e.shiftKey||e.isComposing)return;
- e.preventDefault();if(!busy)host.querySelector('#loungeAIForm')?.requestSubmit();
+ e.preventDefault();if(!busy)host.querySelector('#loungeAIForm')?.requestSubmit()
 });
 host.addEventListener('click',e=>{
  if(!active())return;const b=e.target.closest('button');if(!b)return;
- if(b.dataset.aiMode&&!busy){mode=b.dataset.aiMode;error='';notice='';draw();return}
- if(b.hasAttribute('data-ai-reset')&&!busy){reset();return}
- if(b.dataset.aiIdea!==undefined&&!busy){const p=ideas[mode][Number(b.dataset.aiIdea)];if(p){drafts[mode]=p;draw();host.querySelector('#loungeAIQuestion')?.focus()}return}
- if(b.dataset.aiCopy!==undefined){
-  const m=messages[Number(b.dataset.aiCopy)];
-  if(m?.kind==='text'&&navigator.clipboard?.writeText)void navigator.clipboard.writeText(m.text).then(()=>status('Answer copied.')).catch(()=>status('Could not copy this answer.'));
+ if(b.hasAttribute('data-chat-new')){newChat();return}
+ if(b.dataset.chatOpen){switchTo(b.dataset.chatOpen);return}
+ if(b.dataset.chatDelete){deleteChat(b.dataset.chatDelete);return}
+ if(b.dataset.aiMode&&!busy){mode=b.dataset.aiMode;error='';note='';render();return}
+ if(b.dataset.chatExample!==undefined&&!busy){const q=ideas[mode][Number(b.dataset.chatExample)];if(q){drafts[mode]=q;render();host.querySelector('#loungeAIQuestion')?.focus()}return}
+ if(b.dataset.chatCopy!==undefined){
+  const m=current()?.messages[Number(b.dataset.chatCopy)];
+  if(m?.kind==='text'&&navigator.clipboard?.writeText)void navigator.clipboard.writeText(m.text).then(()=>{const n=host.querySelector('.lc-hint');if(n)n.textContent='Answer copied.'}).catch(()=>{})
  }
 });
 host.addEventListener('submit',e=>{
  if(!active()||e.target.id!=='loungeAIForm')return;
- e.preventDefault();drafts[mode]=e.target.querySelector('textarea')?.value||drafts[mode];void ask()
+ e.preventDefault();drafts[mode]=e.target.querySelector('textarea')?.value||drafts[mode];void send()
 });
 async function check(){
  try{
-  const r=await fetch('/api/ask-ai/status',{credentials:'same-origin',cache:'no-store'}),data=await r.json();
-  connected=r.ok&&data.available===true;
-  billingRequired=data.billingRequired===true;
-  if(billingRequired)error='OpenAI API credits are exhausted. Add funds in OpenAI API Billing; both chat answers and image creation will be rejected until credits are available.';
-  else if(connected&&/credit|billing/i.test(error))error='';
-  if(data.model)model=String(data.model);
-  if(data.imageModel)imageModel=String(data.imageModel);
-  if(!connected)error='OpenAI is not connected. Ask the owner to configure OPENAI_API_KEY in Railway.';
- }catch{connected=false;error='OpenAI connection status could not be checked.'}
- if(active())draw()
+  const r=await fetch('/api/ask-ai/status',{credentials:'same-origin',cache:'no-store'});const data=await r.json();
+  connected=r.ok&&data.available===true;billing=data.billingRequired===true;
+  if(data.model)model=String(data.model);if(data.imageModel)imageModel=String(data.imageModel);
+  if(billing)error='OpenAI API credits are exhausted. The owner must add credits before new answers or images can be created.';
+  else if(!connected)error='OpenAI is not connected. The owner must configure OPENAI_API_KEY in Railway.';
+  else if(/credits are exhausted|not connected/i.test(error))error='';
+ }catch{connected=false;error='Could not check the OpenAI API connection.'}
+ if(active())render()
 }
-window.LoungeAI={open(){if(active()){draw();void check()}}};
+window.LoungeAI={open(){if(active()){render();void check()}}};
 })();
