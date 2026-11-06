@@ -20,7 +20,7 @@ function view(){
  if(!active())return;
  desk.innerHTML='<div class="lounge-panel-head"><span class="lounge-eyebrow">THE LOUNGE / PRIVATE RESEARCH DESK</span><h1>AI Search <span aria-hidden="true">✦</span></h1><p>Search reference sources and ask OpenAI directly inside The Lounge. Answers appear here, not on another website.</p></div>'
  +'<section class="lounge-surface ai-panel"><div class="ai-topline"><span class="ai-badge">'+(openaiReady?'● OPENAI CONNECTED':'◌ CONNECTING TO OPENAI')+'</span><span class="ai-subtext">'+(openaiReady?'Answers generated through your server’s private OpenAI API connection':'OpenAI answers work here after the server connection is ready')+'</span></div>'
- +'<form id="loungeAIForm"><label for="loungeAIQuestion">SEARCH AND ASK A QUESTION</label><textarea name="question" id="loungeAIQuestion" rows="4" maxlength="2000" minlength="2" placeholder="Search history, politics, countries, science, economics and more…" required>'+esc(question)+'</textarea>'
+ +'<form id="loungeAIForm"><label for="loungeAIQuestion">SEARCH AND ASK A QUESTION</label><textarea name="question" id="loungeAIQuestion" rows="4" maxlength="2000" minlength="3" placeholder="Search history, politics, countries, science, economics and more…" required>'+esc(question)+'</textarea>'
  +'<div class="ai-actions"><button type="submit" class="ai-primary" '+(busy?'disabled':'')+'>'+(busy?'ASKING OPENAI…':'ASK OPENAI')+'</button><button type="button" data-ai-clear '+(busy?'disabled':'')+'>CLEAR</button></div></form>'
  +'<p class="ai-notice" id="aiStatus" role="status" aria-live="polite">'+esc(message||(openaiReady?'Ask a question. OpenAI answers appear directly below.':'Checking the server’s OpenAI connection. The old browser AI model is no longer used.'))+'</p></section>'
  +(searchDone?'<section class="lounge-surface ai-references"><h2>Reference search results</h2>'+sourcesHtml()+'</section>':'')
@@ -37,7 +37,7 @@ function notice(text){
 async function run(){
  if(busy)return;
  const query=question.trim();
- if(query.length<2||query.length>2000){lastError='Enter a question at least two characters long.';view();return}
+ if(query.length<3||query.length>2000){lastError='Enter a question at least three characters long.';view();return}
  busy=true;answer='';results=[];searchDone=false;lastError='';notice('Finding relevant references before asking OpenAI…');view();
  try{
   const r=await fetch('/api/ai-search?q='+encodeURIComponent(query.slice(0,160)),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(14000)});
