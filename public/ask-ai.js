@@ -19,15 +19,15 @@ function sourcesHtml(){
 function view(){
  if(!active())return;
  const gpu=!!navigator.gpu;
- desk.innerHTML='<div class="lounge-panel-head"><span class="lounge-eyebrow">THE LOUNGE / PRIVATE RESEARCH DESK</span><h1>AI Search <span aria-hidden="true">✦</span></h1><p>Find source links and ask an AI model right here inside The Lounge. It runs on your device—not another chat website.</p></div>'
- +'<section class="lounge-surface ai-panel"><div class="ai-topline"><span class="ai-badge">'+(gpu?'● ON-DEVICE AI AVAILABLE':'◌ REFERENCE SEARCH AVAILABLE')+'</span><span class="ai-subtext">'+(gpu?'Compact open-source AI · processed locally in your browser':'AI generation requires a WebGPU-capable computer/browser; reference search still works')+'</span></div>'
+ desk.innerHTML='<div class="lounge-panel-head"><span class="lounge-eyebrow">THE LOUNGE / PRIVATE RESEARCH DESK</span><h1>AI Search <span aria-hidden="true">✦</span></h1><p>Search trusted references and ask OpenAI directly inside The Lounge once the owner connects the API. Local AI remains an option.</p></div>'
+ +'<section class="lounge-surface ai-panel"><div class="ai-topline"><span class="ai-badge">'+(openaiReady?'● OPENAI CONNECTED':gpu?'◌ LOCAL AI AVAILABLE':'◌ OPENAI KEY REQUIRED')+'</span><span class="ai-subtext">'+(openaiReady?'OpenAI answers appear inside the Lounge':gpu?'OpenAI API not connected · local AI is available':'OpenAI API not connected · search still works')+'</span></div>'
  +'<form id="loungeAIForm"><label for="loungeAIQuestion">SEARCH AND ASK A QUESTION</label><textarea name="question" id="loungeAIQuestion" rows="4" maxlength="2000" minlength="2" placeholder="Search history, politics, countries, science, economics and more…" required>'+esc(question)+'</textarea>'
- +'<div class="ai-actions"><button type="submit" class="ai-primary" '+(busy?'disabled':'')+'>'+(busy?'SEARCHING / THINKING…':'SEARCH WITH LOUNGE AI')+'</button><button type="button" data-ai-clear '+(busy?'disabled':'')+'>CLEAR</button></div></form>'
+ +'<div class="ai-actions"><button type="submit" class="ai-primary" '+(busy?'disabled':'')+'>'+(busy?'SEARCHING / THINKING…':openaiReady?'ASK OPENAI':'SEARCH WITH LOUNGE AI')+'</button><button type="button" data-ai-clear '+(busy?'disabled':'')+'>CLEAR</button></div></form>'
  +'<p class="ai-notice" id="aiStatus" role="status" aria-live="polite">'+esc(message||(gpu?'The local AI model downloads once to your browser on first use; it may be several hundred MB. Source lookup uses Wikipedia and available publisher headlines.':'Search works without AI. For on-device answers, use a current WebGPU-enabled browser with graphics acceleration.'))+'</p></section>'
  +(searchDone?'<section class="lounge-surface ai-references"><h2>Reference search results</h2>'+sourcesHtml()+'</section>':'')
- +(answer?'<section class="lounge-surface ai-answer"><h2>AI-generated answer</h2><p class="ai-notice">Generated locally by '+esc(model||'an open-source AI model')+'. Verify significant facts using the links above.</p><div id="loungeAIAnswer"></div></section>':'')
- +(lastError?'<section class="lounge-surface ai-error" role="alert"><h2>Local AI unavailable</h2><p>'+esc(lastError)+'</p><p>Source links above remain available. A faster computer or Chrome with WebGPU enabled may be needed.</p></section>':'')
- +'<section class="lounge-surface ai-prompts"><h2>Try these searches</h2><div class="ai-suggestions">'+suggestions.map((s,i)=>'<button type="button" data-ai-suggestion="'+i+'">'+esc(s)+'</button>').join('')+'</div><p class="ai-disclaimer">Small on-device models can make mistakes. Live coverage is limited to the listed reference sources, not the whole internet. No AI provider key is required.</p></section>';
+ +(answer?'<section class="lounge-surface ai-answer"><h2>AI-generated answer</h2><p class="ai-notice">Answered by '+esc(model||'AI')+'. Verify significant facts using the links above.</p><div id="loungeAIAnswer"></div></section>':'')
+ +(lastError?'<section class="lounge-surface ai-error" role="alert"><h2>AI connection status</h2><p>'+esc(lastError)+'</p><p>Source links above remain available. A faster computer or Chrome with WebGPU enabled may be needed.</p></section>':'')
+ +'<section class="lounge-surface ai-prompts"><h2>Try these searches</h2><div class="ai-suggestions">'+suggestions.map((s,i)=>'<button type="button" data-ai-suggestion="'+i+'">'+esc(s)+'</button>').join('')+'</div><p class="ai-disclaimer">AI responses may be inaccurate. When OpenAI is connected, questions are sent through our private server to OpenAI. Only the owner manages the API key.</p></section>';
  if(answer){const el=desk.querySelector('#loungeAIAnswer');if(el)el.textContent=answer}
 }
 function notice(text){
@@ -82,7 +82,7 @@ desk.addEventListener('click',e=>{
   if(q&&!busy){question=q;answer='';results=[];searchDone=false;lastError='';message='';view();desk.querySelector('#loungeAIQuestion')?.focus()}
   return
  }
- if(e.target.closest('[data-ai-clear]')&&!busy){question='';answer='';results=[];searchDone=false;lastError='';message='';view()}
+ if(e.target.closest('[data-ai-clear]')&&!busy){question='';answer='';results=[];searchDone=false;lastError='';message='';priorMessages=[];view()}
 });
 desk.addEventListener('submit',e=>{
  if(!active()||e.target.id!=='loungeAIForm')return;
