@@ -121,7 +121,7 @@ test('AI Search uses the OpenAI API and never imports the failed browser model',
  assert.match(ask,/ai-conversation/);
  assert.match(ask,/Download PNG/);
  assert.match(server,/generateLoungeImage/);
- assert.match(api,/gpt-6-astra/);
+ assert.match(api,/gpt-6\.1-sol/);
  assert.match(read('lounge-images.mjs'),/gpt-image-2\.6-sunburst/);
  assert.doesNotMatch(ask,/local-ai\.js|web-llm|navigator\.gpu/);
  assert.doesNotMatch(ask,/api\/ai-search|Reference search results|ai-references|ai-source/);
