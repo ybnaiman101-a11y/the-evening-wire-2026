@@ -46,7 +46,7 @@ const apiStub=[
  '</script>'
 ].join('\n');
 const clubTests=[['debate','Daily Debate'],['polls','Polling Station'],['leaderboard','Lounge Leaderboard'],['quiz','Quiz Arena'],['predictions','Prediction Center'],['rooms','Live Hangout Rooms'],['news','The News Desk'],['trending',"What's Trending"],['history','On This Day'],['questions','Ask the Lounge']];
-const mainTests=[['rooms','Find your room'],['polls','The opinion corner'],['friends','Friends & familiar faces'],['discover','Discover'],['ai','AI Studio'],['profile','Member Profiles'],['owner','Owner Dashboard']];
+const mainTests=[['rooms','Find your room'],['polls','The opinion corner'],['friends','Friends & familiar faces'],['discover','Discover'],['ai','Lounge Chat'],['profile','Member Profiles'],['owner','Owner Dashboard']];
 function probe(kind){
  const tests=kind==='club'?clubTests:mainTests;
  const code=[
@@ -84,13 +84,14 @@ function probe(kind){
   '  document.querySelector("[data-page=ai]")?.click();',
   '  await new Promise(r=>setTimeout(r,160));',
   '  const chatPanel=document.querySelector(".ai-conversation");',
+  '  if(!document.querySelector(".lc-sidebar, .lc-new, .lc-brand"))problems.push("CHAT SIDEBAR MISSING");',
   '  const composer=document.querySelector(".ai-composer");',
   '  if(getComputedStyle(chatPanel).overflowY!=="visible")problems.push("CHAT STILL HAS SECOND SCROLLBAR");',
   '  if(getComputedStyle(composer).position!=="static")problems.push("COMPOSER STILL FLOATS WHILE SCROLLING");',
   '  if(document.querySelector("#aiReasoning")?.value!=="medium")problems.push("STANDARD REASONING NOT DEFAULT");',
   '  const searchField=document.querySelector("#loungeAIQuestion");',
   '  if(!searchField)problems.push("AI SEARCH INPUT MISSING");',
-  '  else{searchField.value="capital of australia";searchField.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#loungeAIForm")?.requestSubmit();await new Promise(r=>setTimeout(r,500));if(document.querySelector(".ai-references, .ai-source"))problems.push("UNWANTED REFERENCE CARDS DISPLAYED");if(!document.querySelector(".ai-answer")||!document.querySelector("#loungeAIAnswer")?.textContent.includes("answered by OpenAI"))problems.push("OPENAI ANSWER NOT DISPLAYED");}',
+  '  else{searchField.value="capital of australia";searchField.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#loungeAIForm")?.requestSubmit();await new Promise(r=>setTimeout(r,500));if(document.querySelector(".ai-references, .ai-source"))problems.push("UNWANTED REFERENCE CARDS DISPLAYED");if(!document.querySelector(".lc-answer")||!document.querySelector("#loungeAIAnswer")?.textContent.includes("answered by OpenAI"))problems.push("OPENAI ANSWER NOT DISPLAYED");}',
   '  if(window.__aiTestRequests[0]?.reasoningEffort!=="medium")problems.push("REASONING REQUEST NOT STANDARD");',
   '  const effortSelect=document.querySelector("#aiReasoning");if(effortSelect){effortSelect.value="high";effortSelect.dispatchEvent(new Event("change",{bubbles:true}));}else problems.push("DEEP ANALYSIS OPTION MISSING");',
   '  if(!document.querySelector("#loungeAIAnswer h3")||!document.querySelector("#loungeAIAnswer strong"))problems.push("MARKDOWN ANSWER FORMATTING FAILED");',
@@ -99,6 +100,10 @@ function probe(kind){
   '  const imageField=document.querySelector("#loungeAIQuestion");',
   '  if(!imageField)problems.push("IMAGE PROMPT FIELD MISSING");',
   '  else{imageField.value="A cinematic historical painting of ancient Rome";imageField.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#loungeAIForm")?.requestSubmit();await new Promise(r=>setTimeout(r,400));if(!document.querySelector(".ai-generated-image img")||!document.querySelector(".ai-generated-image a[download]"))problems.push("GENERATED IMAGE PREVIEW OR DOWNLOAD MISSING");}',
+  '  const oldChat=document.querySelector(".lc-thread.selected")?.dataset.chatOpen;',
+  '  document.querySelector("[data-chat-new]")?.click();',
+  '  if(!document.querySelector(".lc-welcome"))problems.push("NEW CHAT DID NOT CLEAR VIEW");',
+  '  if(oldChat){[...document.querySelectorAll("[data-chat-open]")].find(b=>b.dataset.chatOpen===oldChat)?.click();if(!document.querySelector("#loungeAIAnswer")?.textContent.includes("answered by OpenAI"))problems.push("RECENT CHAT NOT RESTORED");}else problems.push("CHAT THREAD NOT SAVED");',
   '  const navLinks=[...document.querySelectorAll(".lounge-nav>a")];',
   '  if(navLinks.some(a=>a.scrollWidth>a.clientWidth+3))problems.push("NAV BUTTON TEXT OVERFLOW");',
   '  document.querySelector("[data-page=owner]")?.click();',

@@ -19,7 +19,7 @@ test('All ten Lounge tabs are real navigable links that route to a valid page',(
  assert.match(html,/id="commandDesk"/);
  assert.match(html,/\/reactions\.js\?v=10/);
  assert.match(html,/\/lounge\.js\?v=6/);
- assert.match(html,/\/ask-ai\.js\?v=8/);
+ assert.match(html,/\/ask-ai\.js\?v=9/);
  assert.match(html,/\/owner\.js\?v=1/);
 });
 test('Discussion rooms are politics, Jewish life and meaningful conversations',()=>{
@@ -111,13 +111,17 @@ test('AI Search uses the OpenAI API and never imports the failed browser model',
  const ask=read('public/ask-ai.js'),server=read('server.mjs'),api=read('ask-ai.mjs');
  assert.doesNotThrow(()=>new Script(ask,{filename:'public/ask-ai.js'}));
  assert.match(html,/data-page="ai"/);
- assert.match(html,/ask-ai\.js\?v=8/);
+ assert.match(html,/ask-ai\.js\?v=9/);
  assert.match(js,/LoungeAI\.open\(\)/);
  assert.doesNotMatch(ask,/chatgpt\.com/);
  assert.match(ask,/\/api\/ask-ai/);
  assert.match(ask,/\/api\/ask-ai\/status/);
  assert.match(ask,/\/api\/ask-ai\/image/);
  assert.match(ask,/data-ai-mode="image"/);
+ assert.match(ask,/data-chat-new/);
+ assert.match(ask,/Recent chats/);
+ assert.match(ask,/lounge_chat_threads_v1/);
+ assert.match(ask,/function markdown/);
  assert.match(ask,/ai-conversation/);
  assert.match(ask,/Download PNG/);
  assert.match(server,/generateLoungeImage/);
