@@ -24,6 +24,6 @@ test('AI Studio has one scrolling page and no independent chat scrollbar or stic
  assert.doesNotMatch(js,/\.scrollTop\s*=/);
  assert.match(js,/scrollIntoView/);
  assert.match(js,/Add OpenAI API credits/);
- assert.match(html,/\/ask-ai\.js\?v=7/);
- assert.match(html,/\/lounge\.css\?v=8/);
+ assert.match(html,/\/ask-ai\.js\?v=8/);
+ assert.match(html,/\/lounge\.css\?v=9/);
 });
