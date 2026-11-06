@@ -52,7 +52,7 @@ function draw(){
  +'<p class="ai-privacy">This studio uses the site owner’s private OpenAI API. Chat and image requests are billed to the owner. Content is sent securely from The Lounge to OpenAI.</p></section>';
 }
 function status(s){notice=String(s||'').slice(0,200);const el=host.querySelector('.ai-composer-note');if(el)el.textContent=notice}
-function bottom(){const t=host.querySelector('#aiConversation');if(t)t.scrollTop=t.scrollHeight}
+function bottom(){const latest=host.querySelector('.ai-message:last-child');if(latest)latest.scrollIntoView({block:'nearest',behavior:'smooth'});}
 async function ask(){
  if(busy)return;
  const task=mode,q=drafts[task].trim(),min=task==='image'?10:3;
